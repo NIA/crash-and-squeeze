@@ -1,12 +1,12 @@
-#include "floating_point.h"
-#include "vector.h"
 #include "assert.h"
-#include "Matrix.h"
+#include "matrix.h"
 
 namespace CrashAndSqueeze
 {
     namespace Math
     {
+        // -- constructors --
+
         Matrix::Matrix()
         {
             for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
@@ -18,23 +18,21 @@ namespace CrashAndSqueeze
             memcpy(this->values, values, sizeof(this->values));
         }
 
-        int _element_index(int line, int column)
+        Matrix::Matrix(const Vector &left_vector, const Vector &right_vector)
         {
-            assert(line > 0);
-            assert(line <= MATRIX_SIZE);
-            assert(column > 0);
-            assert(column <= MATRIX_SIZE);
-            return MATRIX_SIZE*(line - 1) + column - 1;
-        }
-
-        double Matrix::get_at(int line, int column) const
-        {
-            return values[ _element_index(line, column) ];
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+                for(int j = 0; j < VECTOR_SIZE; ++j)
+                    set_at(i, j, left_vector[i]*right_vector[j]);
         }
         
-        void Matrix::set_at(int line, int column, double value)
+        bool Matrix::operator==(const Matrix &another) const
         {
-            values[ _element_index(line, column) ] = value;
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+                for(int j = 0; j < VECTOR_SIZE; ++j)
+                    if( get_at(i, j) != another.get_at(i, j) )
+                        return false;
+            return true;
         }
+
     };
 };
