@@ -7,6 +7,8 @@ namespace CrashAndSqueeze
 {
     namespace Math
     {
+        // A Vector in 3D space.
+        // For matrix operations assumed to be a column-vector
         class Vector
         {
         public:

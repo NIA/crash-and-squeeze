@@ -179,6 +179,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\matrix_unittest.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\vector_unittest.cpp"
 				>
 			</File>

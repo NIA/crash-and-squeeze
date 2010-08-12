@@ -163,6 +163,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\matrix.h"
+				>
+			</File>
+			<File
 				RelativePath=".\vector.h"
 				>
 			</File>
