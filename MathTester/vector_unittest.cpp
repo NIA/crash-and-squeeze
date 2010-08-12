@@ -7,17 +7,17 @@ using namespace ::CrashAndSqueeze::Math;
 TEST(VectorTest, DefaultConstruct)
 {
     const Point p;
-    EXPECT_EQ( 0, p.x );
-    EXPECT_EQ( 0, p.y );
-    EXPECT_EQ( 0, p.z );
+    EXPECT_EQ( 0, p[0] );
+    EXPECT_EQ( 0, p[1] );
+    EXPECT_EQ( 0, p[2] );
 }
 
 TEST(VectorTest, Construct)
 {
     const Point p(2, 3, 4.8);
-    EXPECT_EQ( 2.0, p.x );
-    EXPECT_EQ( 3.0, p.y );
-    EXPECT_EQ( 4.8, p.z );
+    EXPECT_EQ( 2.0, p[0] );
+    EXPECT_EQ( 3.0, p[1] );
+    EXPECT_EQ( 4.8, p[2] );
 }
 
 TEST(VectorTest, CopyConstruct)
@@ -66,7 +66,7 @@ TEST(VectorTest, AddAssign)
 {
     Point p1(2, 3, 4.8);
     const Point p2(1, -8, 1.1);
-    const Point p3( p1.x + p2.x, p1.y + p2.y, p1.z + p2.z );
+    const Point p3( p1[0] + p2[0], p1[1] + p2[1], p1[2] + p2[2] );
     EXPECT_EQ( &p1, &(p1 += p2) ); // It actually returns first argument
 
     EXPECT_EQ( p3, p1 );
@@ -76,7 +76,7 @@ TEST(VectorTest, SubAssign)
 {
     Point p1(2, 3, 4.8);
     const Point p2(1, -8, 1.1);
-    const Point p3( p1.x - p2.x, p1.y - p2.y, p1.z - p2.z );
+    const Point p3( p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2] );
     EXPECT_EQ( &p1, &(p1 -= p2) ); // It actually returns first argument
 
     EXPECT_EQ( p3, p1 );
@@ -86,7 +86,7 @@ TEST(VectorTest, Add)
 {
     const Point p1(2, 3, 4.8);
     const Point p2(1, -8, 1.1);
-    const Point p3( p1.x + p2.x, p1.y + p2.y, p1.z + p2.z );
+    const Point p3( p1[0] + p2[0], p1[1] + p2[1], p1[2] + p2[2] );
 
     EXPECT_EQ( p3, p1 + p2 );
 }
@@ -95,7 +95,7 @@ TEST(VectorTest, Subtract)
 {
     const Point p1(2, 3, 4.8);
     const Point p2(1, -8, 1.1);
-    const Point p3( p1.x - p2.x, p1.y - p2.y, p1.z - p2.z );
+    const Point p3( p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2] );
 
     EXPECT_EQ( p3, p1 - p2 );
 }
@@ -104,7 +104,7 @@ TEST(VectorTest, MulAssign)
 {
     Point p1(2, 3, 4.8);
     const double d = 2.3;
-    const Point p3( p1.x*d, p1.y*d, p1.z*d );
+    const Point p3( p1[0]*d, p1[1]*d, p1[2]*d );
     EXPECT_EQ( &p1, &(p1 *= d) ); // It actually returns first argument
 
     EXPECT_EQ( p3, p1 );
@@ -114,7 +114,7 @@ TEST(VectorTest, DivAssign)
 {
     Point p1(2, 3, 4.8);
     const double d = 2.3;
-    const Point p3( p1.x/d, p1.y/d, p1.z/d );
+    const Point p3( p1[0]/d, p1[1]/d, p1[2]/d );
     EXPECT_EQ( &p1, &(p1 /= d) ); // It actually returns first argument
 
     EXPECT_EQ( p3, p1 );
@@ -124,7 +124,7 @@ TEST(VectorTest, Multiply)
 {
     const Point p1(2, 3, 4.8);
     const double d = 2.3;
-    const Point p3( p1.x*d, p1.y*d, p1.z*d );
+    const Point p3( p1[0]*d, p1[1]*d, p1[2]*d );
 
     EXPECT_EQ( p3, p1*d );
     EXPECT_EQ( p3, d*p1 );
@@ -134,7 +134,7 @@ TEST(VectorTest, Divide)
 {
     const Point p1(2, 3, 4.8);
     const double d = 2.3;
-    const Point p3( p1.x/d, p1.y/d, p1.z/d );
+    const Point p3( p1[0]/d, p1[1]/d, p1[2]/d );
 
     EXPECT_EQ( p3, p1/d );
 }
