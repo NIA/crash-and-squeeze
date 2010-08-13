@@ -26,6 +26,8 @@ namespace CrashAndSqueeze
             // construct matrix as multiplication of left_vector to transposed right_vector
             Matrix(const Vector &left_vector, const Vector &right_vector);
 
+            static const Matrix IDENTITY;
+
             // -- getters/setters --
 
             // indices in matrix: 0,0 to 2,2
@@ -88,8 +90,14 @@ namespace CrashAndSqueeze
 
             // -- unary operators --
 
-            Matrix operator-() const;
-            Matrix operator+() const;
+            Matrix operator-() const
+            {
+                return (*this)*(-1);
+            }
+            Matrix operator+() const
+            {
+                return *this;
+            }
 
             // -- multiplications --
             
@@ -108,5 +116,10 @@ namespace CrashAndSqueeze
             // Frobenius norm of matrix
             Matrix norm();
         };
+
+        inline Matrix operator*(const double &scalar, const Matrix &matrix)
+        {
+            return matrix*scalar;
+        }
     };
 };

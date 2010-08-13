@@ -95,5 +95,12 @@ namespace CrashAndSqueeze
             return true;
         }
         
+        // -- identity matrix --
+
+        const double IDENTITY_VALUES[MATRIX_ELEMENTS_NUM] =
+            { 1, 0, 0,
+              0, 1, 0,
+              0, 0, 1 };
+        const Matrix Matrix::IDENTITY(IDENTITY_VALUES);
     };
 };

@@ -132,9 +132,28 @@ TEST_F(MatrixTest, Sub)
 TEST_F(MatrixTest, Mul)
 {
     EXPECT_TRUE(m1_mul_alpha == m1*alpha);
+    EXPECT_TRUE(m1_mul_alpha == alpha*m1);
 }
 
 TEST_F(MatrixTest, Div)
 {
     EXPECT_TRUE(m1_div_alpha == m1/alpha);
+}
+
+TEST_F(MatrixTest, UnaryMinus)
+{
+    const Matrix minus_m1 = m1*(-1);
+    EXPECT_TRUE(minus_m1 == -m1);
+}
+
+TEST_F(MatrixTest, UnaryPlus)
+{
+    EXPECT_TRUE(m1 == +m1);
+}
+
+TEST_F(MatrixTest, IdentityMatrix)
+{
+    // it should exist and look plausible
+    EXPECT_EQ(1, Matrix::IDENTITY.get_at(1,1));
+    EXPECT_EQ(0, Matrix::IDENTITY.get_at(0,2));
 }
