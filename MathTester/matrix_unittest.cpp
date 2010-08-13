@@ -14,6 +14,7 @@ protected:
     double alpha;
     Matrix m1_mul_alpha;
     Matrix m1_div_alpha;
+    Matrix m1_transposed;
 
     virtual void SetUp()
     {
@@ -21,7 +22,13 @@ protected:
             { 9, 8, 7,
               6, 5, 4,
               3, 2, 1 };
+        const double values_transposed[MATRIX_ELEMENTS_NUM] =
+            { 9, 6, 3,
+              8, 5, 2,
+              7, 4, 1 };
+       
         m1 = Matrix(values1);
+        m1_transposed = Matrix(values_transposed);
         
         const double values2[MATRIX_ELEMENTS_NUM] =
             { 1, 2, 1,
@@ -174,4 +181,15 @@ TEST_F(MatrixTest, VectorMultiply)
     const Vector after(84980.4, 56665.5, 28350.6);
 
     EXPECT_EQ(after, m1*before);
+}
+
+TEST_F(MatrixTest, Transposed)
+{
+    EXPECT_TRUE(m1_transposed == m1.transposed());
+}
+
+TEST_F(MatrixTest, Transpose)
+{
+    EXPECT_EQ( &m1, &m1.transpose() ); // it actually returns itself
+    EXPECT_TRUE(m1_transposed == m1);
 }

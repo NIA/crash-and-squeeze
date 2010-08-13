@@ -132,6 +132,22 @@ namespace CrashAndSqueeze
             }
             return result;
         }
+
+        inline void swap(double &a, double &b)
+        {
+            double temp;
+            temp = a;
+            a = b;
+            b = temp;
+        }
+
+        Matrix & Matrix::transpose()
+        {
+            for(int i = 0; i < VECTOR_SIZE - 1; ++i)
+                for(int j = i + 1; j < VECTOR_SIZE; ++j)
+                    swap( values[ element_index(i,j) ], values[ element_index(j,i)] );
+            return *this;
+        }
         
         // -- identity matrix --
 

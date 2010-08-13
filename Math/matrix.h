@@ -18,6 +18,15 @@ namespace CrashAndSqueeze
             Matrix & assigment_operation(const Matrix &another, Operation operation);
             Matrix & assigment_operation(const double &scalar, Operation operation);
 
+            static int element_index(int line, int column)
+            {
+                assert(line >= 0);
+                assert(line < VECTOR_SIZE);
+                assert(column >= 0);
+                assert(column < VECTOR_SIZE);
+                return VECTOR_SIZE*line + column;
+            }
+
         public:
             // -- constructors --
 
@@ -31,23 +40,15 @@ namespace CrashAndSqueeze
             // -- getters/setters --
 
             // indices in matrix: 0,0 to 2,2
-            static int _element_index(int line, int column)
-            {
-                assert(line >= 0);
-                assert(line < VECTOR_SIZE);
-                assert(column >= 0);
-                assert(column < VECTOR_SIZE);
-                return VECTOR_SIZE*line + column;
-            }
-
             double Matrix::get_at(int line, int column) const
             {
-                return values[ _element_index(line, column) ];
+                return values[ element_index(line, column) ];
             }
             
+            // indices in matrix: 0,0 to 2,2
             void Matrix::set_at(int line, int column, double value)
             {
-                values[ _element_index(line, column) ] = value;
+                values[ element_index(line, column) ] = value;
             }
 
             // -- assignment operators --
@@ -106,8 +107,14 @@ namespace CrashAndSqueeze
 
             // -- methods --
 
-            Matrix transpose();
-            Matrix transposed();
+            // transposes matrix in place (!), returns itself
+            Matrix & transpose();
+            // returns transposed matrix
+            Matrix transposed()
+            {
+                Matrix matrix = *this;
+                return matrix.transpose();
+            }
 
             Matrix inverted();
 
