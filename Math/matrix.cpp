@@ -25,6 +25,67 @@ namespace CrashAndSqueeze
                     set_at(i, j, left_vector[i]*right_vector[j]);
         }
         
+        // -- assignment operators --
+
+        Matrix & Matrix::assigment_operation(const Matrix &another, Operation operation)
+        {
+            assert(operation != NULL);
+            double result;
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+            {
+                for(int j = 0; j < VECTOR_SIZE; ++j)
+                {
+                    result = operation( get_at(i, j), another.get_at(i, j) );
+                    set_at(i, j, result);
+                }
+            }
+                    
+            return *this;
+        }
+
+        Matrix & Matrix::assigment_operation(const double &scalar, Operation operation)
+        {
+            assert(operation != NULL);
+            double result;
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+            {
+                for(int j = 0; j < VECTOR_SIZE; ++j)
+                {
+                    result = operation( get_at(i, j), scalar );
+                    set_at(i, j, result);
+                }
+            }
+                    
+            return *this;
+        }
+
+        double add(double a, double b) { return a + b; }
+        double sub(double a, double b) { return a - b; }
+        double mul(double a, double b) { return a * b; }
+        double div(double a, double b) { return a / b; }
+
+        Matrix & Matrix::operator +=(const Matrix &another)
+        {
+            return assigment_operation(another, add);
+        }
+        
+        Matrix & Matrix::operator -=(const Matrix &another)
+        {
+            return assigment_operation(another, sub);
+        }
+        
+        Matrix & Matrix::operator *=(const double &scalar)
+        {
+            return assigment_operation(scalar, mul);
+        }
+        
+        Matrix & Matrix::operator /=(const double &scalar)
+        {
+            return assigment_operation(scalar, div);
+        }
+
+        // -- binary arithmetic operators --
+
         bool Matrix::operator==(const Matrix &another) const
         {
             for(int i = 0; i < VECTOR_SIZE; ++i)
@@ -33,6 +94,6 @@ namespace CrashAndSqueeze
                         return false;
             return true;
         }
-
+        
     };
 };

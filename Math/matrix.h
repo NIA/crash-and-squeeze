@@ -7,12 +7,16 @@ namespace CrashAndSqueeze
     namespace Math
     {
         const int MATRIX_ELEMENTS_NUM = VECTOR_SIZE*VECTOR_SIZE;
+        typedef double (*Operation)(double self_element, double another_element);
 
         class Matrix
         {
         private:
             // matrix represented in memory in row-major order ("C-like arrays")
             double values[MATRIX_ELEMENTS_NUM];
+            
+            Matrix & assigment_operation(const Matrix &another, Operation operation);
+            Matrix & assigment_operation(const double &scalar, Operation operation);
 
         public:
             // -- constructors --
