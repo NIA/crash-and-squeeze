@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 #include <cmath>
 #include "floating_point.h"
 
@@ -130,7 +129,8 @@ namespace CrashAndSqueeze
             {
                 return sqrt( sqared_norm() );
             }
-            Vector & normalize() // normalizes given point/vector in place (!), returns itself
+            // normalizes given point/vector in place (!), returns itself
+            Vector & normalize()
             {
                 if( norm() != 0 )
                 {
@@ -138,7 +138,8 @@ namespace CrashAndSqueeze
                 }
                 return *this;
             }
-            Vector normalized() const  // returns normalized point/vector
+            // returns normalized point/vector
+            Vector normalized() const
             {
                 Vector result = *this;
                 return result.normalize();
@@ -155,7 +156,8 @@ namespace CrashAndSqueeze
             }
         };
 
-        typedef Vector Point; // define an alias
+        // define an alias
+        typedef Vector Point;
 
         // -- more operators --
         
@@ -163,11 +165,6 @@ namespace CrashAndSqueeze
         {
             return vector * scalar;
         }
-        inline std::ostream &operator<<(std::ostream &stream, const Vector &vector)
-        {
-            return stream << "(" << vector[0] << ", " << vector[1] << ", " << vector[2] << ")";
-        }
-
         
         // -- functions --
         

@@ -1,7 +1,5 @@
+#include "math_tester.h"
 #include "../Math/floating_point.h"
-#include <gtest/gtest.h>
-
-using namespace ::CrashAndSqueeze::Math;
 
 // Floating point functions tests
 

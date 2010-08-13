@@ -1,5 +1,5 @@
+#include "math_tester.h"
 #include "../Math/matrix.h"
-#include <gtest/gtest.h>
 
 using namespace ::CrashAndSqueeze::Math;
 

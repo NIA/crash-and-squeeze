@@ -1,5 +1,6 @@
 #include "assert.h"
 #include "matrix.h"
+#include <cstring>
 
 namespace CrashAndSqueeze
 {
