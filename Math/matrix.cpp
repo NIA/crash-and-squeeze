@@ -148,7 +148,26 @@ namespace CrashAndSqueeze
                     swap( values[ element_index(i,j) ], values[ element_index(j,i)] );
             return *this;
         }
-        
+
+        Matrix Matrix::inverted() const
+        {
+            double det = determinant();
+            assert(det != 0); //TODO: errors
+            
+            Matrix cofactors;
+            double value;
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+            {
+                for(int j = 0; j < VECTOR_SIZE; ++j)
+                {
+                    value = get_at((i+1)%3, (j+1)%3)*get_at((i+2)%3, (j+2)%3)
+                          - get_at((i+1)%3, (j+2)%3)*get_at((i+2)%3, (j+1)%3);
+                    cofactors.set_at(j, i, value); // already transposed
+                }
+            }
+            return cofactors /= det;
+        }
+
         // -- identity matrix --
 
         const double IDENTITY_VALUES[MATRIX_ELEMENTS_NUM] =

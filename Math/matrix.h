@@ -20,7 +20,7 @@ namespace CrashAndSqueeze
 
             static int element_index(int line, int column)
             {
-                assert(line >= 0);
+                assert(line >= 0); //TODO: errors
                 assert(line < VECTOR_SIZE);
                 assert(column >= 0);
                 assert(column < VECTOR_SIZE);
@@ -116,7 +116,14 @@ namespace CrashAndSqueeze
                 return matrix.transpose();
             }
 
-            Matrix inverted();
+            double determinant() const
+            {
+                return get_at(0,0)*get_at(1,1)*get_at(2,2) - get_at(0,0)*get_at(1,2)*get_at(2,1)
+                     - get_at(0,1)*get_at(1,0)*get_at(2,2) + get_at(0,1)*get_at(1,2)*get_at(2,0)
+                     + get_at(0,2)*get_at(1,0)*get_at(2,1) - get_at(0,2)*get_at(1,1)*get_at(2,0);
+            }
+            
+            Matrix inverted() const;
 
             // squared Frobenius norm of matrix
             Matrix squared_norm();

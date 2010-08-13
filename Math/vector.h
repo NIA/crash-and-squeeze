@@ -24,13 +24,13 @@ namespace CrashAndSqueeze
             // indices in vector: 0 to 2
             double operator[](int index) const
             {
-                assert(index >= 0);
+                assert(index >= 0); //TODO: errors
                 assert(index < VECTOR_SIZE);
                 return values[index];
             }
             double & operator[](int index)
             {
-                assert(index >= 0);
+                assert(index >= 0); //TODO: errors
                 assert(index < VECTOR_SIZE);
                 return values[index];
             }

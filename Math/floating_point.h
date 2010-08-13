@@ -36,6 +36,7 @@ namespace CrashAndSqueeze
             assert( sizeof(long long) == sizeof(double) );
             // Make sure max_ulps is non-negative and small enough that the
             // default NAN won't compare as equal to anything.
+            //TODO: errors
             assert( max_ulps > 0 && max_ulps < 4 * 1024 * 1024 ); // this is maximum ULPS for floats, for doubles it might be greater, but for what?
             
             // epsilon-comparison: needed near zero

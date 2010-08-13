@@ -193,3 +193,44 @@ TEST_F(MatrixTest, Transpose)
     EXPECT_EQ( &m1, &m1.transpose() ); // it actually returns itself
     EXPECT_TRUE(m1_transposed == m1);
 }
+
+TEST_F(MatrixTest, Determinant)
+{
+    EXPECT_EQ( 0, m1.determinant() );
+    EXPECT_EQ( -2, m2.determinant() );
+    const double d = Matrix::IDENTITY.determinant();
+    EXPECT_EQ( 1, d );
+}
+
+TEST_F(MatrixTest, Inverted)
+{
+    const double values[MATRIX_ELEMENTS_NUM] =
+        { -1,  2, -3,
+           2, -2,  2,
+          -1,  2, -1 };
+    Matrix m2_inv(values);
+    m2_inv /= 2;
+    EXPECT_TRUE( m2_inv == m2.inverted() );
+}
+
+TEST_F(MatrixTest, InvertedIdentity)
+{
+    Matrix const &I = Matrix::IDENTITY;
+    EXPECT_TRUE( I == I.inverted() );
+}
+TEST_F(MatrixTest, InvertedArbitrary)
+{
+    const double values[MATRIX_ELEMENTS_NUM] =
+        { 6, -2,  1,
+         18,  1, -2,
+          1, 22,  1 };
+    const double inv_values[MATRIX_ELEMENTS_NUM] =
+        { 45,  24 ,  3,
+         -20,   5 , 30,
+         395, -134, 42 };
+    const Matrix M(values);
+    Matrix inv(inv_values);
+    inv /= 705;
+    EXPECT_TRUE( inv == M.inverted() );
+}
+
