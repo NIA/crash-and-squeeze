@@ -94,6 +94,43 @@ namespace CrashAndSqueeze
                         return false;
             return true;
         }
+        // -- multiplications --
+        
+        Matrix Matrix::operator*(const Matrix &another)
+        {
+            Matrix result;
+            double value;
+
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+            {
+                for(int j = 0; j < VECTOR_SIZE; ++j)
+                {
+                    value = 0;
+                    for(int k =0; k < VECTOR_SIZE; ++k)
+                    {
+                        value += get_at(i, k)*another.get_at(k, j);
+                    }
+                    result.set_at(i, j, value);
+                }
+            }
+            return result;
+        }
+        
+        Vector Matrix::operator*(const Vector &vector)
+        {
+            Vector result;
+            double value;
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+            {
+                value = 0;
+                for(int k = 0; k < VECTOR_SIZE; ++k)
+                {
+                    value += get_at(i, k)*vector[k];
+                }
+                result[i] = value;
+            }
+            return result;
+        }
         
         // -- identity matrix --
 

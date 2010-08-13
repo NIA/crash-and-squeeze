@@ -157,3 +157,21 @@ TEST_F(MatrixTest, IdentityMatrix)
     EXPECT_EQ(1, Matrix::IDENTITY.get_at(1,1));
     EXPECT_EQ(0, Matrix::IDENTITY.get_at(0,2));
 }
+
+TEST_F(MatrixTest, MatrixMultiply)
+{
+    const double values[MATRIX_ELEMENTS_NUM] =
+        { 2, 26, 32,
+          2, 17, 20,
+          2, 8, 8};
+    Matrix m1_mul_m2(values);
+    EXPECT_TRUE(m1_mul_m2 == m1*m2);
+}
+
+TEST_F(MatrixTest, VectorMultiply)
+{
+    const Vector before(9456, 0.3, -18);
+    const Vector after(84980.4, 56665.5, 28350.6);
+
+    EXPECT_EQ(after, m1*before);
+}
