@@ -3,12 +3,20 @@
 
 using namespace ::CrashAndSqueeze::Math;
 
+inline std::ostream &operator<<(std::ostream &stream, const Matrix &m)
+{
+    return stream << "{{" << m.get_at(0,0) << ", " << m.get_at(0,1) << ", " << m.get_at(0,2) << "}, "
+                  <<  "{" << m.get_at(1,0) << ", " << m.get_at(1,1) << ", " << m.get_at(1,2) << "}, "
+                  <<  "{" << m.get_at(2,0) << ", " << m.get_at(2,1) << ", " << m.get_at(2,2) << "}}";
+}
+
 class MatrixTest : public ::testing::Test
 {
 protected:
     Matrix empty_mx;
     Matrix m1;
     Matrix m2;
+    Matrix m3;
     Matrix m1_plus_m2;
     Matrix m1_minus_m2;
     double alpha;
@@ -37,6 +45,12 @@ protected:
              -1, 0, 1 };
         m2 = Matrix(values2);
 
+        const double values3[MATRIX_ELEMENTS_NUM] =
+            { 1.2,  2.8, 1.008,
+                0, -5.6,     2,
+                0,    0,   7.4 };
+        m3 = Matrix(values3);
+
         double values1plus2[MATRIX_ELEMENTS_NUM];
         for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
             values1plus2[i] = values1[i] + values2[i];
@@ -61,6 +75,8 @@ protected:
 
         I = Matrix::IDENTITY;
     }
+
+    void test_jacobi_rotation(Matrix &matrix);
 };
 
 TEST_F(MatrixTest, DefaultConstructAndRead)
@@ -76,6 +92,24 @@ TEST_F(MatrixTest, ConstructAndRead)
     EXPECT_EQ( 8, m1.get_at(0,1) );
     EXPECT_EQ( 1, m1.get_at(2,2) );
 }
+
+TEST_F(MatrixTest, Write)
+{
+    m1.set_at(1, 1, 155);
+    EXPECT_EQ( 155, m1.get_at(1, 1) );
+    m1.set_at(0, 2, 156);
+    EXPECT_EQ( 156, m1.get_at(0, 2) );
+    m1.set_at(1, 0, 157);
+    EXPECT_EQ( 157, m1.get_at(1, 0) );
+}
+
+TEST_F(MatrixTest, AddWrite)
+{
+    double old = m1.get_at(1, 1);
+    m1.add_at(1, 1, -155);
+    EXPECT_EQ( old - 155, m1.get_at(1,1) );
+}
+
 TEST_F(MatrixTest, ConstructFromVectorMultiply)
 {
     const double values[MATRIX_ELEMENTS_NUM] =
@@ -239,4 +273,62 @@ TEST_F(MatrixTest, Norm)
          -1, 1, 1 };
     const Matrix M(values);
     EXPECT_EQ(3, M.norm());
+}
+
+void MatrixTest::test_jacobi_rotation(Matrix &matrix)
+{
+    Matrix P = I;
+    Matrix old_matrix = matrix;
+
+    for(int i = 0; i < 100; ++i)
+    {
+        matrix.do_jacobi_rotation(0, 2, P);
+        EXPECT_EQ(0, matrix.get_at(0, 2));
+        EXPECT_EQ(0, matrix.get_at(2, 0));
+        EXPECT_EQ( old_matrix, P*matrix*P.transposed() );
+
+        matrix.do_jacobi_rotation(1, 0, P);
+        EXPECT_EQ(0, matrix.get_at(1, 0));
+        EXPECT_EQ(0, matrix.get_at(0, 1));
+        EXPECT_EQ( old_matrix, P*matrix*P.transposed() );
+
+        matrix.do_jacobi_rotation(2, 1, P);
+        EXPECT_EQ(0, matrix.get_at(2, 1));
+        EXPECT_EQ(0, matrix.get_at(1, 2));
+        EXPECT_EQ( old_matrix, P*matrix*P.transposed() );
+    }
+}
+
+void simmetrize(Matrix &m)
+{
+    m.set_at(1, 0, m.get_at(0, 1));
+    m.set_at(2, 0, m.get_at(0, 2));
+    m.set_at(2, 1, m.get_at(1, 2));
+}
+
+TEST_F(MatrixTest, JacobiRotation1)
+{
+    simmetrize(m1);
+    test_jacobi_rotation(m1);
+}
+
+TEST_F(MatrixTest, JacobiRotation2)
+{
+    simmetrize(m2);
+    test_jacobi_rotation(m2);
+}
+
+TEST_F(MatrixTest, JacobiRotation3)
+{
+    simmetrize(m3);
+    test_jacobi_rotation(m3);
+}
+
+TEST_F(MatrixTest, JacobiRotationDummy)
+{
+    Matrix P = I;
+    Matrix A = I;
+    A.do_jacobi_rotation(2, 0, P);
+    EXPECT_EQ(I, A);
+    EXPECT_EQ(I, P);
 }

@@ -19,12 +19,17 @@ namespace CrashAndSqueeze
             Matrix & assigment_operation(const Matrix &another, Operation operation);
             Matrix & assigment_operation(const double &scalar, Operation operation);
 
+            static void check_index(int index)
+            {
+                index; // avoid "unreferenced parameter" warning
+                assert(index >= 0); //TODO: errors
+                assert(index < VECTOR_SIZE);
+            }
+
             static int element_index(int line, int column)
             {
-                assert(line >= 0); //TODO: errors
-                assert(line < VECTOR_SIZE);
-                assert(column >= 0);
-                assert(column < VECTOR_SIZE);
+                check_index(line);
+                check_index(column);
                 return VECTOR_SIZE*line + column;
             }
 
@@ -51,6 +56,13 @@ namespace CrashAndSqueeze
             {
                 values[ element_index(line, column) ] = value;
             }
+
+            // indices in matrix: 0,0 to 2,2
+            void Matrix::add_at(int line, int column, double value)
+            {
+                values[ element_index(line, column) ] += value;
+            }
+
 
             // -- assignment operators --
 
@@ -132,6 +144,12 @@ namespace CrashAndSqueeze
             {
                 return sqrt( squared_norm() );
             }
+
+            // Does Jacobi rotation for p and q rows and columns.
+            // Modifies matrix in place (!), multiplies given matrix
+            // current_transformation by rotation matrix in place (!).
+            // The matrix is assumed to be symmetric, and that is NOT checked.
+            void do_jacobi_rotation(int p, int q, /*out*/ Matrix & current_transformation);
         };
 
         inline Matrix operator*(const double &scalar, const Matrix &matrix)

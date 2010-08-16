@@ -182,6 +182,58 @@ namespace CrashAndSqueeze
             }
             return result;
         }
+
+        void Matrix::do_jacobi_rotation(int p, int q, /*out*/ Matrix & current_transformation)
+        {
+            check_index(p);
+            check_index(q);
+            
+            // check for invalid rotation
+            if(p == q)
+                return;
+            
+            // if element is already zeroed
+            if(0 == get_at(p,q))
+                return;
+
+            // r is the remaining index: not p and not q
+            int r = 3 - p - q;
+
+            // theta is cotangent of double rotation angle
+            double theta = (get_at(q,q) - get_at(p,p))/get_at(p,q)/2;
+            // t is sin/cos of rotation angle
+            // it is determined from equation t^2 + 2*t*theta - 1 = 0,
+            // which implies from definition of theta as (cos^2 - sin^2)/(2*sin*cos)
+            double t = (0 != theta) ? sign(theta)/(abs(theta) + sqrt(theta*theta + 1)) : 1;
+            double cosine = 1/sqrt(t*t + 1);
+            double sine = t*cosine;
+            // tau is tangent of half of rotation angle
+            double tau = sine/(1 + cosine);
+
+            add_at(p, p, - t*get_at(p,q));
+            add_at(q, q, + t*get_at(p,q));
+            
+            // correction to element at (r,p)
+            double rp_correction = - sine*(get_at(r,q) + tau*get_at(r,p));
+            // correction to element at (r,q)
+            double rq_correction = + sine*(get_at(r,p) - tau*get_at(r,q));
+            add_at(r, p, rp_correction);
+            add_at(p, r, rp_correction);
+            add_at(r, q, rq_correction);
+            add_at(q, r, rq_correction);
+            set_at(p, q, 0);
+            set_at(q, p, 0);
+
+            // construct matrix of applied jacobi rotation
+            Matrix rotation = Matrix::IDENTITY;
+            rotation.set_at(p, p, cosine);
+            rotation.set_at(q, q, cosine);
+            rotation.set_at(p, q, sine);
+            rotation.set_at(q, p, - sine);
+            current_transformation = current_transformation*rotation;
+        }
+
+
         // -- identity matrix --
 
         const double IDENTITY_VALUES[MATRIX_ELEMENTS_NUM] =
