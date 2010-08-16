@@ -152,7 +152,7 @@ namespace CrashAndSqueeze
         Matrix Matrix::inverted() const
         {
             double det = determinant();
-            assert(det != 0); //TODO: errors
+            assert(! equal(0, det)); //TODO: errors
             
             Matrix cofactors;
             double value;
@@ -256,6 +256,20 @@ namespace CrashAndSqueeze
             }
 
             return transformation*diagonalized*transformation.transposed();
+        }
+
+        double cautious_sqrt(double value)
+        {
+            return value < 0 ? 0 : sqrt(value);
+        }
+
+        void Matrix::do_polar_decomposition(/*out*/ Matrix &orthogonal_part,
+                                            /*out*/ Matrix &symmetric_part,
+                                            int diagonalization_rotations_count) const
+        {
+            symmetric_part = (this->transposed()*(*this)).compute_function(cautious_sqrt, diagonalization_rotations_count);
+            // FIXME: what if symmetric_part.determinant() == 0?
+            orthogonal_part = (*this)*symmetric_part.inverted();
         }
 
         // -- identity matrix --

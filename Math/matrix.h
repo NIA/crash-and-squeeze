@@ -187,6 +187,13 @@ namespace CrashAndSqueeze
             // The matrix is assumed to be symmetric (!), and this is NOT checked.
             Matrix compute_function(Function function,
                                     int diagonalization_rotations_count = DEFAULT_JACOBI_ROTATIONS_COUNT) const;
+
+            // Does polar decomposition of matrix, writing orthogonal term
+            // ("rotation part") into orthogonal_part, and symmetric term
+            // ("scale part") into symmetric_part
+            void do_polar_decomposition(/*out*/ Matrix &orthogonal_part,
+                                        /*out*/ Matrix &symmetric_part,
+                                        int diagonalization_rotations_count = DEFAULT_JACOBI_ROTATIONS_COUNT) const;
         };
 
         inline Matrix operator*(const double &scalar, const Matrix &matrix)

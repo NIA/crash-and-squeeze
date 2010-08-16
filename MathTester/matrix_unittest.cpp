@@ -94,6 +94,8 @@ protected:
 
     void test_jacobi_rotation(Matrix matrix);
     void test_diagonalization(Matrix matrix, int rotations, double accuracy);
+    void test_polar_decomposition(const Matrix &matrix, int rotations, double accuracy);
+
     bool is_approximately_diagonalized(const Matrix &matrix, double accuracy)
     {
         return equal( 0, matrix.get_at(0,1), accuracy )
@@ -421,3 +423,34 @@ TEST_F(MatrixTest, FunctionOfArbitrary)
     const Matrix expected = orthogonal.transposed()*exp_diagonal*orthogonal; // transform result the same way
     EXPECT_EQ(expected, argument.compute_function(exp, 3));
 }
+
+void MatrixTest::test_polar_decomposition(Matrix const &matrix, int rotations, double accuracy)
+{
+    Matrix R;
+    Matrix S;
+    matrix.do_polar_decomposition(R, S, rotations);
+    
+    EXPECT_EQ( matrix, R*S );
+    
+    EXPECT_NEAR( 1, abs( R.determinant() ), accuracy );
+    
+    Matrix S_simmetrized = S;
+    simmetrize(S_simmetrized);
+    EXPECT_EQ( S, S_simmetrized );
+}
+
+TEST_F(MatrixTest, PolarDecompositionOfInvertible1)
+{
+    test_polar_decomposition(m2, ::CrashAndSqueeze::Math::DEFAULT_JACOBI_ROTATIONS_COUNT, 1e-8);
+}
+
+TEST_F(MatrixTest, PolarDecompositionOfInvertible2)
+{
+    test_polar_decomposition(m3, 12, 1e-8);
+}
+
+// FAILS:
+//TEST_F(MatrixTest, PolarDecompositionOfUninvertible)
+//{
+//    test_polar_decomposition(m1, 9, 1e-8);
+//}
