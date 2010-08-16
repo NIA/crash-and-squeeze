@@ -31,7 +31,7 @@ namespace CrashAndSqueeze
         // 'Comparing floating point numbers' by Bruce Dawson
         // http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm
         //
-        inline bool equal(double a, double b, long long max_ulps = DEFAULT_MAX_ULPS, double epsilon = DEFAULT_EPSILON)
+        inline bool equal(double a, double b, double epsilon = DEFAULT_EPSILON, long long max_ulps = DEFAULT_MAX_ULPS)
         {
             assert( sizeof(long long) == sizeof(double) );
             // Make sure max_ulps is non-negative and small enough that the
@@ -67,14 +67,14 @@ namespace CrashAndSqueeze
             return false;
         }
 
-        inline bool less_or_equal(double a, double b, long long max_ulps = DEFAULT_MAX_ULPS, double epsilon = DEFAULT_EPSILON)
+        inline bool less_or_equal(double a, double b, double epsilon = DEFAULT_EPSILON, long long max_ulps = DEFAULT_MAX_ULPS)
         {
-            return (a < b) || equal( a, b, max_ulps, epsilon );
+            return (a < b) || equal( a, b, epsilon, max_ulps );
         }
 
-        inline bool greater_or_equal(double a, double b, long long max_ulps = DEFAULT_MAX_ULPS, double epsilon = DEFAULT_EPSILON)
+        inline bool greater_or_equal(double a, double b, double epsilon = DEFAULT_EPSILON, long long max_ulps = DEFAULT_MAX_ULPS)
         {
-            return (a > b) || equal( a, b, max_ulps, epsilon );
+            return (a > b) || equal( a, b, epsilon, max_ulps );
         }
         inline int sign(double x)
         {
