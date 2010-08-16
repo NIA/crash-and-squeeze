@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vector.h"
+#include <cmath>
 
 namespace CrashAndSqueeze
 {
@@ -125,9 +126,12 @@ namespace CrashAndSqueeze
             Matrix inverted() const;
 
             // squared Frobenius norm of matrix
-            Matrix squared_norm() const;
+            double squared_norm() const;
             // Frobenius norm of matrix
-            Matrix norm() const;
+            double norm() const
+            {
+                return sqrt( squared_norm() );
+            }
         };
 
         inline Matrix operator*(const double &scalar, const Matrix &matrix)

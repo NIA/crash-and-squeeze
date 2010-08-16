@@ -168,6 +168,20 @@ namespace CrashAndSqueeze
             return cofactors /= det;
         }
 
+        double Matrix::squared_norm() const
+        {
+            double result = 0;
+            double value;
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+            {
+                for(int j = 0; j < VECTOR_SIZE; ++j)
+                {
+                    value = get_at(i,j);
+                    result += value*value;
+                }
+            }
+            return result;
+        }
         // -- identity matrix --
 
         const double IDENTITY_VALUES[MATRIX_ELEMENTS_NUM] =

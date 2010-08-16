@@ -225,3 +225,18 @@ TEST_F(MatrixTest, InvertedArbitrary)
     EXPECT_TRUE( I == M.inverted()*M );
 }
 
+TEST_F(MatrixTest, SquaredNorm)
+{
+    EXPECT_EQ(3, I.squared_norm());
+    EXPECT_EQ(13, m2.squared_norm());
+}
+
+TEST_F(MatrixTest, Norm)
+{
+    const double values[MATRIX_ELEMENTS_NUM] =
+        { 1,-1, 1,
+          1, 1,-1,
+         -1, 1, 1 };
+    const Matrix M(values);
+    EXPECT_EQ(3, M.norm());
+}
