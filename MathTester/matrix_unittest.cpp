@@ -120,7 +120,7 @@ TEST_F(MatrixTest, ConstructFromVectorMultiply)
     const Vector left(1,2,3);
     const Vector right(4,5,6);
 
-    EXPECT_TRUE(M == Matrix(left, right));
+    EXPECT_EQ(M, Matrix(left, right));
 }
 
 TEST_F(MatrixTest, Equals)
@@ -142,57 +142,57 @@ TEST_F(MatrixTest, NotEquals)
 TEST_F(MatrixTest, AddAssign)
 {
     m1 += m2;
-    EXPECT_TRUE(m1_plus_m2 == m1);
+    EXPECT_EQ(m1_plus_m2, m1);
 }
 
 TEST_F(MatrixTest, SubAssign)
 {
     m1 -= m2;
-    EXPECT_TRUE(m1_minus_m2 == m1);
+    EXPECT_EQ(m1_minus_m2, m1);
 }
 
 TEST_F(MatrixTest, MulAssign)
 {
     m1 *= alpha;
-    EXPECT_TRUE(m1_mul_alpha == m1);
+    EXPECT_EQ(m1_mul_alpha, m1);
 }
 
 TEST_F(MatrixTest, DivAssign)
 {
     m1 /= alpha;
-    EXPECT_TRUE(m1_div_alpha == m1);
+    EXPECT_EQ(m1_div_alpha, m1);
 }
 
 TEST_F(MatrixTest, Add)
 {
-    EXPECT_TRUE(m1_plus_m2 == m1 + m2);
+    EXPECT_EQ(m1_plus_m2, m1 + m2);
 }
 
 TEST_F(MatrixTest, Sub)
 {
-    EXPECT_TRUE(m1_minus_m2 == m1 - m2);
+    EXPECT_EQ(m1_minus_m2, m1 - m2);
 }
 
 TEST_F(MatrixTest, Mul)
 {
-    EXPECT_TRUE(m1_mul_alpha == m1*alpha);
-    EXPECT_TRUE(m1_mul_alpha == alpha*m1);
+    EXPECT_EQ(m1_mul_alpha, m1*alpha);
+    EXPECT_EQ(m1_mul_alpha, alpha*m1);
 }
 
 TEST_F(MatrixTest, Div)
 {
-    EXPECT_TRUE(m1_div_alpha == m1/alpha);
+    EXPECT_EQ(m1_div_alpha, m1/alpha);
 }
 
 TEST_F(MatrixTest, UnaryMinus)
 {
     const Matrix minus_m1 = m1*(-1);
-    EXPECT_TRUE(minus_m1 == -m1);
+    EXPECT_EQ(minus_m1, -m1);
 }
 
 TEST_F(MatrixTest, UnaryPlus)
 {
-    EXPECT_TRUE(m1 == +m1);
+    EXPECT_EQ(m1, +m1);
 }
 
 TEST_F(MatrixTest, IdentityMatrix)
@@ -209,7 +209,7 @@ TEST_F(MatrixTest, MatrixMultiply)
           2, 17, 20,
           2, 8, 8};
     Matrix m1_mul_m2(values);
-    EXPECT_TRUE(m1_mul_m2 == m1*m2);
+    EXPECT_EQ(m1_mul_m2, m1*m2);
 }
 
 TEST_F(MatrixTest, VectorMultiply)
@@ -222,13 +222,13 @@ TEST_F(MatrixTest, VectorMultiply)
 
 TEST_F(MatrixTest, Transposed)
 {
-    EXPECT_TRUE(m1_transposed == m1.transposed());
+    EXPECT_EQ(m1_transposed, m1.transposed());
 }
 
 TEST_F(MatrixTest, Transpose)
 {
     EXPECT_EQ( &m1, &m1.transpose() ); // it actually returns itself
-    EXPECT_TRUE(m1_transposed == m1);
+    EXPECT_EQ(m1_transposed, m1);
 }
 
 TEST_F(MatrixTest, Determinant)
@@ -240,13 +240,13 @@ TEST_F(MatrixTest, Determinant)
 
 TEST_F(MatrixTest, Inverted)
 {
-    EXPECT_TRUE( I == m2*m2.inverted() );
-    EXPECT_TRUE( I == m2.inverted()*m2 );
+    EXPECT_EQ( I, m2*m2.inverted() );
+    EXPECT_EQ( I, m2.inverted()*m2 );
 }
 
 TEST_F(MatrixTest, InvertedIdentity)
 {
-    EXPECT_TRUE( I == I.inverted() );
+    EXPECT_EQ( I, I.inverted() );
 }
 TEST_F(MatrixTest, InvertedArbitrary)
 {
@@ -255,8 +255,8 @@ TEST_F(MatrixTest, InvertedArbitrary)
          18.1, 1.05, -2,
            -1,   22,  1 };
     const Matrix M(values);
-    EXPECT_TRUE( I == M*M.inverted() );
-    EXPECT_TRUE( I == M.inverted()*M );
+    EXPECT_EQ( I, M*M.inverted() );
+    EXPECT_EQ( I, M.inverted()*M );
 }
 
 TEST_F(MatrixTest, SquaredNorm)
