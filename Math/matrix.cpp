@@ -91,13 +91,13 @@ namespace CrashAndSqueeze
         {
             for(int i = 0; i < VECTOR_SIZE; ++i)
                 for(int j = 0; j < VECTOR_SIZE; ++j)
-                    if( get_at(i, j) != another.get_at(i, j) )
+                    if( ! equal( get_at(i, j), another.get_at(i, j) ) )
                         return false;
             return true;
         }
         // -- multiplications --
         
-        Matrix Matrix::operator*(const Matrix &another)
+        Matrix Matrix::operator*(const Matrix &another) const
         {
             Matrix result;
             double value;
@@ -117,7 +117,7 @@ namespace CrashAndSqueeze
             return result;
         }
         
-        Vector Matrix::operator*(const Vector &vector)
+        Vector Matrix::operator*(const Vector &vector) const
         {
             Vector result;
             double value;

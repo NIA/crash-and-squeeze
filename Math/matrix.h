@@ -88,7 +88,6 @@ namespace CrashAndSqueeze
                 return !( *this == another );
             }
 
-
             // -- unary operators --
 
             Matrix operator-() const
@@ -102,15 +101,15 @@ namespace CrashAndSqueeze
 
             // -- multiplications --
             
-            Matrix operator*(const Matrix &another);
-            Vector operator*(const Vector &vector);
+            Matrix operator*(const Matrix &another) const;
+            Vector operator*(const Vector &vector) const;
 
             // -- methods --
 
             // transposes matrix in place (!), returns itself
             Matrix & transpose();
             // returns transposed matrix
-            Matrix transposed()
+            Matrix transposed() const
             {
                 Matrix matrix = *this;
                 return matrix.transpose();
@@ -126,9 +125,9 @@ namespace CrashAndSqueeze
             Matrix inverted() const;
 
             // squared Frobenius norm of matrix
-            Matrix squared_norm();
+            Matrix squared_norm() const;
             // Frobenius norm of matrix
-            Matrix norm();
+            Matrix norm() const;
         };
 
         inline Matrix operator*(const double &scalar, const Matrix &matrix)
