@@ -233,6 +233,13 @@ namespace CrashAndSqueeze
             current_transformation = current_transformation*rotation;
         }
 
+        Matrix & Matrix::diagonalize(int rotations_count, /*out*/ Matrix & transformation)
+        {
+            transformation = Matrix::IDENTITY;
+            for(int i = 0; i < rotations_count; ++i)
+                do_jacobi_rotation((i+1)%3, (i+2)%3, transformation);
+            return *this;
+        }
 
         // -- identity matrix --
 

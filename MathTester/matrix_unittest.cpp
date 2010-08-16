@@ -76,7 +76,17 @@ protected:
         I = Matrix::IDENTITY;
     }
 
-    void test_jacobi_rotation(Matrix &matrix);
+    void test_jacobi_rotation(Matrix matrix);
+    void test_diagonalization(Matrix matrix, int rotations, double accuracy);
+    bool is_approximately_diagonalized(const Matrix &matrix, double accuracy)
+    {
+        return equal( 0, matrix.get_at(0,1), accuracy )
+            && equal( 0, matrix.get_at(0,2), accuracy )
+            && equal( 0, matrix.get_at(1,2), accuracy )
+            && equal( 0, matrix.get_at(1,0), accuracy )
+            && equal( 0, matrix.get_at(2,0), accuracy )
+            && equal( 0, matrix.get_at(2,1), accuracy );
+    }
 };
 
 TEST_F(MatrixTest, DefaultConstructAndRead)
@@ -275,27 +285,27 @@ TEST_F(MatrixTest, Norm)
     EXPECT_EQ(3, M.norm());
 }
 
-void MatrixTest::test_jacobi_rotation(Matrix &matrix)
+void MatrixTest::test_jacobi_rotation(Matrix src_matrix)
 {
     Matrix P = I;
-    Matrix old_matrix = matrix;
+    Matrix matrix = src_matrix;
 
     for(int i = 0; i < 100; ++i)
     {
         matrix.do_jacobi_rotation(0, 2, P);
         EXPECT_EQ(0, matrix.get_at(0, 2));
         EXPECT_EQ(0, matrix.get_at(2, 0));
-        EXPECT_EQ( old_matrix, P*matrix*P.transposed() );
+        EXPECT_EQ( src_matrix, P*matrix*P.transposed() );
 
         matrix.do_jacobi_rotation(1, 0, P);
         EXPECT_EQ(0, matrix.get_at(1, 0));
         EXPECT_EQ(0, matrix.get_at(0, 1));
-        EXPECT_EQ( old_matrix, P*matrix*P.transposed() );
+        EXPECT_EQ( src_matrix, P*matrix*P.transposed() );
 
         matrix.do_jacobi_rotation(2, 1, P);
         EXPECT_EQ(0, matrix.get_at(2, 1));
         EXPECT_EQ(0, matrix.get_at(1, 2));
-        EXPECT_EQ( old_matrix, P*matrix*P.transposed() );
+        EXPECT_EQ( src_matrix, P*matrix*P.transposed() );
     }
 }
 
@@ -331,4 +341,47 @@ TEST_F(MatrixTest, JacobiRotationDummy)
     A.do_jacobi_rotation(2, 0, P);
     EXPECT_EQ(I, A);
     EXPECT_EQ(I, P);
+}
+
+void MatrixTest::test_diagonalization(Matrix src_matrix, int rotations, double accuracy)
+{
+    Matrix matrix = src_matrix;
+    Matrix V;
+    matrix.diagonalize(rotations, V);
+    EXPECT_EQ( src_matrix, V*matrix*V.transposed() );
+    EXPECT_TRUE( is_approximately_diagonalized(matrix, accuracy) );
+    std::cerr << "!!!" << matrix << std::endl;
+}
+
+TEST_F(MatrixTest, Diagonalization1_4)
+{
+    simmetrize(m1);
+    test_diagonalization(m1, 4, 0.9);
+}
+TEST_F(MatrixTest, Diagonalization1_6)
+{
+    simmetrize(m1);
+    test_diagonalization(m1, 6, 0.035);
+}
+TEST_F(MatrixTest, Diagonalization1_9)
+{
+    simmetrize(m1);
+    test_diagonalization(m1, 9, 1e-9);
+}
+TEST_F(MatrixTest, Diagonalization1_12)
+{
+    simmetrize(m1);
+    test_diagonalization(m1, 12, 1e-40);
+}
+
+TEST_F(MatrixTest, Diagonalization2)
+{
+    simmetrize(m2);
+    test_diagonalization(m2, 6, 0.0005);
+}
+
+TEST_F(MatrixTest, Diagonalization3)
+{
+    simmetrize(m3);
+    test_diagonalization(m3, 5, 0.006);
 }

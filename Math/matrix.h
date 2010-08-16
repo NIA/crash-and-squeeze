@@ -37,7 +37,9 @@ namespace CrashAndSqueeze
             // -- constructors --
 
             Matrix();
+            
             Matrix(const double *values);
+            
             // construct matrix as multiplication of left_vector to transposed right_vector
             Matrix(const Vector &left_vector, const Vector &right_vector);
 
@@ -101,6 +103,7 @@ namespace CrashAndSqueeze
                 return !( *this == another );
             }
 
+            
             // -- unary operators --
 
             Matrix operator-() const
@@ -112,6 +115,7 @@ namespace CrashAndSqueeze
                 return *this;
             }
 
+            
             // -- multiplications --
             
             Matrix operator*(const Matrix &another) const;
@@ -121,6 +125,7 @@ namespace CrashAndSqueeze
 
             // transposes matrix in place (!), returns itself
             Matrix & transpose();
+            
             // returns transposed matrix
             Matrix transposed() const
             {
@@ -139,6 +144,7 @@ namespace CrashAndSqueeze
 
             // squared Frobenius norm of matrix
             double squared_norm() const;
+            
             // Frobenius norm of matrix
             double norm() const
             {
@@ -148,8 +154,23 @@ namespace CrashAndSqueeze
             // Does Jacobi rotation for p and q rows and columns.
             // Modifies matrix in place (!), multiplies given matrix
             // current_transformation by rotation matrix in place (!).
-            // The matrix is assumed to be symmetric, and that is NOT checked.
+            // The matrix is assumed to be symmetric (!), and this is NOT checked.
             void do_jacobi_rotation(int p, int q, /*out*/ Matrix & current_transformation);
+            
+            // Diagonalizes matrix in place(!) using rotations_count Jacobi rotations.
+            // Writes diagonalizing transformation matrix into transformation.
+            // Returns itself.
+            // The matrix is assumed to be symmetric (!), and this is NOT checked.
+            Matrix & diagonalize(int rotations_count, /*out*/ Matrix & transformation);
+            
+            // Returns matrix, diagonalized using rotations_count Jacobi rotations.
+            // Writes diagonalizing transformation matrix into transformation.
+            // The matrix is assumed to be symmetric (!), and this is NOT checked.
+            Matrix diagonalized(int rotations_count, /*out*/ Matrix & transformation) const
+            {
+                Matrix result = *this;
+                return result.diagonalize(rotations_count, transformation);
+            }
         };
 
         inline Matrix operator*(const double &scalar, const Matrix &matrix)
