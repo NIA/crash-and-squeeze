@@ -8,7 +8,11 @@ namespace CrashAndSqueeze
     namespace Math
     {
         const int MATRIX_ELEMENTS_NUM = VECTOR_SIZE*VECTOR_SIZE;
+        
         typedef double (*Operation)(double self_element, double another_element);
+        typedef double (*Function)(double value);
+        
+        const int DEFAULT_JACOBI_ROTATIONS_COUNT = 6;
 
         class Matrix
         {
@@ -158,19 +162,31 @@ namespace CrashAndSqueeze
             void do_jacobi_rotation(int p, int q, /*out*/ Matrix & current_transformation);
             
             // Diagonalizes matrix in place(!) using rotations_count Jacobi rotations.
-            // Writes diagonalizing transformation matrix into transformation.
+            // Writes diagonalizing transformation matrix into transformation
+            // (transformation matrix V is such that D = V.transposed()*A*V,
+            //  where A is given matrix and D is diagonalized result).
             // Returns itself.
             // The matrix is assumed to be symmetric (!), and this is NOT checked.
             Matrix & diagonalize(int rotations_count, /*out*/ Matrix & transformation);
             
             // Returns matrix, diagonalized using rotations_count Jacobi rotations.
-            // Writes diagonalizing transformation matrix into transformation.
+            // Writes diagonalizing transformation matrix into transformation
+            // (transformation matrix V is such that D = V.transposed()*A*V,
+            //  where A is given matrix and D is diagonalized result).
             // The matrix is assumed to be symmetric (!), and this is NOT checked.
             Matrix diagonalized(int rotations_count, /*out*/ Matrix & transformation) const
             {
                 Matrix result = *this;
                 return result.diagonalize(rotations_count, transformation);
             }
+
+            // Computes scalar functions of matrix by diagonalizing it using
+            // diagonalization_rotations_count Jacobi rotations and computing
+            // function of each diagonal element, and than transforming
+            // ("un-diagonalizing") it back.
+            // The matrix is assumed to be symmetric (!), and this is NOT checked.
+            Matrix compute_function(Function function,
+                                    int diagonalization_rotations_count = DEFAULT_JACOBI_ROTATIONS_COUNT) const;
         };
 
         inline Matrix operator*(const double &scalar, const Matrix &matrix)

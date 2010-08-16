@@ -241,6 +241,23 @@ namespace CrashAndSqueeze
             return *this;
         }
 
+        Matrix Matrix::compute_function(Function function, int diagonalization_rotations_count) const
+        {
+            assert(function != NULL);
+            
+            Matrix transformation;
+            Matrix diagonalized = this->diagonalized(diagonalization_rotations_count, transformation);
+            
+            double value;
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+            {
+                value = function( diagonalized.get_at(i, i) );
+                diagonalized.set_at(i, i, value);
+            }
+
+            return transformation*diagonalized*transformation.transposed();
+        }
+
         // -- identity matrix --
 
         const double IDENTITY_VALUES[MATRIX_ELEMENTS_NUM] =

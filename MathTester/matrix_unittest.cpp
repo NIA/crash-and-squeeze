@@ -24,6 +24,9 @@ protected:
     Matrix m1_div_alpha;
     Matrix m1_transposed;
     Matrix I;
+    Matrix diagonal;
+    Matrix exp_diagonal;
+    Matrix orthogonal;
 
     virtual void SetUp()
     {
@@ -74,6 +77,19 @@ protected:
         m1_div_alpha = Matrix(values1_div_alpha);
 
         I = Matrix::IDENTITY;
+
+        diagonal.set_at(0, 0, 8);
+        diagonal.set_at(1, 1, -1.94);
+        diagonal.set_at(2, 2, 2.65);
+
+        for(int i = 0; i < VECTOR_SIZE; ++i)
+            exp_diagonal.set_at(i, i, exp( diagonal.get_at(i, i)));
+
+        double orthogonal_values[MATRIX_ELEMENTS_NUM] =
+            {  0 , -0.80, -0.60,
+             0.80, -0.36,  0.48,
+             0.60,  0.48, -0.64 };
+        orthogonal = Matrix(orthogonal_values);
     }
 
     void test_jacobi_rotation(Matrix matrix);
@@ -350,7 +366,6 @@ void MatrixTest::test_diagonalization(Matrix src_matrix, int rotations, double a
     matrix.diagonalize(rotations, V);
     EXPECT_EQ( src_matrix, V*matrix*V.transposed() );
     EXPECT_TRUE( is_approximately_diagonalized(matrix, accuracy) );
-    std::cerr << "!!!" << matrix << std::endl;
 }
 
 TEST_F(MatrixTest, Diagonalization1_4)
@@ -384,4 +399,25 @@ TEST_F(MatrixTest, Diagonalization3)
 {
     simmetrize(m3);
     test_diagonalization(m3, 5, 0.006);
+}
+
+TEST_F(MatrixTest, DiagonalizationOfDiagonalized)
+{
+    Matrix P = I;
+    Matrix A = diagonal;
+    A.diagonalize(1, P);
+    EXPECT_EQ(diagonal, A);
+    EXPECT_EQ(I, P);
+}
+
+TEST_F(MatrixTest, FunctionOfDiagonalized)
+{
+    EXPECT_EQ(exp_diagonal, diagonal.compute_function(exp));
+}
+
+TEST_F(MatrixTest, FunctionOfArbitrary)
+{
+    const Matrix argument = orthogonal.transposed()*diagonal*orthogonal; // transform diagonal matrix somehow
+    const Matrix expected = orthogonal.transposed()*exp_diagonal*orthogonal; // transform result the same way
+    EXPECT_EQ(expected, argument.compute_function(exp, 3));
 }
