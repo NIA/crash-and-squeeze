@@ -66,6 +66,11 @@ class RenderStateError : public RuntimeError
 public:
     RenderStateError() : RuntimeError( _T("Error while setting render state") ) {}
 };
+class VertexBufferLockError : public RuntimeError
+{
+public:
+    VertexBufferLockError() : RuntimeError( _T("Error while locking vertex buffer for update") ) {}
+};
 
 inline void check_render( HRESULT res )
 {

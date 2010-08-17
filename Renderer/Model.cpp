@@ -18,7 +18,7 @@ Model::Model(   IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, Verte
         const unsigned vertices_size = vertices_count*vertex_size;
         const unsigned indices_size = indices_count*sizeof(indices[0]);
 
-        if(FAILED( device->CreateVertexBuffer( vertices_size, D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &vertex_buffer, NULL ) ))
+        if(FAILED( device->CreateVertexBuffer( vertices_size, D3DUSAGE_DYNAMIC, 0, D3DPOOL_DEFAULT, &vertex_buffer, NULL ) ))
             throw VertexBufferInitError();
         
 
@@ -75,6 +75,18 @@ void Model::rotate(float phi)
 const D3DXMATRIX &Model::get_rotation_and_position() const
 {
     return rotation_and_position;
+}
+
+Vertex * Model::lock_vertex_buffer()
+{
+    Vertex* vertices;
+    if(FAILED( vertex_buffer->Lock( 0, vertices_count*vertex_size, reinterpret_cast<void**>(&vertices), 0 ) ))
+        throw VertexBufferFillError();
+    return vertices;
+}
+void Model::unlock_vertex_buffer()
+{
+    vertex_buffer->Unlock();
 }
 
 void Model::release_interfaces()

@@ -109,7 +109,6 @@ void Application::render()
     // Begin the scene
     check_render( device->BeginScene() );
     // Setting constants
-    float time = static_cast<float>( clock() )/static_cast<float>( CLOCKS_PER_SEC );
     D3DXVECTOR3 directional_vector;
     D3DXVec3Normalize(&directional_vector, &SHADER_VAL_DIRECTIONAL_VECTOR);
     D3DXVECTOR3 spot_vector;
@@ -232,6 +231,21 @@ void Application::process_key(unsigned code)
     }
 }
 
+float some_random_delta(float max_delta)
+{
+    return static_cast<float>(rand())/RAND_MAX*2*max_delta - max_delta;
+}
+
+void some_dummy_physics(Vertex *vertices, unsigned vertices_num)
+{
+    for(unsigned i = 0; i < vertices_num; ++i)
+    {
+        vertices[i].pos.x += some_random_delta(0.001f);
+        vertices[i].pos.y += some_random_delta(0.001f);
+        vertices[i].pos.z += some_random_delta(0.001f);
+    }
+}
+
 void Application::run()
 {
     window.show();
@@ -253,7 +267,15 @@ void Application::run()
             DispatchMessage( &msg );
         }
         else
+        {
+            for ( Models::iterator iter = models.begin(); iter != models.end(); ++iter )
+            {
+                some_dummy_physics( (*iter)->lock_vertex_buffer(), (*iter)->get_vertices_count() );
+                (*iter)->unlock_vertex_buffer();
+            }
+
             render();
+        }
     }
 }
 
