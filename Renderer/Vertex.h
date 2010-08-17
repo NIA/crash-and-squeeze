@@ -4,8 +4,7 @@
 typedef DWORD Index;
 extern const D3DFORMAT INDEX_FORMAT;
 
-// It must be a macro, not a constant, because it must be known at compile-time (it is used for array initialization)
-#define VERTICES_PER_TRIANGLE 3
+const int VERTICES_PER_TRIANGLE = 3;
 
 inline int rand_col_comp()
 // Returns random color component: an integer between 0 and 255
@@ -43,28 +42,5 @@ public:
     }
 };
 
-class SkinningVertex : public Vertex
-{
-public:
-    float weights[BONES_COUNT]; // Weights for skinning
-    void set_weight(float weight)
-    {
-        weights[0] = weight;
-        weights[1] = 1 - weight;
-    }
-    SkinningVertex()
-    {
-        set_weight(1.0f);
-    }
-    SkinningVertex(D3DXVECTOR3 pos, D3DCOLOR color, float weight, D3DXVECTOR3 normal) : Vertex(pos, color, normal)
-    {
-        set_weight(weight);
-    }
-    SkinningVertex(D3DXVECTOR3 pos, float weight, D3DXVECTOR3 normal) : Vertex(pos, normal)
-    {
-        set_weight(weight);
-    }
-};
 
 extern const D3DVERTEXELEMENT9 VERTEX_DECL_ARRAY[];
-extern const D3DVERTEXELEMENT9 SKINNING_VERTEX_DECL_ARRAY[];

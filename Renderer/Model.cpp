@@ -1,18 +1,6 @@
 #include "Model.h"
 #include "matrices.h"
 
-namespace
-{
-    const float SKINNING_PERIOD = 2.0f;
-    const float SKINNING_OMEGA = 2.0f*D3DX_PI/SKINNING_PERIOD;
-    const float SKINNING_ANGLE = D3DX_PI/8.0f;
-
-    const float MORPHING_PERIOD = 3.0f;
-    const float MORPHING_OMEGA = 2.0f*D3DX_PI/MORPHING_PERIOD;
-
-    const unsigned MORPHING_CONSTANTS_USED = 2; // final radius and t
-}
-
 extern const unsigned VECTORS_IN_MATRIX;
 
 Model::Model(   IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, VertexShader &shader, unsigned vertex_size,
@@ -98,57 +86,4 @@ void Model::release_interfaces()
 Model::~Model()
 {
     release_interfaces();
-}
-
-// -------------------------------------- SkinningModel -------------------------------------------------------------
-
-SkinningModel::SkinningModel(IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, VertexShader &shader,
-                             const SkinningVertex *vertices, unsigned int vertices_count, const Index *indices, unsigned int indices_count,
-                             unsigned int primitives_count, D3DXVECTOR3 position, D3DXVECTOR3 rotation, D3DXVECTOR3 bone_center)
-: Model(device, primitive_type, shader, sizeof(SkinningVertex), vertices, vertices_count, indices, indices_count, primitives_count, position, rotation),
-  bone_center(bone_center)
-{
-    _ASSERT( BONES_COUNT <= sizeof(D3DXVECTOR4) ); // to fit weights into vertex shader register
-    for(unsigned i = 0; i < BONES_COUNT; ++i)
-        bones[i] = rotate_x_matrix(0.0f);
-}
-
-void SkinningModel::set_time(float time)
-{
-    // first bone will set the rotation
-    float angle = SKINNING_ANGLE*sin(SKINNING_OMEGA*time);
-    bones[0] = rotate_x_matrix( angle, bone_center );
-    // others will still be a unity matrix
-}
-
-unsigned SkinningModel::set_constants(D3DXVECTOR4 *out_data, unsigned buffer_size) const
-// returns number of constants used
-{
-    _ASSERT( buffer_size >= BONES_COUNT*VECTORS_IN_MATRIX ); // enough space?
-    memcpy(out_data, bones, BONES_COUNT*VECTORS_IN_MATRIX*sizeof(D3DXVECTOR4));
-    return BONES_COUNT*VECTORS_IN_MATRIX;
-}
-
-// -------------------------------------- SkinningModel -------------------------------------------------------------
-
-MorphingModel::MorphingModel(IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, VertexShader &shader,
-                             const Vertex *vertices, unsigned int vertices_count, const Index *indices, unsigned int indices_count,
-                             unsigned int primitives_count, D3DXVECTOR3 position, D3DXVECTOR3 rotation, float final_radius)
-: Model(device, primitive_type, shader, sizeof(Vertex), vertices, vertices_count, indices, indices_count, primitives_count, position, rotation),
-  morphing_param(1), final_radius(final_radius)
-{
-}
-
-void MorphingModel::set_time(float time)
-{
-    morphing_param = (cos(MORPHING_OMEGA*time) + 1.0f)/2.0f; // parameter of morhing: 0 to 1
-}
-
-unsigned MorphingModel::set_constants(D3DXVECTOR4 *out_data, unsigned buffer_size) const
-// returns number of constants used
-{
-    _ASSERT( buffer_size >= MORPHING_CONSTANTS_USED); // enough space?
-    out_data[0] = D3DXVECTOR4(final_radius, final_radius, final_radius, final_radius);
-    out_data[1] = D3DXVECTOR4(morphing_param, morphing_param, morphing_param, morphing_param);
-    return MORPHING_CONSTANTS_USED;
 }

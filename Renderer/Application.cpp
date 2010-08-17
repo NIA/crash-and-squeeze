@@ -14,12 +14,6 @@ namespace
     //---------------- SHADER CONSTANTS ---------------------------
     //    c0-c3 is the view matrix
     const unsigned    SHADER_REG_VIEW_MX = 0;
-    //    c4-c7 is the first bone matrix for SKINNING
-    //    c8-c11 is the second bone matrix for SKINNING
-    //    c4 is final radius for MORPHING
-    //    c5 is MORPHING parameter
-    const unsigned    SHADER_REG_MODEL_DATA = 4;
-    const unsigned    SHADER_SPACE_MODEL_DATA = 8; // number of registers available for
     //    c12 is directional light vector
     const unsigned    SHADER_REG_DIRECTIONAL_VECTOR = 12;
     const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0, 1.0f, 0.8f);
@@ -147,17 +141,11 @@ void Application::render()
     set_shader_float(  SHADER_REG_SPOT_X_COEF,        1/(in_cos - out_cos));
     set_shader_float(  SHADER_REG_SPOT_CONST_COEF,    out_cos/(in_cos - out_cos));
     
-    D3DXVECTOR4 model_constants[SHADER_SPACE_MODEL_DATA];
-    unsigned constants_used;
     for ( Models::iterator iter = models.begin(); iter != models.end(); ++iter )
     {
         // Set up
         ( (*iter)->get_shader() ).set();
 
-        // Setting constants
-        (*iter)->set_time(time);
-        constants_used = (*iter)->set_constants(model_constants, array_size(model_constants));
-        set_shader_const(SHADER_REG_MODEL_DATA, *model_constants, constants_used);
         set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, (*iter)->get_rotation_and_position() );
         
         // Draw
