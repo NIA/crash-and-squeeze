@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MathTester", "MathTester\Ma
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Renderer", "Renderer\Renderer.vcproj", "{3481A651-6B1F-43F2-A77F-0516B39689F3}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Core", "Core\Core.vcproj", "{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -35,6 +37,10 @@ Global
 		{3481A651-6B1F-43F2-A77F-0516B39689F3}.Debug|Win32.Build.0 = Debug|Win32
 		{3481A651-6B1F-43F2-A77F-0516B39689F3}.Release|Win32.ActiveCfg = Release|Win32
 		{3481A651-6B1F-43F2-A77F-0516B39689F3}.Release|Win32.Build.0 = Release|Win32
+		{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}.Debug|Win32.Build.0 = Debug|Win32
+		{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}.Release|Win32.ActiveCfg = Release|Win32
+		{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
