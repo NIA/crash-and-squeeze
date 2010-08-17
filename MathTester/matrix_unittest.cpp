@@ -19,7 +19,7 @@ protected:
     Matrix m3;
     Matrix m1_plus_m2;
     Matrix m1_minus_m2;
-    double alpha;
+    Real alpha;
     Matrix m1_mul_alpha;
     Matrix m1_div_alpha;
     Matrix m1_transposed;
@@ -30,11 +30,11 @@ protected:
 
     virtual void SetUp()
     {
-        const double values1[MATRIX_ELEMENTS_NUM] =
+        const Real values1[MATRIX_ELEMENTS_NUM] =
             { 9, 8, 7,
               6, 5, 4,
               3, 2, 1 };
-        const double values_transposed[MATRIX_ELEMENTS_NUM] =
+        const Real values_transposed[MATRIX_ELEMENTS_NUM] =
             { 9, 6, 3,
               8, 5, 2,
               7, 4, 1 };
@@ -42,36 +42,36 @@ protected:
         m1 = Matrix(values1);
         m1_transposed = Matrix(values_transposed);
         
-        const double values2[MATRIX_ELEMENTS_NUM] =
+        const Real values2[MATRIX_ELEMENTS_NUM] =
             { 1, 2, 1,
               0, 1, 2,
              -1, 0, 1 };
         m2 = Matrix(values2);
 
-        const double values3[MATRIX_ELEMENTS_NUM] =
+        const Real values3[MATRIX_ELEMENTS_NUM] =
             { 1.2,  2.8, 1.008,
                 0, -5.6,     2,
                 0,    0,   7.4 };
         m3 = Matrix(values3);
 
-        double values1plus2[MATRIX_ELEMENTS_NUM];
+        Real values1plus2[MATRIX_ELEMENTS_NUM];
         for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
             values1plus2[i] = values1[i] + values2[i];
         m1_plus_m2 = Matrix(values1plus2);
 
-        double values1minus2[MATRIX_ELEMENTS_NUM];
+        Real values1minus2[MATRIX_ELEMENTS_NUM];
         for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
             values1minus2[i] = values1[i] - values2[i];
         m1_minus_m2 = Matrix(values1minus2);
 
         alpha = 1.25;
 
-        double values1_mul_alpha[MATRIX_ELEMENTS_NUM];
+        Real values1_mul_alpha[MATRIX_ELEMENTS_NUM];
         for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
             values1_mul_alpha[i] = values1[i]*alpha;
         m1_mul_alpha = Matrix(values1_mul_alpha);
 
-        double values1_div_alpha[MATRIX_ELEMENTS_NUM];
+        Real values1_div_alpha[MATRIX_ELEMENTS_NUM];
         for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
             values1_div_alpha[i] = values1[i]/alpha;
         m1_div_alpha = Matrix(values1_div_alpha);
@@ -85,7 +85,7 @@ protected:
         for(int i = 0; i < VECTOR_SIZE; ++i)
             exp_diagonal.set_at(i, i, exp( diagonal.get_at(i, i)));
 
-        double orthogonal_values[MATRIX_ELEMENTS_NUM] =
+        Real orthogonal_values[MATRIX_ELEMENTS_NUM] =
             {  0 , -0.80, -0.60,
              0.80, -0.36,  0.48,
              0.60,  0.48, -0.64 };
@@ -93,10 +93,10 @@ protected:
     }
 
     void test_jacobi_rotation(Matrix matrix);
-    void test_diagonalization(Matrix matrix, int rotations, double accuracy);
-    void test_polar_decomposition(const Matrix &matrix, int rotations, double accuracy);
+    void test_diagonalization(Matrix matrix, int rotations, Real accuracy);
+    void test_polar_decomposition(const Matrix &matrix, int rotations, Real accuracy);
 
-    bool is_approximately_diagonalized(const Matrix &matrix, double accuracy)
+    bool is_approximately_diagonalized(const Matrix &matrix, Real accuracy)
     {
         return equal( 0, matrix.get_at(0,1), accuracy )
             && equal( 0, matrix.get_at(0,2), accuracy )
@@ -133,14 +133,14 @@ TEST_F(MatrixTest, Write)
 
 TEST_F(MatrixTest, AddWrite)
 {
-    double old = m1.get_at(1, 1);
+    Real old = m1.get_at(1, 1);
     m1.add_at(1, 1, -155);
     EXPECT_EQ( old - 155, m1.get_at(1,1) );
 }
 
 TEST_F(MatrixTest, ConstructFromVectorMultiply)
 {
-    const double values[MATRIX_ELEMENTS_NUM] =
+    const Real values[MATRIX_ELEMENTS_NUM] =
         { 4, 5, 6,
           8, 10, 12,
           12, 15, 18 };
@@ -232,7 +232,7 @@ TEST_F(MatrixTest, IdentityMatrix)
 
 TEST_F(MatrixTest, MatrixMultiply)
 {
-    const double values[MATRIX_ELEMENTS_NUM] =
+    const Real values[MATRIX_ELEMENTS_NUM] =
         { 2, 26, 32,
           2, 17, 20,
           2, 8, 8};
@@ -278,7 +278,7 @@ TEST_F(MatrixTest, InvertedIdentity)
 }
 TEST_F(MatrixTest, InvertedArbitrary)
 {
-    const double values[MATRIX_ELEMENTS_NUM] =
+    const Real values[MATRIX_ELEMENTS_NUM] =
         { 6.8,   -2,  1,
          18.1, 1.05, -2,
            -1,   22,  1 };
@@ -295,7 +295,7 @@ TEST_F(MatrixTest, SquaredNorm)
 
 TEST_F(MatrixTest, Norm)
 {
-    const double values[MATRIX_ELEMENTS_NUM] =
+    const Real values[MATRIX_ELEMENTS_NUM] =
         { 1,-1, 1,
           1, 1,-1,
          -1, 1, 1 };
@@ -361,7 +361,7 @@ TEST_F(MatrixTest, JacobiRotationDummy)
     EXPECT_EQ(I, P);
 }
 
-void MatrixTest::test_diagonalization(Matrix src_matrix, int rotations, double accuracy)
+void MatrixTest::test_diagonalization(Matrix src_matrix, int rotations, Real accuracy)
 {
     Matrix matrix = src_matrix;
     Matrix V;
@@ -424,7 +424,7 @@ TEST_F(MatrixTest, FunctionOfArbitrary)
     EXPECT_EQ(expected, argument.compute_function(exp, 3));
 }
 
-void MatrixTest::test_polar_decomposition(Matrix const &matrix, int rotations, double accuracy)
+void MatrixTest::test_polar_decomposition(Matrix const &matrix, int rotations, Real accuracy)
 {
     Matrix R;
     Matrix S;

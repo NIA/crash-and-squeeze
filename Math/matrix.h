@@ -9,8 +9,8 @@ namespace CrashAndSqueeze
     {
         const int MATRIX_ELEMENTS_NUM = VECTOR_SIZE*VECTOR_SIZE;
         
-        typedef double (*Operation)(double self_element, double another_element);
-        typedef double (*Function)(double value);
+        typedef Real (*Operation)(Real self_element, Real another_element);
+        typedef Real (*Function)(Real value);
         
         const int DEFAULT_JACOBI_ROTATIONS_COUNT = 6;
 
@@ -18,10 +18,10 @@ namespace CrashAndSqueeze
         {
         private:
             // matrix represented in memory in row-major order ("C-like arrays")
-            double values[MATRIX_ELEMENTS_NUM];
+            Real values[MATRIX_ELEMENTS_NUM];
             
             Matrix & assigment_operation(const Matrix &another, Operation operation);
-            Matrix & assigment_operation(const double &scalar, Operation operation);
+            Matrix & assigment_operation(const Real &scalar, Operation operation);
 
             static void check_index(int index)
             {
@@ -42,7 +42,7 @@ namespace CrashAndSqueeze
 
             Matrix();
             
-            Matrix(const double values[MATRIX_ELEMENTS_NUM]);
+            Matrix(const Real values[MATRIX_ELEMENTS_NUM]);
             
             // construct matrix as multiplication of left_vector to transposed right_vector
             Matrix(const Vector &left_vector, const Vector &right_vector);
@@ -52,19 +52,19 @@ namespace CrashAndSqueeze
             // -- getters/setters --
 
             // indices in matrix: 0,0 to 2,2
-            double Matrix::get_at(int line, int column) const
+            Real Matrix::get_at(int line, int column) const
             {
                 return values[ element_index(line, column) ];
             }
             
             // indices in matrix: 0,0 to 2,2
-            void Matrix::set_at(int line, int column, double value)
+            void Matrix::set_at(int line, int column, Real value)
             {
                 values[ element_index(line, column) ] = value;
             }
 
             // indices in matrix: 0,0 to 2,2
-            void Matrix::add_at(int line, int column, double value)
+            void Matrix::add_at(int line, int column, Real value)
             {
                 values[ element_index(line, column) ] += value;
             }
@@ -74,8 +74,8 @@ namespace CrashAndSqueeze
 
             Matrix & operator+=(const Matrix &another);
             Matrix & operator-=(const Matrix &another);
-            Matrix & operator*=(const double &scalar);
-            Matrix & operator/=(const double &scalar);
+            Matrix & operator*=(const Real &scalar);
+            Matrix & operator/=(const Real &scalar);
 
             // -- binary arithmetic operators --
 
@@ -90,12 +90,12 @@ namespace CrashAndSqueeze
                 return result -= another;
             }
 
-            Matrix operator*(const double &scalar) const
+            Matrix operator*(const Real &scalar) const
             {
                 Matrix result = *this;
                 return result *= scalar;
             }
-            Matrix operator/(const double &scalar) const
+            Matrix operator/(const Real &scalar) const
             {
                 Matrix result = *this;
                 return result /= scalar;
@@ -137,7 +137,7 @@ namespace CrashAndSqueeze
                 return matrix.transpose();
             }
 
-            double determinant() const
+            Real determinant() const
             {
                 return get_at(0,0)*get_at(1,1)*get_at(2,2) - get_at(0,0)*get_at(1,2)*get_at(2,1)
                      - get_at(0,1)*get_at(1,0)*get_at(2,2) + get_at(0,1)*get_at(1,2)*get_at(2,0)
@@ -147,10 +147,10 @@ namespace CrashAndSqueeze
             Matrix inverted() const;
 
             // squared Frobenius norm of matrix
-            double squared_norm() const;
+            Real squared_norm() const;
             
             // Frobenius norm of matrix
-            double norm() const
+            Real norm() const
             {
                 return sqrt( squared_norm() );
             }
@@ -196,7 +196,7 @@ namespace CrashAndSqueeze
                                         int diagonalization_rotations_count = DEFAULT_JACOBI_ROTATIONS_COUNT) const;
         };
 
-        inline Matrix operator*(const double &scalar, const Matrix &matrix)
+        inline Matrix operator*(const Real &scalar, const Matrix &matrix)
         {
             return matrix*scalar;
         }

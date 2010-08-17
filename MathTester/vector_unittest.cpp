@@ -103,7 +103,7 @@ TEST(VectorTest, Subtract)
 TEST(VectorTest, MulAssign)
 {
     Point p1(2, 3, 4.8);
-    const double d = 2.3;
+    const Real d = 2.3;
     const Point p3( p1[0]*d, p1[1]*d, p1[2]*d );
     EXPECT_EQ( &p1, &(p1 *= d) ); // It actually returns first argument
 
@@ -113,7 +113,7 @@ TEST(VectorTest, MulAssign)
 TEST(VectorTest, DivAssign)
 {
     Point p1(2, 3, 4.8);
-    const double d = 2.3;
+    const Real d = 2.3;
     const Point p3( p1[0]/d, p1[1]/d, p1[2]/d );
     EXPECT_EQ( &p1, &(p1 /= d) ); // It actually returns first argument
 
@@ -123,7 +123,7 @@ TEST(VectorTest, DivAssign)
 TEST(VectorTest, Multiply)
 {
     const Point p1(2, 3, 4.8);
-    const double d = 2.3;
+    const Real d = 2.3;
     const Point p3( p1[0]*d, p1[1]*d, p1[2]*d );
 
     EXPECT_EQ( p3, p1*d );
@@ -133,7 +133,7 @@ TEST(VectorTest, Multiply)
 TEST(VectorTest, Divide)
 {
     const Point p1(2, 3, 4.8);
-    const double d = 2.3;
+    const Real d = 2.3;
     const Point p3( p1[0]/d, p1[1]/d, p1[2]/d );
 
     EXPECT_EQ( p3, p1/d );
@@ -141,8 +141,8 @@ TEST(VectorTest, Divide)
 
 TEST(VectorTest, ScalarMultiply)
 {
-    const double a = 2, b = 3, c = 4.8;
-    const double d = 1, e = 0, f = -4.1;
+    const Real a = 2, b = 3, c = 4.8;
+    const Real d = 1, e = 0, f = -4.1;
     Point p1(a, b, c);
     Point p2(d, e, f);
 

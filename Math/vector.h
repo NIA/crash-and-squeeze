@@ -12,23 +12,23 @@ namespace CrashAndSqueeze
         class Vector
         {
         private:
-            double values[VECTOR_SIZE];
+            Real values[VECTOR_SIZE];
         public:
             Vector() { values[0] = 0; values[1] = 0; values[2] = 0; }
-            Vector(double x, double y, double z) { values[0] = x; values[1] = y; values[2] = z; }
+            Vector(Real x, Real y, Real z) { values[0] = x; values[1] = y; values[2] = z; }
 
             static const Vector ZERO;
 
             // -- getters/setters --
 
             // indices in vector: 0 to 2
-            double operator[](int index) const
+            Real operator[](int index) const
             {
                 assert(index >= 0); //TODO: errors
                 assert(index < VECTOR_SIZE);
                 return values[index];
             }
-            double & operator[](int index)
+            Real & operator[](int index)
             {
                 assert(index >= 0); //TODO: errors
                 assert(index < VECTOR_SIZE);
@@ -50,13 +50,13 @@ namespace CrashAndSqueeze
                 return *this;
             }
 
-            Vector & operator*=(const double &scalar)
+            Vector & operator*=(const Real &scalar)
             {
                 for(int i = 0; i < VECTOR_SIZE; ++i)
                     values[i] *= scalar;
                 return *this;
             }
-            Vector & operator/=(const double &scalar)
+            Vector & operator/=(const Real &scalar)
             {
                 for(int i = 0; i < VECTOR_SIZE; ++i)
                     values[i] /= scalar;
@@ -76,12 +76,12 @@ namespace CrashAndSqueeze
                 return result -= another;
             }
 
-            Vector operator*(const double &scalar) const
+            Vector operator*(const Real &scalar) const
             {
                 Vector result = *this;
                 return result *= scalar;
             }
-            Vector operator/(const double &scalar) const
+            Vector operator/(const Real &scalar) const
             {
                 Vector result = *this;
                 return result /= scalar;
@@ -111,9 +111,9 @@ namespace CrashAndSqueeze
             }
             
             // scalar multiplication
-            double operator*(const Vector &another) const
+            Real operator*(const Vector &another) const
             {
-                double result = 0;
+                Real result = 0;
                 for(int i = 0; i < VECTOR_SIZE; ++i)
                     result += values[i]*another[i];
                 return result;
@@ -121,11 +121,11 @@ namespace CrashAndSqueeze
             
             // -- methods --
 
-            double sqared_norm() const
+            Real sqared_norm() const
             {
                 return (*this)*(*this);
             }
-            double norm() const
+            Real norm() const
             {
                 return sqrt( sqared_norm() );
             }
@@ -161,14 +161,14 @@ namespace CrashAndSqueeze
 
         // -- more operators --
         
-        inline Vector operator*(const double &scalar, const Vector &vector)
+        inline Vector operator*(const Real &scalar, const Vector &vector)
         {
             return vector * scalar;
         }
         
         // -- functions --
         
-        inline double distance(const Point &A, const Point &B)
+        inline Real distance(const Point &A, const Point &B)
         {
             return (A - B).norm();
         }

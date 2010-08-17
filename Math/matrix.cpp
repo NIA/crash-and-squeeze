@@ -14,7 +14,7 @@ namespace CrashAndSqueeze
                 values[i] = 0;
         }
 
-        Matrix::Matrix(const double values[MATRIX_ELEMENTS_NUM])
+        Matrix::Matrix(const Real values[MATRIX_ELEMENTS_NUM])
         {
             memcpy(this->values, values, sizeof(this->values));
         }
@@ -31,7 +31,7 @@ namespace CrashAndSqueeze
         Matrix & Matrix::assigment_operation(const Matrix &another, Operation operation)
         {
             assert(operation != NULL);
-            double result;
+            Real result;
             for(int i = 0; i < VECTOR_SIZE; ++i)
             {
                 for(int j = 0; j < VECTOR_SIZE; ++j)
@@ -44,10 +44,10 @@ namespace CrashAndSqueeze
             return *this;
         }
 
-        Matrix & Matrix::assigment_operation(const double &scalar, Operation operation)
+        Matrix & Matrix::assigment_operation(const Real &scalar, Operation operation)
         {
             assert(operation != NULL);
-            double result;
+            Real result;
             for(int i = 0; i < VECTOR_SIZE; ++i)
             {
                 for(int j = 0; j < VECTOR_SIZE; ++j)
@@ -60,10 +60,10 @@ namespace CrashAndSqueeze
             return *this;
         }
 
-        double add(double a, double b) { return a + b; }
-        double sub(double a, double b) { return a - b; }
-        double mul(double a, double b) { return a * b; }
-        double div(double a, double b) { return a / b; }
+        Real add(Real a, Real b) { return a + b; }
+        Real sub(Real a, Real b) { return a - b; }
+        Real mul(Real a, Real b) { return a * b; }
+        Real div(Real a, Real b) { return a / b; }
 
         Matrix & Matrix::operator +=(const Matrix &another)
         {
@@ -75,12 +75,12 @@ namespace CrashAndSqueeze
             return assigment_operation(another, sub);
         }
         
-        Matrix & Matrix::operator *=(const double &scalar)
+        Matrix & Matrix::operator *=(const Real &scalar)
         {
             return assigment_operation(scalar, mul);
         }
         
-        Matrix & Matrix::operator /=(const double &scalar)
+        Matrix & Matrix::operator /=(const Real &scalar)
         {
             return assigment_operation(scalar, div);
         }
@@ -100,7 +100,7 @@ namespace CrashAndSqueeze
         Matrix Matrix::operator*(const Matrix &another) const
         {
             Matrix result;
-            double value;
+            Real value;
 
             for(int i = 0; i < VECTOR_SIZE; ++i)
             {
@@ -120,7 +120,7 @@ namespace CrashAndSqueeze
         Vector Matrix::operator*(const Vector &vector) const
         {
             Vector result;
-            double value;
+            Real value;
             for(int i = 0; i < VECTOR_SIZE; ++i)
             {
                 value = 0;
@@ -133,9 +133,9 @@ namespace CrashAndSqueeze
             return result;
         }
 
-        inline void swap(double &a, double &b)
+        inline void swap(Real &a, Real &b)
         {
-            double temp;
+            Real temp;
             temp = a;
             a = b;
             b = temp;
@@ -151,11 +151,11 @@ namespace CrashAndSqueeze
 
         Matrix Matrix::inverted() const
         {
-            double det = determinant();
+            Real det = determinant();
             assert(! equal(0, det)); //TODO: errors
             
             Matrix cofactors;
-            double value;
+            Real value;
             for(int i = 0; i < VECTOR_SIZE; ++i)
             {
                 for(int j = 0; j < VECTOR_SIZE; ++j)
@@ -168,10 +168,10 @@ namespace CrashAndSqueeze
             return cofactors /= det;
         }
 
-        double Matrix::squared_norm() const
+        Real Matrix::squared_norm() const
         {
-            double result = 0;
-            double value;
+            Real result = 0;
+            Real value;
             for(int i = 0; i < VECTOR_SIZE; ++i)
             {
                 for(int j = 0; j < VECTOR_SIZE; ++j)
@@ -199,24 +199,24 @@ namespace CrashAndSqueeze
             // r is the remaining index: not p and not q
             int r = 3 - p - q;
 
-            // theta is cotangent of double rotation angle
-            double theta = (get_at(q,q) - get_at(p,p))/get_at(p,q)/2;
+            // theta is cotangent of Real rotation angle
+            Real theta = (get_at(q,q) - get_at(p,p))/get_at(p,q)/2;
             // t is sin/cos of rotation angle
             // it is determined from equation t^2 + 2*t*theta - 1 = 0,
             // which implies from definition of theta as (cos^2 - sin^2)/(2*sin*cos)
-            double t = (0 != theta) ? sign(theta)/(abs(theta) + sqrt(theta*theta + 1)) : 1;
-            double cosine = 1/sqrt(t*t + 1);
-            double sine = t*cosine;
+            Real t = (0 != theta) ? sign(theta)/(abs(theta) + sqrt(theta*theta + 1)) : 1;
+            Real cosine = 1/sqrt(t*t + 1);
+            Real sine = t*cosine;
             // tau is tangent of half of rotation angle
-            double tau = sine/(1 + cosine);
+            Real tau = sine/(1 + cosine);
 
             add_at(p, p, - t*get_at(p,q));
             add_at(q, q, + t*get_at(p,q));
             
             // correction to element at (r,p)
-            double rp_correction = - sine*(get_at(r,q) + tau*get_at(r,p));
+            Real rp_correction = - sine*(get_at(r,q) + tau*get_at(r,p));
             // correction to element at (r,q)
-            double rq_correction = + sine*(get_at(r,p) - tau*get_at(r,q));
+            Real rq_correction = + sine*(get_at(r,p) - tau*get_at(r,q));
             add_at(r, p, rp_correction);
             add_at(p, r, rp_correction);
             add_at(r, q, rq_correction);
@@ -248,7 +248,7 @@ namespace CrashAndSqueeze
             Matrix transformation;
             Matrix diagonalized = this->diagonalized(diagonalization_rotations_count, transformation);
             
-            double value;
+            Real value;
             for(int i = 0; i < VECTOR_SIZE; ++i)
             {
                 value = function( diagonalized.get_at(i, i) );
@@ -258,7 +258,7 @@ namespace CrashAndSqueeze
             return transformation*diagonalized*transformation.transposed();
         }
 
-        double cautious_sqrt(double value)
+        Real cautious_sqrt(Real value)
         {
             return value < 0 ? 0 : sqrt(value);
         }
@@ -274,7 +274,7 @@ namespace CrashAndSqueeze
 
         // -- identity matrix --
 
-        const double IDENTITY_VALUES[MATRIX_ELEMENTS_NUM] =
+        const Real IDENTITY_VALUES[MATRIX_ELEMENTS_NUM] =
             { 1, 0, 0,
               0, 1, 0,
               0, 0, 1 };
