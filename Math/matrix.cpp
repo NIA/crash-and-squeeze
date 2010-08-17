@@ -14,7 +14,7 @@ namespace CrashAndSqueeze
                 values[i] = 0;
         }
 
-        Matrix::Matrix(const double *values)
+        Matrix::Matrix(const double values[MATRIX_ELEMENTS_NUM])
         {
             memcpy(this->values, values, sizeof(this->values));
         }

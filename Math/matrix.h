@@ -42,7 +42,7 @@ namespace CrashAndSqueeze
 
             Matrix();
             
-            Matrix(const double *values);
+            Matrix(const double values[MATRIX_ELEMENTS_NUM]);
             
             // construct matrix as multiplication of left_vector to transposed right_vector
             Matrix(const Vector &left_vector, const Vector &right_vector);
