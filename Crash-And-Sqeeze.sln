@@ -12,8 +12,21 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MathTester", "MathTester\Ma
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Renderer", "Renderer\Renderer.vcproj", "{3481A651-6B1F-43F2-A77F-0516B39689F3}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB} = {7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}
+		{90C1E08A-3C37-4EFD-9F6B-F421CC027CE4} = {90C1E08A-3C37-4EFD-9F6B-F421CC027CE4}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Core", "Core\Core.vcproj", "{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{90C1E08A-3C37-4EFD-9F6B-F421CC027CE4} = {90C1E08A-3C37-4EFD-9F6B-F421CC027CE4}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoreTester", "CoreTester\CoreTester.vcproj", "{8E7E1642-47BF-4252-84C3-7A2B32F1781E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB} = {7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}
+		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7} = {C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +54,10 @@ Global
 		{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}.Debug|Win32.Build.0 = Debug|Win32
 		{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}.Release|Win32.ActiveCfg = Release|Win32
 		{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}.Release|Win32.Build.0 = Release|Win32
+		{8E7E1642-47BF-4252-84C3-7A2B32F1781E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8E7E1642-47BF-4252-84C3-7A2B32F1781E}.Debug|Win32.Build.0 = Debug|Win32
+		{8E7E1642-47BF-4252-84C3-7A2B32F1781E}.Release|Win32.ActiveCfg = Release|Win32
+		{8E7E1642-47BF-4252-84C3-7A2B32F1781E}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

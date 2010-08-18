@@ -1,3 +1,10 @@
 #pragma once
 
-#include "model.h"
+namespace CrashAndSqueeze
+{
+    namespace Core
+    {
+        typedef float VertexFloat;
+        typedef double MassFloat;
+    }
+}

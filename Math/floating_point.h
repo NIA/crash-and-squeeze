@@ -10,6 +10,7 @@ namespace CrashAndSqueeze
 {
     namespace Math
     {
+        // floating-point type of internal calculations
         typedef double Real;
         
         const Real DEFAULT_REAL_PRECISION = 1e-12;

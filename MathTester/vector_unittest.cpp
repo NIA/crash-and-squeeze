@@ -1,5 +1,5 @@
 #include "math_tester.h"
-#include "../Math/vector.h"
+#include "vector.h"
 
 using namespace ::CrashAndSqueeze::Math;
 // TODO: make test variables constants

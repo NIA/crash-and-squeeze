@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="Core"
-	ProjectGUID="{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}"
-	RootNamespace="Core"
+	Name="CoreTester"
+	ProjectGUID="{8E7E1642-47BF-4252-84C3-7A2B32F1781E}"
+	RootNamespace="CoreTester"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -18,9 +18,9 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)_Lib\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)_Bin\$(ConfigurationName)"
 			IntermediateDirectory="$(SolutionDir)_Build\$(ProjectName)\$(ConfigurationName)"
-			ConfigurationType="4"
+			ConfigurationType="1"
 			CharacterSet="1"
 			>
 			<Tool
@@ -41,8 +41,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(SolutionDir)Math"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)Core&quot;;&quot;$(SolutionDir)Math&quot;;&quot;$(SolutionDir)GoogleTestFramework\include&quot;"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -60,11 +60,18 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLibrarianTool"
-				AdditionalDependencies="&quot;$(SolutionDir)_Lib\$(ConfigurationName)\math.lib&quot;"
+				Name="VCLinkerTool"
+				AdditionalDependencies="&quot;$(SolutionDir)_Lib\$(ConfigurationName)\core.lib&quot; &quot;$(SolutionDir)_Lib\$(ConfigurationName)\gtestd.lib&quot;"
+				LinkIncremental="2"
+				GenerateDebugInformation="true"
+				SubSystem="1"
+				TargetMachine="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -76,14 +83,17 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)_Lib\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)_Bin\$(ConfigurationName)"
 			IntermediateDirectory="$(SolutionDir)_Build\$(ProjectName)\$(ConfigurationName)"
-			ConfigurationType="4"
+			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -106,8 +116,8 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="$(SolutionDir)Math"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)Core&quot;;&quot;$(SolutionDir)Math&quot;;&quot;$(SolutionDir)GoogleTestFramework\include&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
@@ -124,11 +134,20 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLibrarianTool"
-				AdditionalDependencies="&quot;$(SolutionDir)_Lib\$(ConfigurationName)\math.lib&quot;"
+				Name="VCLinkerTool"
+				AdditionalDependencies="&quot;$(SolutionDir)_Lib\$(ConfigurationName)\core.lib&quot; &quot;$(SolutionDir)_Lib\$(ConfigurationName)\gtest.lib&quot;"
+				LinkIncremental="1"
+				GenerateDebugInformation="true"
+				SubSystem="1"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				TargetMachine="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -138,6 +157,9 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -153,11 +175,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\cluster.cpp"
+				RelativePath=".\cluster_unittest.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\model.cpp"
+				RelativePath=".\model_unittest.cpp"
 				>
 			</File>
 		</Filter>
@@ -167,27 +189,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\cluster.h"
-				>
-			</File>
-			<File
-				RelativePath=".\core.h"
-				>
-			</File>
-			<File
-				RelativePath=".\force.h"
-				>
-			</File>
-			<File
-				RelativePath=".\model.h"
-				>
-			</File>
-			<File
-				RelativePath=".\physical_vertex.h"
-				>
-			</File>
-			<File
-				RelativePath=".\vertex_info.h"
+				RelativePath=".\core_tester.h"
 				>
 			</File>
 		</Filter>

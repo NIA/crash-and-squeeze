@@ -1,8 +1,10 @@
 #pragma once
 #include <gtest/gtest.h>
+#include "core.h"
 #include "vector.h"
 
 using namespace ::CrashAndSqueeze::Math;
+using namespace ::CrashAndSqueeze::Core;
 
 inline std::ostream &operator<<(std::ostream &stream, const Vector &vector)
 {
