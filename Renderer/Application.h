@@ -4,15 +4,13 @@
 #include "Window.h"
 #include "Vertex.h"
 #include "Model.h"
-
-#pragma warning( disable : 4996 ) // disable deprecated warning 
-#pragma warning( disable : 4995 ) // disable deprecated warning 
-#include <list>
-#pragma warning( default : 4996 ) // disable deprecated warning
-#pragma warning( default : 4995 ) // disable deprecated warning 
+#include <vector>
+#include "Core\model.h"
 
 extern const unsigned VECTORS_IN_MATRIX;
-typedef std::list<Model*> Models;
+typedef std::vector<Model*> Models;
+typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
+typedef std::vector<PhysicalModel*> PhysicalModels;
 
 class Application
 {
@@ -28,6 +26,7 @@ private:
     Window window;
 
     Models models;
+    PhysicalModels physical_models;
 
     Camera camera;
 
@@ -73,7 +72,6 @@ public:
     IDirect3DDevice9 * get_device();
 
     void add_model(Model &model);
-    void remove_model(Model &model);
     void run();
 
     void toggle_wireframe();

@@ -1,6 +1,8 @@
 #include "Application.h"
 #include <time.h>
 
+using namespace CrashAndSqueeze;
+
 const unsigned VECTORS_IN_MATRIX = sizeof(D3DXMATRIX)/sizeof(D3DXVECTOR4);
 
 namespace
@@ -166,11 +168,7 @@ IDirect3DDevice9 * Application::get_device()
 void Application::add_model(Model &model)
 {
     models.push_back( &model );
-}
-
-void Application::remove_model(Model &model)
-{
-    models.remove( &model );
+    physical_models.push_back( new PhysicalModel(model.lock_vertex_buffer(), model.get_vertices_count(), VERTEX_INFO, NULL, 1) );
 }
 
 void Application::rotate_models(float phi)
@@ -231,25 +229,11 @@ void Application::process_key(unsigned code)
     }
 }
 
-float some_random_delta(float max_delta)
-{
-    return static_cast<float>(rand())/RAND_MAX*2*max_delta - max_delta;
-}
-
-void some_dummy_physics(Vertex *vertices, unsigned vertices_num)
-{
-    for(unsigned i = 0; i < vertices_num; ++i)
-    {
-        vertices[i].pos.x += some_random_delta(0.001f);
-        vertices[i].pos.y += some_random_delta(0.001f);
-        vertices[i].pos.z += some_random_delta(0.001f);
-    }
-}
-
 void Application::run()
 {
     window.show();
     window.update();
+    Core::PlaneForce force(Math::Vector(0,0,5), Math::Vector(0,0,0), Math::Vector(0,0,1), 0.05);
 
     // Enter the message loop
     MSG msg;
@@ -268,10 +252,14 @@ void Application::run()
         }
         else
         {
-            for ( Models::iterator iter = models.begin(); iter != models.end(); ++iter )
+            // for each model and corresponding physical model
+            Models::iterator m_iter = models.begin();
+            PhysicalModels::iterator pm_iter = physical_models.begin();
+            for ( ; m_iter != models.end() && pm_iter != physical_models.end(); ++m_iter, ++pm_iter )
             {
-                some_dummy_physics( (*iter)->lock_vertex_buffer(), (*iter)->get_vertices_count() );
-                (*iter)->unlock_vertex_buffer();
+                (*pm_iter)->compute_next_step(&force, 1);
+                (*pm_iter)->update_vertices((*m_iter)->lock_vertex_buffer(), (*m_iter)->get_vertices_count(), VERTEX_INFO);
+                (*m_iter)->unlock_vertex_buffer();
             }
 
             render();

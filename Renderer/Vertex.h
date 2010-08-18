@@ -1,5 +1,6 @@
 #pragma once
 #include "main.h"
+#include "Core\vertex_info.h"
 
 typedef DWORD Index;
 extern const D3DFORMAT INDEX_FORMAT;
@@ -44,3 +45,5 @@ public:
 
 
 extern const D3DVERTEXELEMENT9 VERTEX_DECL_ARRAY[];
+
+extern const ::CrashAndSqueeze::Core::VertexInfo VERTEX_INFO;

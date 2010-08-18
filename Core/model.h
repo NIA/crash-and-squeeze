@@ -36,7 +36,7 @@ namespace CrashAndSqueeze
 
             void compute_next_step(const Force *forces, int forces_num);
 
-            void update_vertices(/*out*/ void *vertices, int vetrices_num, VertexInfo const &vertex_info);
+            void update_vertices(/*out*/ void *vertices, int vertices_num, VertexInfo const &vertex_info);
 
             int get_vertices_num() const { return vertices_num; }
             PhysicalVertex const *get_vertices() const { return vertices; }
