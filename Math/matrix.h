@@ -1,5 +1,5 @@
 #pragma once
-
+#include "logger.h"
 #include "vector.h"
 #include <cmath>
 

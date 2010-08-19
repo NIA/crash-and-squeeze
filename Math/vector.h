@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include "logger.h"
 #include "floating_point.h"
 
 namespace CrashAndSqueeze
