@@ -1,6 +1,4 @@
 #pragma once
-#include <assert.h>
-#include <cstdlib>
 #include <cmath>
 
 // Helpers for 'proper' comparing floating point numbers: assuming equal those ones,

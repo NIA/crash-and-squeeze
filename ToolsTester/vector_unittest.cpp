@@ -1,15 +1,22 @@
 #include "tools_tester.h"
 #include "Math/vector.h"
 
-using namespace ::CrashAndSqueeze::Math;
-// TODO: make test variables constants
-
 TEST(VectorTest, DefaultConstruct)
 {
     const Point p;
     EXPECT_EQ( 0, p[0] );
     EXPECT_EQ( 0, p[1] );
     EXPECT_EQ( 0, p[2] );
+}
+
+TEST(VectorTest, BadAccess)
+{
+    const Vector v;
+    Point p;
+    set_tester_err_callback();
+    EXPECT_THROW( v[40], ToolsTesterException );
+    EXPECT_THROW( p[-1], ToolsTesterException );
+    unset_tester_err_callback();
 }
 
 TEST(VectorTest, Construct)

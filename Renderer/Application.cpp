@@ -12,6 +12,7 @@ namespace
     const bool        INITIAL_WIREFRAME_STATE = true;
     const D3DCOLOR    BLACK = D3DCOLOR_XRGB( 0, 0, 0 );
     const float       ROTATE_STEP = D3DX_PI/30.0f;
+    const float       VERTEX_MASS = 1;
 
     //---------------- SHADER CONSTANTS ---------------------------
     //    c0-c3 is the view matrix
@@ -168,7 +169,7 @@ IDirect3DDevice9 * Application::get_device()
 void Application::add_model(Model &model)
 {
     models.push_back( &model );
-    physical_models.push_back( new PhysicalModel(model.lock_vertex_buffer(), model.get_vertices_count(), VERTEX_INFO, NULL, 1) );
+    physical_models.push_back( new PhysicalModel(model.lock_vertex_buffer(), model.get_vertices_count(), VERTEX_INFO, NULL, VERTEX_MASS) );
 }
 
 void Application::rotate_models(float phi)

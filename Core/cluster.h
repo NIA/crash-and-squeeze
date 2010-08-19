@@ -57,6 +57,16 @@ namespace CrashAndSqueeze
             
             // TODO: Math::Matrix plasticity_state;
             
+            bool check_vertex_index(int index) const
+            {
+                if(index < 0 || index >= vertices_num)
+                {
+                    logger.error("Model::get_vertex_index: index out of range", __FILE__, __LINE__);
+                    return false;
+                }
+                return true;
+            }
+
         public:
             Cluster(Math::Real goal_speed_constant = DEFAULT_GOAL_SPEED_CONSTANT);
             virtual ~Cluster();
@@ -64,11 +74,20 @@ namespace CrashAndSqueeze
             void add_vertex(int vertex_index, const PhysicalVertex &vertex);
 
             int get_vertices_num() const { return vertices_num; }
-            int get_vertex_index(int index) const { /* TODO: errors */ return vertices[index].vertex_index; }
+
+            int get_vertex_index(int index) const
+            {
+                if( check_vertex_index(index) )
+                    return vertices[index].vertex_index;
+                else
+                    return 0;
+            }
             Math::Vector get_initial_vertex_offset_position(int index) const
             {
-                // TODO: errors
-                return vertices[index].initial_offset_position;
+                if( check_vertex_index(index) )
+                    return vertices[index].initial_offset_position;
+                else
+                    return Math::Vector();
             }
             Math::Vector get_initial_center_of_mass() const { return initial_center_of_mass; }
             Math::Real get_total_mass() const { return total_mass; }

@@ -5,6 +5,8 @@
 
 namespace CrashAndSqueeze
 {
+    using namespace Logging;
+
     namespace Math
     {
         const int VECTOR_SIZE = 3;
@@ -14,6 +16,15 @@ namespace CrashAndSqueeze
         {
         private:
             Real values[VECTOR_SIZE];
+            bool check_index(int index) const
+            {
+                if(index < 0 || index >= VECTOR_SIZE)
+                {
+                    logger.error("Vector index out of range", __FILE__, __LINE__);
+                    return false;
+                }
+                return true;
+            }
         public:
             Vector() { values[0] = 0; values[1] = 0; values[2] = 0; }
             Vector(Real x, Real y, Real z) { values[0] = x; values[1] = y; values[2] = z; }
@@ -25,15 +36,17 @@ namespace CrashAndSqueeze
             // indices in vector: 0 to 2
             Real operator[](int index) const
             {
-                assert(index >= 0); //TODO: errors
-                assert(index < VECTOR_SIZE);
-                return values[index];
+                if(check_index(index))
+                    return values[index];
+                else
+                    return values[0];
             }
             Real & operator[](int index)
             {
-                assert(index >= 0); //TODO: errors
-                assert(index < VECTOR_SIZE);
-                return values[index];
+                if(check_index(index))
+                    return values[index];
+                else
+                    return values[0];
             }
 
             // -- assignment operators --
@@ -134,9 +147,9 @@ namespace CrashAndSqueeze
             Vector & normalize()
             {
                 if( norm() != 0 )
-                {
                     (*this) /= norm();
-                }
+                else
+                    logger.warning("attempting to normalize zero Vector, the Vector left unchanged", __FILE__, __LINE__);
                 return *this;
             }
             // returns normalized point/vector

@@ -23,18 +23,22 @@ namespace CrashAndSqueeze
             Matrix & assigment_operation(const Matrix &another, Operation operation);
             Matrix & assigment_operation(const Real &scalar, Operation operation);
 
-            static void check_index(int index)
+            bool check_index(int index) const
             {
-                index; // avoid "unreferenced parameter" warning
-                assert(index >= 0); //TODO: errors
-                assert(index < VECTOR_SIZE);
+                if(index < 0 || index >= VECTOR_SIZE)
+                {
+                    logger.error("Matrix index out of range", __FILE__, __LINE__);
+                    return false;
+                }
+                return true;
             }
 
-            static int element_index(int line, int column)
+            int element_index(int line, int column) const
             {
-                check_index(line);
-                check_index(column);
-                return VECTOR_SIZE*line + column;
+                if(check_index(line) || check_index(column))
+                    return VECTOR_SIZE*line + column;
+                else
+                    return 0;
             }
 
         public:

@@ -187,6 +187,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\tools_tester.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\vector_unittest.cpp"
 				>
 			</File>

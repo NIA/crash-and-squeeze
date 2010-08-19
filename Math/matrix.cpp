@@ -1,4 +1,3 @@
-#include "assert.h"
 #include "Math/matrix.h"
 #include <cstring>
 
@@ -30,7 +29,13 @@ namespace CrashAndSqueeze
 
         Matrix & Matrix::assigment_operation(const Matrix &another, Operation operation)
         {
-            assert(operation != NULL);
+            if(operation == NULL)
+            {
+                logger.error("internal error: null pointer `operation` in matrix-matrix assigment operation", __FILE__, __LINE__);
+                return *this;
+            }
+            
+
             Real result;
             for(int i = 0; i < VECTOR_SIZE; ++i)
             {
@@ -46,7 +51,12 @@ namespace CrashAndSqueeze
 
         Matrix & Matrix::assigment_operation(const Real &scalar, Operation operation)
         {
-            assert(operation != NULL);
+            if(operation == NULL)
+            {
+                logger.error("internal error: null pointer `operation` in matrix-scalar assigment operation", __FILE__, __LINE__);
+                return *this;
+            }
+
             Real result;
             for(int i = 0; i < VECTOR_SIZE; ++i)
             {
@@ -152,8 +162,12 @@ namespace CrashAndSqueeze
         Matrix Matrix::inverted() const
         {
             Real det = determinant();
-            assert(! equal(0, det)); //TODO: errors
-            
+            if(equal(0, det))
+            {
+                logger.error("inverting singular matrix (determinant == 0)", __FILE__, __LINE__);
+                return Matrix();
+            }
+
             Matrix cofactors;
             Real value;
             for(int i = 0; i < VECTOR_SIZE; ++i)
@@ -190,7 +204,10 @@ namespace CrashAndSqueeze
             
             // check for invalid rotation
             if(p == q)
+            {
+                logger.warning("incorrect jacobi rotation: `p` and `q` must be different indices", __FILE__, __LINE__);
                 return;
+            }
             
             // if element is already zeroed
             if(0 == get_at(p,q))
@@ -243,7 +260,11 @@ namespace CrashAndSqueeze
 
         Matrix Matrix::compute_function(Function function, int diagonalization_rotations_count) const
         {
-            assert(function != NULL);
+            if(function == NULL)
+            {
+                logger.error("null pointer `function` in Matrix::compute_function", __FILE__, __LINE__);
+                return Matrix();
+            }
             
             Matrix transformation;
             Matrix diagonalized = this->diagonalized(diagonalization_rotations_count, transformation);

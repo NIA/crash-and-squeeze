@@ -71,6 +71,11 @@ class VertexBufferLockError : public RuntimeError
 public:
     VertexBufferLockError() : RuntimeError( _T("Error while locking vertex buffer for update") ) {}
 };
+class PhysicsError : public RuntimeError
+{
+public:
+    PhysicsError() : RuntimeError( _T("Physics subsystem error, see log file for details") ) {}
+};
 
 inline void check_render( HRESULT res )
 {

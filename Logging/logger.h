@@ -6,7 +6,8 @@ namespace CrashAndSqueeze
     namespace Logging
     {
         // This exception is thrown on error by default. You should catch it or
-        // you may override such behavior by setting your error_callbak in logger
+        // you may override such behavior by setting your error_callback in logger
+        // (see ::CrashAndSqueeze::Logging::Logger for details)
         class Error : public std::exception
         {
             virtual const char * what() const
@@ -15,7 +16,20 @@ namespace CrashAndSqueeze
             }
         };
         
-        // TODO: does it have to be here?
+        // This class is used for logging and error reporting all over the library.
+        //
+        // You can override default log, warning and error behavior, by substituting 
+        // log_callback, warning_callback and error_callback members of logger object
+        // with your own functions.
+        //
+        // You may set log_callback or/and warning_callback to NULL
+        // in order to disable logging or/and warnings.
+        //
+        // Default error_callback throws an exception of class ::CrashAndSqueeze::Logging::Error,
+        // so if it is not desired, override such behavior with your own error_callback.
+        // Note that you CANNOT disable error handling by setting error_callback to NULL,
+        // and that if your error_callback doesn't interrupt execution, furhter behaviour of library
+        // is unpredictable.
         class Logger
         {
         public:

@@ -39,8 +39,11 @@ namespace CrashAndSqueeze
             void update_vertices(/*out*/ void *vertices, int vertices_num, VertexInfo const &vertex_info);
 
             int get_vertices_num() const { return vertices_num; }
-            PhysicalVertex const *get_vertices() const { return vertices; }
             int get_clusters_num() const { return vertices_num; }
+            
+            // TODO: function used for testing, is needed anyway?
+            PhysicalVertex const *get_vertices() const { return vertices; }
+            // TODO: function used for testing, is needed anyway?
             Cluster const *get_clusters() const { return clusters; }
         private:
             // No copying!

@@ -1,4 +1,4 @@
-#include "logger.h"
+#include "Logging/logger.h"
 #include <iostream>
 
 namespace CrashAndSqueeze
@@ -9,9 +9,11 @@ namespace CrashAndSqueeze
         {
             std::clog << message;
             if(0 != file)
-                std::clog << " at file " << file;
-            if(0 != line)
-                std::clog << " at line " << line;
+            {
+                std::clog << "; " << file;
+                if(0 != line)
+                    std::clog << "(" << line << ")";
+            }
             std::clog << std::endl;
         }
 

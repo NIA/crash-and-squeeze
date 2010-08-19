@@ -272,6 +272,14 @@ TEST_F(MatrixTest, Inverted)
     EXPECT_EQ( I, m2.inverted()*m2 );
 }
 
+TEST_F(MatrixTest, BadInverted)
+{
+    const Matrix M;
+    set_tester_err_callback();
+    EXPECT_THROW( M.inverted(), ToolsTesterException );
+    unset_tester_err_callback();
+}
+
 TEST_F(MatrixTest, InvertedIdentity)
 {
     EXPECT_EQ( I, I.inverted() );
@@ -422,6 +430,13 @@ TEST_F(MatrixTest, FunctionOfArbitrary)
     const Matrix argument = orthogonal.transposed()*diagonal*orthogonal; // transform diagonal matrix somehow
     const Matrix expected = orthogonal.transposed()*exp_diagonal*orthogonal; // transform result the same way
     EXPECT_EQ(expected, argument.compute_function(exp, 3));
+}
+
+TEST_F(MatrixTest, BadFunction)
+{
+    set_tester_err_callback();
+    EXPECT_THROW( m1.compute_function(NULL), ToolsTesterException );
+    unset_tester_err_callback();
 }
 
 void MatrixTest::test_polar_decomposition(Matrix const &matrix, int rotations, Real accuracy)
