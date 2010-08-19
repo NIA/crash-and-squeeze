@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="MathTester"
+	Name="ToolsTester"
 	ProjectGUID="{D381B1E2-81B0-4A96-B59C-3693053B4A9E}"
-	RootNamespace="MathTester"
+	RootNamespace="ToolsTester"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)Math&quot;;&quot;$(SolutionDir)GoogleTestFramework\include\&quot;"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)&quot;;&quot;$(SolutionDir)GoogleTestFramework\include\&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="&quot;$(SolutionDir)_Lib\$(ConfigurationName)\math.lib&quot; &quot;$(SolutionDir)_Lib\$(ConfigurationName)\gtestd.lib&quot;"
+				AdditionalDependencies="&quot;$(SolutionDir)_Lib\$(ConfigurationName)\tools.lib&quot; &quot;$(SolutionDir)_Lib\$(ConfigurationName)\gtestd.lib&quot;"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -116,7 +116,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)Math&quot;;&quot;$(SolutionDir)GoogleTestFramework\include\&quot;"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)&quot;;&quot;$(SolutionDir)GoogleTestFramework\include\&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
@@ -135,7 +135,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="&quot;$(SolutionDir)_Lib\$(ConfigurationName)\math.lib&quot; &quot;$(SolutionDir)_Lib\$(ConfigurationName)\gtest.lib&quot;"
+				AdditionalDependencies="&quot;$(SolutionDir)_Lib\$(ConfigurationName)\tools.lib&quot; &quot;$(SolutionDir)_Lib\$(ConfigurationName)\gtest.lib&quot;"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -197,7 +197,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\math_tester.h"
+				RelativePath=".\tools_tester.h"
 				>
 			</File>
 		</Filter>

@@ -1,5 +1,5 @@
-#include "math_tester.h"
-#include "floating_point.h"
+#include "tools_tester.h"
+#include "Math/floating_point.h"
 
 // Floating point functions tests
 

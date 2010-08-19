@@ -1,6 +1,6 @@
-#include "model.h"
-#include "physical_vertex.h"
-#include "cluster.h"
+#include "Core/model.h"
+#include "Core/physical_vertex.h"
+#include "Core/cluster.h"
 #include <cstdlib>
 #include <assert.h>
 

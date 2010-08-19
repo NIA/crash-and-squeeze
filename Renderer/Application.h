@@ -5,7 +5,7 @@
 #include "Vertex.h"
 #include "Model.h"
 #include <vector>
-#include "Core\model.h"
+#include "Core/model.h"
 
 extern const unsigned VECTORS_IN_MATRIX;
 typedef std::vector<Model*> Models;

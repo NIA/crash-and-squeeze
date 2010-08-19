@@ -1,6 +1,6 @@
 #pragma once
-#include "core.h"
-#include "vector.h"
+#include "Core/core.h"
+#include "Math/vector.h"
 
 namespace CrashAndSqueeze
 {

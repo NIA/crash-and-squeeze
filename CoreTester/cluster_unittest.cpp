@@ -1,6 +1,6 @@
 #include "core_tester.h"
-#include "cluster.h"
-#include "physical_vertex.h"
+#include "Core/cluster.h"
+#include "Core/physical_vertex.h"
 
 // Floating point functions tests
 

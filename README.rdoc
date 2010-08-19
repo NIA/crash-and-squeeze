@@ -3,6 +3,10 @@
 A Bachelor's degree work project: a system for physical-based simulation of 3D model deformation.
 
 Subprojects/Modules:
-* <b>Math:</b> a library implementing some basic functionality for vector and matrix algebra.
-  * <b>MathTester:</b> unit tests for it
+* <b>Core:</b> a core of a system implementing deformation simulation funtions. Provides class Model, an abstraction of deformable body.
+* <b>Tools:</b> a library implementing useful functions, used by Core. Contains modules (namespaces):
+  * Math: some basic functionality for vector and matrix algebra.
+  * Logging: logging and error handling
+* <b>ToolsTester:</b> unit tests for Tools
 * <b>Google Test Framework</b> is used for all testers.
+* <b>Renderer:</b> a simple DirectX application for visualizing simulation.

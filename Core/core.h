@@ -1,5 +1,5 @@
 #pragma once
-#include "logger.h"
+#include "Logging/logger.h"
 
 namespace CrashAndSqueeze
 {

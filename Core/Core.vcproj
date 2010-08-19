@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(SolutionDir)Math"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="&quot;$(SolutionDir)_Lib\$(ConfigurationName)\math.lib&quot;"
+				AdditionalDependencies="&quot;$(SolutionDir)_Lib\$(ConfigurationName)\tools.lib&quot;"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -106,7 +106,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="$(SolutionDir)Math"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
@@ -125,7 +125,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="&quot;$(SolutionDir)_Lib\$(ConfigurationName)\math.lib&quot;"
+				AdditionalDependencies="&quot;$(SolutionDir)_Lib\$(ConfigurationName)\tools.lib&quot;"
 			/>
 			<Tool
 				Name="VCALinkTool"

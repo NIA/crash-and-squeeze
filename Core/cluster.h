@@ -1,8 +1,8 @@
 #pragma once
-#include "core.h"
-#include "vector.h"
-#include "matrix.h"
-#include "physical_vertex.h"
+#include "Core/core.h"
+#include "Math/vector.h"
+#include "Math/matrix.h"
+#include "Core/physical_vertex.h"
 
 namespace CrashAndSqueeze
 {

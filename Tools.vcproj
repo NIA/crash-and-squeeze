@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="Math"
+	Name="Tools"
 	ProjectGUID="{90C1E08A-3C37-4EFD-9F6B-F421CC027CE4}"
-	RootNamespace="Math"
+	RootNamespace="Tools"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -41,6 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -104,6 +105,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
@@ -144,50 +146,40 @@
 	</References>
 	<Files>
 		<Filter
-			Name="Source Files"
-			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
-			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+			Name="Math"
 			>
 			<File
-				RelativePath=".\logger.cpp"
+				RelativePath=".\Math\floating_point.h"
 				>
 			</File>
 			<File
-				RelativePath=".\matrix.cpp"
+				RelativePath=".\Math\matrix.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\vector.cpp"
+				RelativePath=".\Math\matrix.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Math\vector.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Math\vector.h"
 				>
 			</File>
 		</Filter>
 		<Filter
-			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
+			Name="Logging"
 			>
 			<File
-				RelativePath=".\floating_point.h"
+				RelativePath=".\Logging\logger.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\logger.h"
+				RelativePath=".\Logging\logger.h"
 				>
 			</File>
-			<File
-				RelativePath=".\matrix.h"
-				>
-			</File>
-			<File
-				RelativePath=".\vector.h"
-				>
-			</File>
-		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
-			>
 		</Filter>
 	</Files>
 	<Globals>

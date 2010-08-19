@@ -1,7 +1,7 @@
 #pragma once
-#include "core.h"
-#include "vertex_info.h"
-#include "force.h"
+#include "Core/core.h"
+#include "Core/vertex_info.h"
+#include "Core/force.h"
 
 namespace CrashAndSqueeze
 {

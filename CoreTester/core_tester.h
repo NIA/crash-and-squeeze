@@ -1,7 +1,7 @@
 #pragma once
 #include <gtest/gtest.h>
-#include "core.h"
-#include "vector.h"
+#include "Core/core.h"
+#include "Math/vector.h"
 
 using namespace ::CrashAndSqueeze::Math;
 using namespace ::CrashAndSqueeze::Core;

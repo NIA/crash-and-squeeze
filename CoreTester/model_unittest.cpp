@@ -1,6 +1,6 @@
 #include "core_tester.h"
-#include "model.h"
-#include "physical_vertex.h"
+#include "Core/model.h"
+#include "Core/physical_vertex.h"
 
 namespace
 {

@@ -1,6 +1,6 @@
 #pragma once
 #include "main.h"
-#include "Core\vertex_info.h"
+#include "Core/vertex_info.h"
 
 typedef DWORD Index;
 extern const D3DFORMAT INDEX_FORMAT;

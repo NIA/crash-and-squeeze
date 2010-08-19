@@ -1,6 +1,6 @@
 #pragma once
-#include "logger.h"
-#include "vector.h"
+#include "Logging/logger.h"
+#include "Math/vector.h"
 #include <cmath>
 
 namespace CrashAndSqueeze

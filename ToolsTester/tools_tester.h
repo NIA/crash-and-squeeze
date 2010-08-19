@@ -1,6 +1,6 @@
 #pragma once
 #include <gtest/gtest.h>
-#include "vector.h"
+#include "Math/vector.h"
 
 using namespace ::CrashAndSqueeze::Math;
 
