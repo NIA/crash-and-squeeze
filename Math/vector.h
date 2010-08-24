@@ -135,13 +135,13 @@ namespace CrashAndSqueeze
             
             // -- methods --
 
-            Real sqared_norm() const
+            Real squared_norm() const
             {
                 return (*this)*(*this);
             }
             Real norm() const
             {
-                return sqrt( sqared_norm() );
+                return sqrt( squared_norm() );
             }
             // normalizes given point/vector in place (!), returns itself
             Vector & normalize()

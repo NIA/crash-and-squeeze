@@ -102,7 +102,7 @@ namespace CrashAndSqueeze
             {
                 this->plane_point = point;
                 this->plane_normal = normal;
-                if(Math::equal(0, plane_normal.sqared_norm()))
+                if(Math::equal(0, plane_normal.squared_norm()))
                     Logging::logger.error("setting zero vector as plane normal for PlaneForce", __FILE__, __LINE__);
                 else
                     this->plane_normal /= this->plane_normal.norm();

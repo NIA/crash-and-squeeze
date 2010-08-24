@@ -93,7 +93,7 @@ TEST(ForceTest, PlaneForceDefault)
     const PlaneForce f;
     EXPECT_EQ(Vector::ZERO, f.get_plane_point());
     const Vector N = f.get_plane_normal();
-    EXPECT_EQ(1, N.sqared_norm());
+    EXPECT_EQ(1, N.squared_norm());
     EXPECT_EQ(0, f.get_max_distance());
 }
 

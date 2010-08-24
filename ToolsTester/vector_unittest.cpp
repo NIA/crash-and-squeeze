@@ -156,13 +156,13 @@ TEST(VectorTest, ScalarMultiply)
     EXPECT_DOUBLE_EQ( a*d + b*e + c*f, p1*p2 );
 }
 
-TEST(VectorTest, SqaredNorm)
+TEST(VectorTest, SquaredNorm)
 {
     const Point p1(1, 2, 3);
     const Point p2(1, -1, 0);
 
-    EXPECT_DOUBLE_EQ( 14, p1.sqared_norm() );
-    EXPECT_DOUBLE_EQ(  2, p2.sqared_norm() );
+    EXPECT_DOUBLE_EQ( 14, p1.squared_norm() );
+    EXPECT_DOUBLE_EQ(  2, p2.squared_norm() );
 }
 
 TEST(VectorTest, Norm)
