@@ -179,6 +179,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\core_tester.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\force_unittest.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\model_unittest.cpp"
 				>
 			</File>

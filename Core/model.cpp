@@ -97,7 +97,7 @@ namespace CrashAndSqueeze
                     for(int j=0; j < forces_num; ++j)
                     {
                         if(forces[j].is_applied_to(vertices[i].pos))
-                            acceleration += forces[j].value/vertices[i].mass;
+                            acceleration += forces[j].get_value_at(vertices[i].pos)/vertices[i].mass;
                     }
                 }
 
