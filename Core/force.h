@@ -50,7 +50,7 @@ namespace CrashAndSqueeze
                        Math::Real max_distance)
                 : Force(value), plane_point(plane_point), plane_normal(plane_normal), max_distance(max_distance)
             {
-                if(0 == plane_normal.sqared_norm())
+                if(Math::equal(0, plane_normal.sqared_norm()))
                     this->plane_normal = Math::Vector(1,0,0);
                 else
                     this->plane_normal /= this->plane_normal.norm();

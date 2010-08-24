@@ -5,16 +5,19 @@ namespace CrashAndSqueeze
 {
     namespace Logging
     {
-        inline void default_report(const char * message, const char * file, int line)
+        namespace
         {
-            std::clog << message;
-            if(0 != file)
+            inline void default_report(const char * message, const char * file, int line)
             {
-                std::clog << "; " << file;
-                if(0 != line)
-                    std::clog << "(" << line << ")";
+                std::clog << message;
+                if(0 != file)
+                {
+                    std::clog << "; " << file;
+                    if(0 != line)
+                        std::clog << "(" << line << ")";
+                }
+                std::clog << std::endl;
             }
-            std::clog << std::endl;
         }
 
         void Logger::default_log_callback(const char * message, const char * file, int line)

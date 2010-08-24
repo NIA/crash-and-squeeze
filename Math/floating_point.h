@@ -27,9 +27,18 @@ namespace CrashAndSqueeze
         {
             return (a > b) || equal( a, b, epsilon );
         }
+
         inline int sign(Real x)
         {
             return (x > 0) - (x < 0);
+        }
+
+        inline void swap(Real &a, Real &b)
+        {
+            Real temp;
+            temp = a;
+            a = b;
+            b = temp;
         }
     };
 };

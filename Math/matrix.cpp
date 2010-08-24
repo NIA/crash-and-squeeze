@@ -29,7 +29,7 @@ namespace CrashAndSqueeze
 
         Matrix & Matrix::assigment_operation(const Matrix &another, Operation operation)
         {
-            if(operation == NULL)
+            if(NULL == operation)
             {
                 logger.error("internal error: null pointer `operation` in matrix-matrix assigment operation", __FILE__, __LINE__);
                 return *this;
@@ -51,7 +51,7 @@ namespace CrashAndSqueeze
 
         Matrix & Matrix::assigment_operation(const Real &scalar, Operation operation)
         {
-            if(operation == NULL)
+            if(NULL == operation)
             {
                 logger.error("internal error: null pointer `operation` in matrix-scalar assigment operation", __FILE__, __LINE__);
                 return *this;
@@ -70,10 +70,13 @@ namespace CrashAndSqueeze
             return *this;
         }
 
-        Real add(Real a, Real b) { return a + b; }
-        Real sub(Real a, Real b) { return a - b; }
-        Real mul(Real a, Real b) { return a * b; }
-        Real div(Real a, Real b) { return a / b; }
+        namespace
+        {
+            Real add(Real a, Real b) { return a + b; }
+            Real sub(Real a, Real b) { return a - b; }
+            Real mul(Real a, Real b) { return a * b; }
+            Real div(Real a, Real b) { return a / b; }
+        }
 
         Matrix & Matrix::operator +=(const Matrix &another)
         {
@@ -141,14 +144,6 @@ namespace CrashAndSqueeze
                 result[i] = value;
             }
             return result;
-        }
-
-        inline void swap(Real &a, Real &b)
-        {
-            Real temp;
-            temp = a;
-            a = b;
-            b = temp;
         }
 
         Matrix & Matrix::transpose()
@@ -260,7 +255,7 @@ namespace CrashAndSqueeze
 
         Matrix Matrix::compute_function(Function function, int diagonalization_rotations_count) const
         {
-            if(function == NULL)
+            if(NULL == function)
             {
                 logger.error("null pointer `function` in Matrix::compute_function", __FILE__, __LINE__);
                 return Matrix();
@@ -279,9 +274,12 @@ namespace CrashAndSqueeze
             return transformation*diagonalized*transformation.transposed();
         }
 
-        Real cautious_sqrt(Real value)
+        namespace
         {
-            return value < 0 ? 0 : sqrt(value);
+            Real cautious_sqrt(Real value)
+            {
+                return value < 0 ? 0 : sqrt(value);
+            }
         }
 
         void Matrix::do_polar_decomposition(/*out*/ Matrix &orthogonal_part,
@@ -295,10 +293,13 @@ namespace CrashAndSqueeze
 
         // -- identity matrix --
 
-        const Real IDENTITY_VALUES[MATRIX_ELEMENTS_NUM] =
-            { 1, 0, 0,
-              0, 1, 0,
-              0, 0, 1 };
+        namespace 
+        {
+            const Real IDENTITY_VALUES[MATRIX_ELEMENTS_NUM] =
+                { 1, 0, 0,
+                  0, 1, 0,
+                  0, 0, 1 };
+        }
         const Matrix Matrix::IDENTITY(IDENTITY_VALUES);
     };
 };

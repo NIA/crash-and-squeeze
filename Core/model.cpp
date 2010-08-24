@@ -10,13 +10,16 @@ namespace CrashAndSqueeze
     
     namespace Core
     {
-        inline const void *add_to_pointer(const void *pointer, int offset)
+        namespace
         {
-            return reinterpret_cast<const void*>( reinterpret_cast<const char*>(pointer) + offset );
-        }
-        inline void *add_to_pointer(void *pointer, int offset)
-        {
-            return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
+            inline const void *add_to_pointer(const void *pointer, int offset)
+            {
+                return reinterpret_cast<const void*>( reinterpret_cast<const char*>(pointer) + offset );
+            }
+            inline void *add_to_pointer(void *pointer, int offset)
+            {
+                return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
+            }
         }
 
         Model::Model( const void *source_vertices,
@@ -52,7 +55,7 @@ namespace CrashAndSqueeze
                     if( NULL != masses )
                     {
                         vertex.mass = static_cast<Real>(masses[i]);
-                        if( 0 == vertex.mass )
+                        if( equal(0, vertex.mass) )
                             logger.warning("creating model with vertex having zero mass. Forces will not be applied to such vertex", __FILE__, __LINE__);
                     }
                     else
@@ -66,7 +69,7 @@ namespace CrashAndSqueeze
 
                     source_vertex = add_to_pointer(source_vertex, vertex_info.vertex_size);
                 }
-                if(0 == constant_mass && NULL == masses)
+                if( equal(0, constant_mass) && NULL == masses )
                     logger.warning("creating model with constant zero mass of vertices. Forces will not be applied to such model", __FILE__, __LINE__);
 
             }
