@@ -8,3 +8,4 @@ void tools_tester_err_callback(const char * message, const char * file, int line
 }
 
 extern Logger::Callback old_err_callback = logger.error_callback;
+extern Logger::Callback old_warn_callback = logger.warning_callback;

@@ -7,10 +7,15 @@ namespace CrashAndSqueeze
     {
         namespace
         {
+            inline bool is_empty(const char *string)
+            {
+                return '\0' == string[0];
+            }
+
             inline void default_report(const char * message, const char * file, int line)
             {
                 std::clog << message;
-                if(0 != file)
+                if(0 != file && !is_empty(file))
                 {
                     std::clog << "; " << file;
                     if(0 != line)

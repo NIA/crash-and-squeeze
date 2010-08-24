@@ -49,19 +49,19 @@ namespace CrashAndSqueeze
                        warning_callback(default_warning_callback),
                        error_callback(default_error_callback) {}
 
-            void log(const char * message, const char * file = 0, int line = 0)
+            void log(const char * message, const char * file = "", int line = 0)
             {
                 if( 0 != log_callback )
                     log_callback(message, file, line);
             }
 
-            void warning(const char * message, const char * file = 0, int line = 0)
+            void warning(const char * message, const char * file = "", int line = 0)
             {
                 if( 0 != warning_callback )
                     warning_callback(message, file, line);
             }
 
-            void error(const char * message, const char * file = 0, int line = 0)
+            void error(const char * message, const char * file = "", int line = 0)
             {
                 if( 0 != error_callback )
                 {

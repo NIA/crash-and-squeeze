@@ -181,7 +181,9 @@ TEST(VectorTest, Normalize)
     // Test normalizing when norm is 0
     Point zero1(0, 0, 0);
     const Point zero2(0, 0, 0);
+    suppress_warnings();
     zero1.normalize();
+    unsuppress_warnings();
     EXPECT_EQ( zero2, zero1 );
 }
 
