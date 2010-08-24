@@ -20,7 +20,7 @@ namespace CrashAndSqueeze
             Math::Vector initial_offset_position;
         };
         
-        const Math::Real DEFAULT_GOAL_SPEED_CONSTANT = 1;
+        const Math::Real DEFAULT_GOAL_SPEED_CONSTANT = 0.001;
 
         class Cluster
         {
@@ -57,11 +57,11 @@ namespace CrashAndSqueeze
             
             // TODO: Math::Matrix plasticity_state;
             
-            bool check_vertex_index(int index) const
+            bool check_vertex_index(int index, const char *error_message) const
             {
                 if(index < 0 || index >= vertices_num)
                 {
-                    logger.error("Model::get_vertex_index: index out of range", __FILE__, __LINE__);
+                    logger.error(error_message, __FILE__, __LINE__);
                     return false;
                 }
                 return true;
@@ -77,21 +77,24 @@ namespace CrashAndSqueeze
 
             int get_vertex_index(int index) const
             {
-                if( check_vertex_index(index) )
+                if( check_vertex_index(index, "Cluster::get_vertex_index: index out of range") )
                     return vertices[index].vertex_index;
                 else
                     return 0;
             }
+
             Math::Vector get_initial_vertex_offset_position(int index) const
             {
-                if( check_vertex_index(index) )
+                if( check_vertex_index(index, "Cluster::get_initial_vertex_offset_position: index out of range") )
                     return vertices[index].initial_offset_position;
                 else
                     return Math::Vector();
             }
+
             Math::Vector get_initial_center_of_mass() const { return initial_center_of_mass; }
             Math::Real get_total_mass() const { return total_mass; }
             Math::Real get_goal_speed_constant() const { return goal_speed_constant; }
+            void set_center_of_mass(Math::Vector point) { center_of_mass = point; }
             Math::Vector get_center_of_mass() const { return center_of_mass; }
             Math::Matrix get_rotation() const { return rotation; }
             Math::Matrix get_total_deformation() const { return total_deformation; }

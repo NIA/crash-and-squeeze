@@ -234,7 +234,7 @@ void Application::run()
 {
     window.show();
     window.update();
-    Core::PlaneForce force(Math::Vector(0,0,5), Math::Vector(0,0,0), Math::Vector(0,0,1), 0.05);
+    Core::PlaneForce force(Math::Vector(0,0,10), Math::Vector(0,0,0), Math::Vector(0,0,1), 0.1);
 
     // Enter the message loop
     MSG msg;

@@ -86,8 +86,33 @@ namespace CrashAndSqueeze
             // TODO: QueryPerformanceCounter
             Real dt = 0.001;
 
-            Vector acceleration;
+            Vector goal_position;
+            for(int i = 0; i < clusters_num; ++i)
+            {
+                Cluster &cluster = clusters[i];
+                
+                Vector center_of_mass;
+                for(int j = 0; j < cluster.get_vertices_num(); ++j)
+                {
+                    PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                    center_of_mass += vertex.mass*vertex.pos/cluster.get_total_mass();
+                }
+                cluster.set_center_of_mass(center_of_mass);
 
+                for(int j = 0; j < cluster.get_vertices_num(); ++j)
+                {
+                    PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                    
+                    goal_position = cluster.get_initial_vertex_offset_position(j) + center_of_mass;
+                    // TODO: thread-safe cluster addition: velocity_additions[]...
+                    vertex.velocity += cluster.get_goal_speed_constant()*(goal_position - vertex.pos)/dt;
+
+                    // !!! one-cluster hack
+                    //vertex.pos -= center_of_mass;
+                }
+            }
+
+            Vector acceleration;
             for(int i = 0; i < vertices_num; ++i)
             {
                 acceleration = Vector(0,0,0);
