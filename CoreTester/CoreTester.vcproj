@@ -190,6 +190,10 @@
 				RelativePath=".\model_unittest.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\vertex_info_unittest.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

@@ -47,7 +47,7 @@ namespace CrashAndSqueeze
                 {
                     PhysicalVertex &vertex = this->vertices[i];
                     
-                    const VertexFloat *position = reinterpret_cast<const VertexFloat*>( add_to_pointer(source_vertex, vertex_info.points_offsets[0]));
+                    const VertexFloat *position = reinterpret_cast<const VertexFloat*>( add_to_pointer(source_vertex, vertex_info.get_point_offset(0)));
                     vertex.pos = Vector( static_cast<Real>(position[0]),
                                          static_cast<Real>(position[1]),
                                          static_cast<Real>(position[2]) );
@@ -67,7 +67,7 @@ namespace CrashAndSqueeze
 
                     clusters[0].add_vertex(i, vertex);
 
-                    source_vertex = add_to_pointer(source_vertex, vertex_info.vertex_size);
+                    source_vertex = add_to_pointer(source_vertex, vertex_info.get_vertex_size());
                 }
                 if( equal(0, constant_mass) && NULL == masses )
                     logger.warning("creating model with constant zero mass of vertices. Forces will not be applied to such model", __FILE__, __LINE__);
@@ -120,11 +120,11 @@ namespace CrashAndSqueeze
                 PhysicalVertex &vertex = this->vertices[i];
                 
                 // TODO: many points and vectors, only position so far
-                VertexFloat *position = reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.points_offsets[0]));
+                VertexFloat *position = reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(0)));
                 for(int j = 0; j < VECTOR_SIZE; ++j)
                     position[j] = static_cast<VertexFloat>(vertex.pos[j]);
 
-                out_vertex = add_to_pointer(out_vertex, vertex_info.vertex_size);
+                out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
             }
         }
 
