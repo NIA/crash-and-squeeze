@@ -12,7 +12,8 @@ namespace CrashAndSqueeze
               vertices_num(0),
               allocated_vertices_num(INITIAL_ALLOCATED_VERTICES_NUM),
               total_mass(0),
-              goal_speed_constant(goal_speed_constant)
+              goal_speed_constant(goal_speed_constant),
+              initial_center_of_mass(Vector::ZERO)
         {
             vertices = new PhysicalVertexMappingInfo[allocated_vertices_num];
         }

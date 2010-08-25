@@ -83,22 +83,22 @@ namespace CrashAndSqueeze
                     return 0;
             }
 
-            Math::Vector get_initial_vertex_offset_position(int index) const
+            const Math::Vector & get_initial_vertex_offset_position(int index) const
             {
                 if( check_vertex_index(index, "Cluster::get_initial_vertex_offset_position: index out of range") )
                     return vertices[index].initial_offset_position;
                 else
-                    return Math::Vector();
+                    return Math::Vector::ZERO;
             }
 
-            Math::Vector get_initial_center_of_mass() const { return initial_center_of_mass; }
+            const Math::Vector & get_initial_center_of_mass() const { return initial_center_of_mass; }
             Math::Real get_total_mass() const { return total_mass; }
             Math::Real get_goal_speed_constant() const { return goal_speed_constant; }
             void set_center_of_mass(Math::Vector point) { center_of_mass = point; }
-            Math::Vector get_center_of_mass() const { return center_of_mass; }
-            Math::Matrix get_rotation() const { return rotation; }
-            Math::Matrix get_total_deformation() const { return total_deformation; }
-            // TODO: Math::Matrix get_plasticity_state() const { return plasticity_state; }
+            const Math::Vector & get_center_of_mass() const { return center_of_mass; }
+            const Math::Matrix & get_rotation() const { return rotation; }
+            const Math::Matrix & get_total_deformation() const { return total_deformation; }
+            // TODO: const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
         private:
             // No copying!
             Cluster(const Cluster &);

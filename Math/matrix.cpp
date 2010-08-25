@@ -160,7 +160,7 @@ namespace CrashAndSqueeze
             if(equal(0, det))
             {
                 logger.error("inverting singular matrix (determinant == 0)", __FILE__, __LINE__);
-                return Matrix();
+                return Matrix::ZERO;
             }
 
             Matrix cofactors;
@@ -258,7 +258,7 @@ namespace CrashAndSqueeze
             if(NULL == function)
             {
                 logger.error("null pointer `function` in Matrix::compute_function", __FILE__, __LINE__);
-                return Matrix();
+                return Matrix::ZERO;
             }
             
             Matrix transformation;
@@ -301,5 +301,6 @@ namespace CrashAndSqueeze
                   0, 0, 1 };
         }
         const Matrix Matrix::IDENTITY(IDENTITY_VALUES);
+        const Matrix Matrix::ZERO;
     };
 };

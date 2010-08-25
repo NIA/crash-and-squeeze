@@ -274,7 +274,7 @@ TEST_F(MatrixTest, Inverted)
 
 TEST_F(MatrixTest, BadInverted)
 {
-    const Matrix M;
+    const Matrix M = Matrix::ZERO;
     set_tester_err_callback();
     EXPECT_THROW( M.inverted(), ToolsTesterException );
     unset_tester_err_callback();

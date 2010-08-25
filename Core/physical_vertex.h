@@ -20,7 +20,7 @@ namespace CrashAndSqueeze
                 : pos(pos), mass(mass), velocity(velocity) {}
             
             PhysicalVertex()
-                : mass(0) {}
+                : mass(0), pos(Math::Vector::ZERO), velocity(Math::Vector::ZERO) {}
         };
     }
 }

@@ -91,7 +91,7 @@ namespace CrashAndSqueeze
             {
                 Cluster &cluster = clusters[i];
                 
-                Vector center_of_mass;
+                Vector center_of_mass = Vector::ZERO;
                 for(int j = 0; j < cluster.get_vertices_num(); ++j)
                 {
                     PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];

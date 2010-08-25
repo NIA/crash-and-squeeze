@@ -22,9 +22,9 @@ namespace CrashAndSqueeze
             void toggle() { is_active_ = !is_active_; }
 
             void set_value(const Math::Vector &value) { this->value = value; }
-            Math::Vector get_value() const { return value; }
+            const Math::Vector & get_value() const { return value; }
 
-            Force() { activate(); }
+            Force() { activate(); set_value(Math::Vector::ZERO); }
             Force(const Math::Vector &value) { set_value(value); activate(); }
             
             virtual bool is_applied_to(Math::Vector const &point) const = 0;
@@ -56,7 +56,7 @@ namespace CrashAndSqueeze
             Math::Real radius;
 
         public:
-            Math::Vector get_point_of_application() const { return point_of_application; }
+            const Math::Vector & get_point_of_application() const { return point_of_application; }
             void set_point_of_application(const Math::Vector &point) { point_of_application = point; }
 
             Math::Real get_radius() const { return radius; }
@@ -96,8 +96,8 @@ namespace CrashAndSqueeze
             Math::Real max_distance;
 
         public:
-            Math::Vector get_plane_point() const { return plane_point; }
-            Math::Vector get_plane_normal() const { return plane_normal; }
+            const Math::Vector & get_plane_point() const { return plane_point; }
+            const Math::Vector & get_plane_normal() const { return plane_normal; }
             void set_plane(const Math::Vector &point, const Math::Vector &normal)
             {
                 this->plane_point = point;

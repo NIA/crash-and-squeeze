@@ -52,6 +52,7 @@ namespace CrashAndSqueeze
             Matrix(const Vector &left_vector, const Vector &right_vector);
 
             static const Matrix IDENTITY;
+            static const Matrix ZERO;
 
             // -- getters/setters --
 
