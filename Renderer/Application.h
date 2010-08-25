@@ -23,6 +23,8 @@ private:
     bool spot_light_enabled;
     bool ambient_light_enabled;
 
+    bool emulation_enabled;
+
     Window window;
 
     Models models;

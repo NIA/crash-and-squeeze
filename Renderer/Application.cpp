@@ -68,7 +68,8 @@ namespace
 
 Application::Application() :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(3.2f, 1.5f, 0.0f), // Constants selected for better view of cylinder
-    directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true)
+    directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
+    emulation_enabled(true)
 {
     try
     {
@@ -227,6 +228,9 @@ void Application::process_key(unsigned code)
     case '4':
         ambient_light_enabled = !ambient_light_enabled;
         break;
+    case VK_SPACE:
+        emulation_enabled = !emulation_enabled;
+        break;
     }
 }
 
@@ -237,8 +241,8 @@ void Application::run()
 
     const int FORCES_NUM = 2;
     Core::PlaneForce forces_instances[FORCES_NUM] = {
-        Core::PlaneForce(Math::Vector(0,0,10), Math::Vector(0,0,0), Math::Vector(0,0,1), 0.1),
-        Core::PlaneForce(Math::Vector(0,0,-10), Math::Vector(0,0,2), Math::Vector(0,0,1), 0.1)
+        Core::PlaneForce(Math::Vector(0,100,0), Math::Vector(0,0,0), Math::Vector(0,0,1), 0.1),
+        Core::PlaneForce(Math::Vector(0,-100,0), Math::Vector(0,0,2), Math::Vector(0,0,1), 0.1)
     };
     Core::Force * forces[FORCES_NUM];
     for(int i = 0; i < FORCES_NUM; ++i)
@@ -261,16 +265,21 @@ void Application::run()
         }
         else
         {
-            // for each model and corresponding physical model
-            Models::iterator m_iter = models.begin();
-            PhysicalModels::iterator pm_iter = physical_models.begin();
-            for ( ; m_iter != models.end() && pm_iter != physical_models.end(); ++m_iter, ++pm_iter )
+            // physics
+            if(emulation_enabled)
             {
-                (*pm_iter)->compute_next_step(forces, FORCES_NUM);
-                (*pm_iter)->update_vertices((*m_iter)->lock_vertex_buffer(), (*m_iter)->get_vertices_count(), VERTEX_INFO);
-                (*m_iter)->unlock_vertex_buffer();
+                // for each model and corresponding physical model
+                Models::iterator m_iter = models.begin();
+                PhysicalModels::iterator pm_iter = physical_models.begin();
+                for ( ; m_iter != models.end() && pm_iter != physical_models.end(); ++m_iter, ++pm_iter )
+                {
+                    (*pm_iter)->compute_next_step(forces, FORCES_NUM);
+                    (*pm_iter)->update_vertices((*m_iter)->lock_vertex_buffer(), (*m_iter)->get_vertices_count(), VERTEX_INFO);
+                    (*m_iter)->unlock_vertex_buffer();
+                }
             }
 
+            // graphics
             render();
         }
     }

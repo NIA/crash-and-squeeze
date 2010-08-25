@@ -46,6 +46,7 @@ namespace
                 log_file << "(" << line << ")";
         }
         log_file << std::endl;
+        log_file.flush();
     }
 
     void my_log_callback(const char * message, const char * file, int line)
