@@ -30,7 +30,7 @@ namespace CrashAndSqueeze
             virtual bool is_applied_to(Math::Vector const &point) const = 0;
             virtual Math::Vector get_value_at(Math::Vector const &point) const
             {
-                point; // avoid unreferenced parameter warning
+                ignore_unreferenced(point);
                 return value;
             }
         };
@@ -43,7 +43,7 @@ namespace CrashAndSqueeze
             EverywhereForce(const Math::Vector &value) : Force(value) {}
             virtual /*override*/ bool is_applied_to(Math::Vector const &point) const
             {
-                point; // avoid unreferenced parameter warning
+                ignore_unreferenced(point);
                 return true;
             }
         };

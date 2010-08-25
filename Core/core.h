@@ -7,5 +7,8 @@ namespace CrashAndSqueeze
     {
         typedef float VertexFloat;
         typedef double MassFloat;
+
+        template<class T>
+        inline void ignore_unreferenced(T parameter) { parameter; }
     }
 }

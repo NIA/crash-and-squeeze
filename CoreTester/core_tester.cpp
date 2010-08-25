@@ -3,7 +3,9 @@
 
 void core_tester_err_callback(const char * message, const char * file, int line)
 {
-    message; file; line; // avoid unreferenced formal parameter warning
+    ignore_unreferenced(message);
+    ignore_unreferenced(file);
+    ignore_unreferenced(line);
     throw CoreTesterException();
 }
 
