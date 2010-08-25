@@ -20,7 +20,8 @@ namespace CrashAndSqueeze
             Math::Vector initial_offset_position;
         };
         
-        const Math::Real DEFAULT_GOAL_SPEED_CONSTANT = 0.001;
+        const Math::Real DEFAULT_GOAL_SPEED_CONSTANT = 1;
+        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.001;
 
         class Cluster
         {
@@ -45,6 +46,14 @@ namespace CrashAndSqueeze
             // their position, i.e. how rigid the body is:
             // 0 means no constraint at all, 1 means absolutely rigid
             Math::Real goal_speed_constant;
+
+            // a constant, determining how rigid body is:
+            // if it equals `b`, then optimal deformation for goal positions
+            // is calculated as (1 - b)*A + b*R, where R is optimal rotation
+            // and A is optimal linear transformation.
+            // Thus 0 means freely (but only linearly) deformable body,
+            // 1 means absolutely rigid
+            Math::Real linear_elasticity_constant;
             
             // TODO: const Math::Real linear_deformation_constant;
 
@@ -69,7 +78,7 @@ namespace CrashAndSqueeze
             }
 
         public:
-            Cluster(Math::Real goal_speed_constant = DEFAULT_GOAL_SPEED_CONSTANT);
+            Cluster();
             virtual ~Cluster();
 
             void add_vertex(int vertex_index, const PhysicalVertex &vertex);
@@ -97,6 +106,7 @@ namespace CrashAndSqueeze
             Math::Real get_total_mass() const { return total_mass; }
             
             Math::Real get_goal_speed_constant() const { return goal_speed_constant; }
+            Math::Real get_linear_elasticity_constant() const { return linear_elasticity_constant; }
             
             const Math::Vector & get_center_of_mass() const { return center_of_mass; }
             void set_center_of_mass(Math::Vector point) { center_of_mass = point; }
@@ -108,8 +118,6 @@ namespace CrashAndSqueeze
             void set_total_deformation(const Math::Matrix &matrix)
             {
                 total_deformation = matrix;
-                if( 0 != total_deformation.determinant() )
-                    total_deformation /= total_deformation.determinant();
             }
             // TODO: const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
         private:

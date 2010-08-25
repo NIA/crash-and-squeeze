@@ -93,7 +93,7 @@ namespace CrashAndSqueeze
                 Vector center_of_mass = Vector::ZERO;
                 Matrix Apq = Matrix::ZERO;
                 Matrix Aqq = Matrix::ZERO;
-                Matrix rotation;
+                Matrix rotation; // optimal rotation
                 Matrix scale;
                 for(int j = 0; j < cluster.get_vertices_num(); ++j)
                 {
@@ -111,22 +111,36 @@ namespace CrashAndSqueeze
                     Aqq += vertex.mass*Matrix( init_pos, init_pos );
                 }
                 if(0 != Aqq.determinant())
+                {
                     Aqq = Aqq.inverted();
+                }
                 else
+                {
+                    logger.warning("in Model::compute_next_step: singular matrix Aqq, unable to compute Aqq.inverted(), assumed it to be Matrix::IDENTITY", __FILE__, __LINE__);
                     Aqq = Matrix::IDENTITY; // TODO: is this good workaround???
+                }
 
-                Matrix A = Apq*Aqq;
-                cluster.set_total_deformation(A);
+                Matrix linear_deformation = Apq*Aqq; // optimal linear deformation
+                Math::Real det = linear_deformation.determinant();
+                if( 0 != det)
+                    linear_deformation /= pow( abs(det), 1.0/3);
+                else
+                    logger.warning("in Model::compute_next_step: linear_deformation is singular, so volume-preserving constraint cannot be enforced", __FILE__, __LINE__);
 
                 Apq.do_polar_decomposition(rotation, scale);
                 cluster.set_rotation(rotation);
+                
+                Real beta = cluster.get_linear_elasticity_constant();
+                Matrix total_deformation = beta*rotation + (1 - beta)*linear_deformation;
+                
+                cluster.set_total_deformation(total_deformation);
                 
                 for(int j = 0; j < cluster.get_vertices_num(); ++j)
                 {
                     PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
                     Vector const &init_pos = cluster.get_initial_vertex_offset_position(j);
                     
-                    Vector goal_position = rotation*init_pos + center_of_mass;
+                    Vector goal_position = total_deformation*init_pos + center_of_mass;
                     // TODO: thread-safe cluster addition: velocity_additions[]...
                     vertex.velocity += cluster.get_goal_speed_constant()*(goal_position - vertex.pos)/dt;
                 }

@@ -241,8 +241,8 @@ void Application::run()
 
     const int FORCES_NUM = 2;
     Core::PlaneForce forces_instances[FORCES_NUM] = {
-        Core::PlaneForce(Math::Vector(0,100,0), Math::Vector(0,0,0), Math::Vector(0,0,1), 0.1),
-        Core::PlaneForce(Math::Vector(0,-100,0), Math::Vector(0,0,2), Math::Vector(0,0,1), 0.1)
+        Core::PlaneForce(Math::Vector(0,0,100), Math::Vector(0,0,0), Math::Vector(0,0,1), 0.1),
+        Core::PlaneForce(Math::Vector(0,0,-100), Math::Vector(0,0,2), Math::Vector(0,0,1), 0.1)
     };
     Core::Force * forces[FORCES_NUM];
     for(int i = 0; i < FORCES_NUM; ++i)

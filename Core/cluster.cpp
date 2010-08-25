@@ -7,12 +7,13 @@ namespace CrashAndSqueeze
     
     namespace Core
     {
-        Cluster::Cluster(Math::Real goal_speed_constant)
+        Cluster::Cluster()
             : vertices(NULL),
               vertices_num(0),
               allocated_vertices_num(INITIAL_ALLOCATED_VERTICES_NUM),
               total_mass(0),
-              goal_speed_constant(goal_speed_constant),
+              goal_speed_constant(DEFAULT_GOAL_SPEED_CONSTANT),
+              linear_elasticity_constant(DEFAULT_LINEAR_ELASTICITY_CONSTANT),
               initial_center_of_mass(Vector::ZERO),
               center_of_mass(Vector::ZERO),
               rotation(Matrix::IDENTITY),

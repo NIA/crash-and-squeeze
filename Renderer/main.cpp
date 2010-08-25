@@ -51,7 +51,7 @@ namespace
 
     void my_log_callback(const char * message, const char * file, int line)
     {
-        my_log("[Crash-And-Squeeze]", message, file, line);
+        my_log("        [Crash-And-Squeeze]", message, file, line);
     }
 
     void my_warning_callback(const char * message, const char * file, int line)
@@ -68,7 +68,7 @@ namespace
 
 INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 {
-    my_log("[Renderer]", "application startup");
+    my_log("        [Renderer]", "application startup");
     logger.log_callback = my_log_callback;
     logger.warning_callback = my_warning_callback;
     logger.error_callback = my_error_callback;
@@ -112,7 +112,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         
         if(log_file.is_open())
         {
-            my_log("[Renderer]", "application shutdown\n");
+            my_log("        [Renderer]", "application shutdown\n");
             log_file.close();
         }
     }
@@ -122,7 +122,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         delete_array(&cylinder_vertices);
         if(log_file.is_open())
         {
-            my_log("[Renderer]", "application crash\n");
+            my_log("ERROR!! [Renderer]", "application crash\n");
             log_file.close();
         }
         const TCHAR *MESSAGE_BOX_TITLE = _T("Renderer error!");
