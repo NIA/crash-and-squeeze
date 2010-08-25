@@ -49,6 +49,7 @@ namespace CrashAndSqueeze
             // TODO: const Math::Real linear_deformation_constant;
 
             /* -- variable (at run-time) fields -- */
+            /* ( just stored here, calculated elsewhere )- */
             
             // center of mass of vertices
             Math::Vector center_of_mass;
@@ -92,12 +93,24 @@ namespace CrashAndSqueeze
             }
 
             const Math::Vector & get_initial_center_of_mass() const { return initial_center_of_mass; }
+            
             Math::Real get_total_mass() const { return total_mass; }
+            
             Math::Real get_goal_speed_constant() const { return goal_speed_constant; }
-            void set_center_of_mass(Math::Vector point) { center_of_mass = point; }
+            
             const Math::Vector & get_center_of_mass() const { return center_of_mass; }
+            void set_center_of_mass(Math::Vector point) { center_of_mass = point; }
+            
             const Math::Matrix & get_rotation() const { return rotation; }
+            void set_rotation(const Math::Matrix & matrix) { rotation = matrix; }
+            
             const Math::Matrix & get_total_deformation() const { return total_deformation; }
+            void set_total_deformation(const Math::Matrix &matrix)
+            {
+                total_deformation = matrix;
+                if( 0 != total_deformation.determinant() )
+                    total_deformation /= total_deformation.determinant();
+            }
             // TODO: const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
         private:
             // No copying!

@@ -34,7 +34,7 @@ namespace CrashAndSqueeze
             
             virtual ~Model();
 
-            void compute_next_step(const Force *forces, int forces_num);
+            void compute_next_step(const Force * const forces[], int forces_num);
 
             void update_vertices(/*out*/ void *vertices, int vertices_num, VertexInfo const &vertex_info);
 

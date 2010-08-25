@@ -10,7 +10,7 @@ namespace
     } vertices1[] =
         {
             {1,2,3},
-            {4,5,6}
+            {-4,5,8}
         };
 
     struct TestVertex2
@@ -48,6 +48,9 @@ namespace
     }
 };
 
+// TODO: fixtures
+// TODO: typed tests
+
 TEST(ModelTest, Creation1)
 {
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
@@ -65,4 +68,17 @@ TEST(ModelTest, Creation1WithMasses)
     MassFloat masses[] = { 26, 0.00004 };
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
     test_creation(vertices1, vi1, masses);
+}
+
+TEST(ModelTest, StepComputationShouldNotFail)
+{
+    const int FORCES_NUM = 10;
+    VertexInfo vi1( sizeof(vertices1[0]), 0 );
+    Model m(vertices1, 2, vi1, NULL, 4);
+    Force * forces[FORCES_NUM];
+    PlaneForce f;
+    for(int i = 0; i < FORCES_NUM; ++i)
+        forces[i] = &f;
+
+    m.compute_next_step(forces, FORCES_NUM);
 }

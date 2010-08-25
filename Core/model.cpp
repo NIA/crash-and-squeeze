@@ -75,7 +75,7 @@ namespace CrashAndSqueeze
             }
         }
 
-        void Model::compute_next_step(const Force *forces, int forces_num)
+        void Model::compute_next_step(const Force * const forces[], int forces_num)
         {
             if(NULL == forces)
             {
@@ -86,43 +86,67 @@ namespace CrashAndSqueeze
             // TODO: QueryPerformanceCounter
             Real dt = 0.001;
 
-            Vector goal_position;
             for(int i = 0; i < clusters_num; ++i)
             {
                 Cluster &cluster = clusters[i];
                 
                 Vector center_of_mass = Vector::ZERO;
+                Matrix Apq = Matrix::ZERO;
+                Matrix Aqq = Matrix::ZERO;
+                Matrix rotation;
+                Matrix scale;
                 for(int j = 0; j < cluster.get_vertices_num(); ++j)
                 {
                     PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
                     center_of_mass += vertex.mass*vertex.pos/cluster.get_total_mass();
                 }
                 cluster.set_center_of_mass(center_of_mass);
-
+                
                 for(int j = 0; j < cluster.get_vertices_num(); ++j)
                 {
                     PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                    Vector const &init_pos = cluster.get_initial_vertex_offset_position(j);
+
+                    Apq += vertex.mass*Matrix( vertex.pos - center_of_mass, init_pos );
+                    Aqq += vertex.mass*Matrix( init_pos, init_pos );
+                }
+                if(0 != Aqq.determinant())
+                    Aqq = Aqq.inverted();
+                else
+                    Aqq = Matrix::IDENTITY; // TODO: is this good workaround???
+
+                Matrix A = Apq*Aqq;
+                cluster.set_total_deformation(A);
+
+                Apq.do_polar_decomposition(rotation, scale);
+                cluster.set_rotation(rotation);
+                
+                for(int j = 0; j < cluster.get_vertices_num(); ++j)
+                {
+                    PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                    Vector const &init_pos = cluster.get_initial_vertex_offset_position(j);
                     
-                    goal_position = cluster.get_initial_vertex_offset_position(j) + center_of_mass;
+                    Vector goal_position = rotation*init_pos + center_of_mass;
                     // TODO: thread-safe cluster addition: velocity_additions[]...
                     vertex.velocity += cluster.get_goal_speed_constant()*(goal_position - vertex.pos)/dt;
-
-                    // !!! one-cluster hack
-                    //vertex.pos -= center_of_mass;
                 }
             }
 
-            Vector acceleration;
             for(int i = 0; i < vertices_num; ++i)
             {
-                acceleration = Vector(0,0,0);
+                Vector acceleration = Vector::ZERO;
 
                 if(0 != vertices[i].mass)
                 {
                     for(int j=0; j < forces_num; ++j)
                     {
-                        if(forces[j].is_applied_to(vertices[i].pos))
-                            acceleration += forces[j].get_value_at(vertices[i].pos)/vertices[i].mass;
+                        if(NULL == forces[j])
+                        {
+                            logger.error("null pointer item of `forces` array in Model::compute_next_step", __FILE__, __LINE__);
+                            return;
+                        }
+                        if(forces[j]->is_applied_to(vertices[i].pos))
+                            acceleration += forces[j]->get_value_at(vertices[i].pos)/vertices[i].mass;
                     }
                 }
 
@@ -142,7 +166,12 @@ namespace CrashAndSqueeze
             void *out_vertex = vertices;
             for(int i = 0; i < vertices_num; ++i)
             {
-                PhysicalVertex &vertex = this->vertices[i];
+                const PhysicalVertex &vertex = this->vertices[i];
+                
+                /* // !!! one-cluster hack
+                const Cluster &cluster = clusters[0];
+                Vector pos = cluster.get_total_deformation() * cluster.get_initial_vertex_offset_position(i)
+                           + cluster.get_center_of_mass(); */
                 
                 // TODO: many points and vectors, only position so far
                 VertexFloat *position = reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(0)));
