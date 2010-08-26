@@ -21,7 +21,7 @@ namespace CrashAndSqueeze
         };
         
         const Math::Real DEFAULT_GOAL_SPEED_CONSTANT = 1;
-        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.001;
+        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.01;
 
         class Cluster
         {

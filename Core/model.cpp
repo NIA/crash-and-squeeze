@@ -159,8 +159,7 @@ namespace CrashAndSqueeze
                             logger.error("null pointer item of `forces` array in Model::compute_next_step", __FILE__, __LINE__);
                             return;
                         }
-                        if(forces[j]->is_applied_to(vertices[i].pos))
-                            acceleration += forces[j]->get_value_at(vertices[i].pos)/vertices[i].mass;
+                        acceleration += forces[j]->get_value_at(vertices[i].pos)/vertices[i].mass;
                     }
                 }
 

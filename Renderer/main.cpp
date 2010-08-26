@@ -26,29 +26,6 @@ namespace
 
     std::ofstream log_file("renderer.log", std::ios::app);
 
-    void my_log(const char *prefix, const char * message, const char * file = NULL, int line = 0)
-    {
-        static const int DATETIME_BUF_SIZE = 80;
-        char datetime_buffer[DATETIME_BUF_SIZE];
-        time_t rawtime;
-        struct tm * timeinfo;
-        time( &rawtime );
-#pragma warning( disable : 4996 )
-        timeinfo = localtime( &rawtime );
-#pragma warning( default : 4996 ) 
-        strftime(datetime_buffer, DATETIME_BUF_SIZE-1, "%Y-%m-%d %H:%M:%S", timeinfo);
-
-        log_file << datetime_buffer << ' ' << prefix << ' ' << message;
-        if(0 != file)
-        {
-            log_file << "; " << file;
-            if(0 != line)
-                log_file << "(" << line << ")";
-        }
-        log_file << std::endl;
-        log_file.flush();
-    }
-
     void my_log_callback(const char * message, const char * file, int line)
     {
         my_log("        [Crash-And-Squeeze]", message, file, line);
@@ -64,6 +41,29 @@ namespace
         my_log("ERROR!! [Crash-And-Squeeze]", message, file, line);
         throw PhysicsError();
     }
+}
+
+void my_log(const char *prefix, const char * message, const char * file, int line)
+{
+    static const int DATETIME_BUF_SIZE = 80;
+    char datetime_buffer[DATETIME_BUF_SIZE];
+    time_t rawtime;
+    struct tm * timeinfo;
+    time( &rawtime );
+#pragma warning( disable : 4996 )
+    timeinfo = localtime( &rawtime );
+#pragma warning( default : 4996 ) 
+    strftime(datetime_buffer, DATETIME_BUF_SIZE-1, "%Y-%m-%d %H:%M:%S", timeinfo);
+
+    log_file << datetime_buffer << ' ' << prefix << ' ' << message;
+    if(0 != file && '\0' != file[0])
+    {
+        log_file << "; " << file;
+        if(0 != line)
+            log_file << "(" << line << ")";
+    }
+    log_file << std::endl;
+    log_file.flush();
 }
 
 INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )

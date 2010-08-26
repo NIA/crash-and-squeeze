@@ -31,7 +31,7 @@ namespace CrashAndSqueeze
             virtual Math::Vector get_value_at(Math::Vector const &point) const
             {
                 ignore_unreferenced(point);
-                return value;
+                return is_active() && is_applied_to(point) ? value : Math::Vector::ZERO;
             }
         };
 

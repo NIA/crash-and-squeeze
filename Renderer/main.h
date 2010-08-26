@@ -33,3 +33,5 @@ template<size_t SIZE, class T> inline size_t array_size(T (&array)[SIZE])
     UNREFERENCED_PARAMETER(array);
     return SIZE;
 }
+
+void my_log(const char *prefix, const char * message, const char * file = "", int line = 0);

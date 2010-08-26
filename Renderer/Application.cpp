@@ -248,6 +248,8 @@ void Application::run()
     for(int i = 0; i < FORCES_NUM; ++i)
         forces[i] = &forces_instances[i];
 
+    int physics_frames = 0;
+
     // Enter the message loop
     MSG msg;
     ZeroMemory( &msg, sizeof( msg ) );
@@ -276,6 +278,13 @@ void Application::run()
                     (*pm_iter)->compute_next_step(forces, FORCES_NUM);
                     (*pm_iter)->update_vertices((*m_iter)->lock_vertex_buffer(), (*m_iter)->get_vertices_count(), VERTEX_INFO);
                     (*m_iter)->unlock_vertex_buffer();
+                }
+                ++physics_frames;
+                if(physics_frames == 50)
+                {
+                    my_log("        [Renderer]", "disabled forces", __FILE__, __LINE__);
+                    for(int i = 0; i < FORCES_NUM; ++i)
+                        forces[i]->deactivate();
                 }
             }
 
