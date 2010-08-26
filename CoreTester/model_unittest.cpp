@@ -10,7 +10,9 @@ namespace
     } vertices1[] =
         {
             {1,2,3},
-            {-4,5,8}
+            {-4,5.3f,8},
+            {4,-1,0.1f}
+
         };
 
     struct TestVertex2
@@ -72,13 +74,24 @@ TEST(ModelTest, Creation1WithMasses)
 
 TEST(ModelTest, StepComputationShouldNotFail)
 {
-    const int FORCES_NUM = 10;
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
-    Model m(vertices1, 2, vi1, NULL, 4);
+    Model m(vertices1, 3, vi1, NULL, 4);
+    const int FORCES_NUM = 10;
     Force * forces[FORCES_NUM];
     PlaneForce f;
     for(int i = 0; i < FORCES_NUM; ++i)
         forces[i] = &f;
 
-    m.compute_next_step(forces, FORCES_NUM);
+    EXPECT_NO_THROW( m.compute_next_step(forces, FORCES_NUM) );
+    // when there is no forces, pointer to them is allowed to be NULL
+    EXPECT_NO_THROW( m.compute_next_step(NULL, 0) );
+}
+
+TEST(ModelTest, BadForces)
+{
+    VertexInfo vi1( sizeof(vertices1[0]), 0 );
+    Model m(vertices1, 3, vi1, NULL, 4);
+    set_tester_err_callback();
+    EXPECT_THROW( m.compute_next_step(NULL, 45), CoreTesterException );
+    unset_tester_err_callback();
 }

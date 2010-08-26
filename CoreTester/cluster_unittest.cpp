@@ -2,7 +2,12 @@
 #include "Core/cluster.h"
 #include "Core/physical_vertex.h"
 
-// Floating point functions tests
+inline std::ostream &operator<<(std::ostream &stream, const Matrix &m)
+{
+    return stream << "{{" << m.get_at(0,0) << ", " << m.get_at(0,1) << ", " << m.get_at(0,2) << "}, "
+                  <<  "{" << m.get_at(1,0) << ", " << m.get_at(1,1) << ", " << m.get_at(1,2) << "}, "
+                  <<  "{" << m.get_at(2,0) << ", " << m.get_at(2,1) << ", " << m.get_at(2,2) << "}}";
+}
 
 TEST(ClusterTest, Creation)
 {
@@ -104,3 +109,19 @@ TEST(ClusterTest, AddMany)
     }
 }
 
+TEST(ClusterTest, Properties)
+{
+    const Vector cm(3,3,1);
+    Matrix m1 = Matrix::IDENTITY;
+    m1.set_at(1, 2, 8.0);
+    Matrix m2 = Matrix::IDENTITY;
+    m2.set_at(0, 0, -14.6);
+    
+    Cluster c;
+    c.set_center_of_mass(cm);
+    EXPECT_EQ(cm, c.get_center_of_mass());
+    c.set_rotation(m1);
+    EXPECT_EQ(m1, c.get_rotation());
+    c.set_total_deformation(m2);
+    EXPECT_EQ(m2, c.get_total_deformation());
+}

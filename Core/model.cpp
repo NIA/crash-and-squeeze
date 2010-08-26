@@ -77,7 +77,7 @@ namespace CrashAndSqueeze
 
         void Model::compute_next_step(const Force * const forces[], int forces_num)
         {
-            if(NULL == forces)
+            if(NULL == forces && 0 != forces_num)
             {
                 logger.error("null pointer `forces` in Model::compute_next_step", __FILE__, __LINE__);
                 return;
@@ -86,6 +86,7 @@ namespace CrashAndSqueeze
             // TODO: QueryPerformanceCounter
             Real dt = 0.001;
 
+            // -- For each cluster of model (and then for each vertex in it) --
             for(int i = 0; i < clusters_num; ++i)
             {
                 Cluster &cluster = clusters[i];
@@ -95,13 +96,21 @@ namespace CrashAndSqueeze
                 Matrix Aqq = Matrix::ZERO;
                 Matrix rotation; // optimal rotation
                 Matrix scale;
-                for(int j = 0; j < cluster.get_vertices_num(); ++j)
+                
+                // -- Find current center of mass --
+
+                if( 0 != cluster.get_total_mass() )
                 {
-                    PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
-                    center_of_mass += vertex.mass*vertex.pos/cluster.get_total_mass();
+                    for(int j = 0; j < cluster.get_vertices_num(); ++j)
+                    {
+                        PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                        center_of_mass += vertex.mass*vertex.pos/cluster.get_total_mass();
+                    }
                 }
                 cluster.set_center_of_mass(center_of_mass);
                 
+                // -- Shape matching: find optimal linear transformation --
+
                 for(int j = 0; j < cluster.get_vertices_num(); ++j)
                 {
                     PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
@@ -120,20 +129,35 @@ namespace CrashAndSqueeze
                     Aqq = Matrix::IDENTITY; // TODO: is this good workaround???
                 }
 
-                Matrix linear_deformation = Apq*Aqq; // optimal linear deformation
-                Math::Real det = linear_deformation.determinant();
+                Matrix linear_transformation = Apq*Aqq; // optimal linear transformation
+                
+                // -- Shape matching: adjust volume --
+                
+                Math::Real det = linear_transformation.determinant();
                 if( 0 != det)
-                    linear_deformation /= pow( abs(det), 1.0/3);
+                {
+                    linear_transformation /= pow( abs(det), 1.0/3);
+                }
                 else
-                    logger.warning("in Model::compute_next_step: linear_deformation is singular, so volume-preserving constraint cannot be enforced", __FILE__, __LINE__);
+                {
+                    logger.warning("in Model::compute_next_step: linear_transformation is singular, so volume-preserving constraint cannot be enforced", __FILE__, __LINE__);
+                    // but now, while polar decomposition is only for invertible matrix - it's very, very bad...
+                    logger.error("in Model::compute_next_step: linear_transformation is singular, so polar decomposition will fail", __FILE__, __LINE__);
+                }
+
+                // -- Shape matching: retrieve optimal rotation from optimal linear transformation --
 
                 Apq.do_polar_decomposition(rotation, scale);
                 cluster.set_rotation(rotation);
                 
+                // -- Shape matching: allow linear deformation by interpolating linear_transformation and rotation --
+                
                 Real beta = cluster.get_linear_elasticity_constant();
-                Matrix total_deformation = beta*rotation + (1 - beta)*linear_deformation;
+                Matrix total_deformation = beta*rotation + (1 - beta)*linear_transformation;
                 
                 cluster.set_total_deformation(total_deformation);
+                
+                // -- Shape matching: finally find goal position and add a correction to velocity --
                 
                 for(int j = 0; j < cluster.get_vertices_num(); ++j)
                 {
@@ -146,11 +170,12 @@ namespace CrashAndSqueeze
                 }
             }
 
+            // -- For each vertex of model: integrate --
             for(int i = 0; i < vertices_num; ++i)
             {
                 Vector acceleration = Vector::ZERO;
 
-                if(0 != vertices[i].mass)
+                if(0 != vertices[i].mass && NULL != forces)
                 {
                     for(int j=0; j < forces_num; ++j)
                     {

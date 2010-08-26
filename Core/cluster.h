@@ -54,8 +54,6 @@ namespace CrashAndSqueeze
             // Thus 0 means freely (but only linearly) deformable body,
             // 1 means absolutely rigid
             Math::Real linear_elasticity_constant;
-            
-            // TODO: const Math::Real linear_deformation_constant;
 
             /* -- variable (at run-time) fields -- */
             /* ( just stored here, calculated elsewhere )- */
