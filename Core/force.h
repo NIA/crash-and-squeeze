@@ -111,16 +111,12 @@ namespace CrashAndSqueeze
             Math::Real get_max_distance() const { return max_distance; }
             void set_max_distance(const Math::Real &value)
             {
-                if(value < 0)
+                max_distance = value;
+                if(max_distance < 0)
                 {
+                    max_distance = 0;
                     Logging::logger.warning("given max distance for PlaneForce is less than 0, corrected to 0", __FILE__, __LINE__);
-                    this->max_distance = 0;
                 }
-                else
-                {
-                    this->max_distance = value;
-                }
-
             }
 
             PlaneForce() { set_max_distance(0); set_plane(Math::Vector::ZERO, Math::Vector(1,0,0)); }
@@ -137,6 +133,64 @@ namespace CrashAndSqueeze
             virtual /*override*/ bool is_applied_to(Math::Vector const &point) const
             {
                 return Math::less_or_equal( abs( (point - plane_point)*plane_normal ), max_distance );
+            }
+        };
+        
+        // A force, pushing outside half-space, defined by plane_point and plane_normal.
+        // A value is obtained by Hooke's law from position and spring_constant
+        // "Outside" means positive half of an axis colinear to plane_normal.
+        class HalfSpaceSpringForce : public Force
+        {
+        private:
+            Math::Vector plane_point;
+            Math::Vector plane_normal;
+            Math::Real spring_constant;
+        public:
+            // TODO: aaah, copy+paste!!!! class Plane needed
+            const Math::Vector & get_plane_point() const { return plane_point; }
+            const Math::Vector & get_plane_normal() const { return plane_normal; }
+            void set_plane(const Math::Vector &point, const Math::Vector &normal)
+            {
+                this->plane_point = point;
+                this->plane_normal = normal;
+                if(Math::equal(0, plane_normal.squared_norm()))
+                    Logging::logger.error("setting zero vector as plane normal for HalfSpaceSpringForce", __FILE__, __LINE__);
+                else
+                    this->plane_normal /= this->plane_normal.norm();
+            }
+
+            Math::Real get_spring_constant() const { return spring_constant; }
+            void set_spring_constant(Math::Real value)
+            {
+                spring_constant = value;
+                if(spring_constant < 0)
+                {
+                    spring_constant = 0;
+                    Logging::logger.warning("given spring constant for HalfSpaceSpringForce is less than 0, corrected to 0", __FILE__, __LINE__);
+                }
+            }
+            
+            virtual /*override*/ bool is_applied_to(Math::Vector const &point) const
+            {
+                return (point - plane_point)*plane_normal < 0;
+            }
+
+            virtual /*override*/ Math::Vector get_value_at(Math::Vector const &point) const
+            {
+                if( ! is_active() || ! is_applied_to(point) )
+                    return Math::Vector::ZERO;
+
+                Math::Real x = (point - plane_point)*plane_normal;
+                return - spring_constant*x*plane_normal;
+            }
+
+            HalfSpaceSpringForce() { set_spring_constant(0); set_plane(Math::Vector::ZERO, Math::Vector(1,0,0)); }
+            HalfSpaceSpringForce(const Math::Real spring_constant,
+                                 const Math::Vector &plane_point,
+                                 const Math::Vector &plane_normal)
+            {
+                set_spring_constant(spring_constant);
+                set_plane(plane_point, plane_normal);
             }
         };
     }

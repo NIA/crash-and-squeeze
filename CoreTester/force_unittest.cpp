@@ -143,3 +143,48 @@ TEST(ForceTest, PlaneForceIsApplied)
     EXPECT_TRUE( f.is_applied_to(near) );
     EXPECT_TRUE( f.is_applied_to(border) );
 }
+
+// TODO: TEST(ForceTest, HalfSpaceSpringForceDefault)
+// TODO: TEST(ForceTest, HalfSpaceSpringForceProperties)
+// TODO: TEST(ForceTest, HalfSpaceSpringForceBad<Smth>)
+
+TEST(ForceTest, HalfSpaceSpringForceIsApplied)
+{
+    const Vector value;
+    const Vector point(0,0,0);
+    const Vector normal(0,0,2);
+    const Real k = 1;
+
+    const Vector outside(2, 2, 2);
+    const Vector inside(-1, -1, -1);
+    const Vector border(0, 0, 0);
+
+    HalfSpaceSpringForce f(k, point, normal);
+    EXPECT_FALSE( f.is_applied_to(outside) );
+    EXPECT_FALSE( f.is_applied_to(border) );
+    EXPECT_TRUE( f.is_applied_to(inside) );
+}
+
+TEST(ForceTest, HalfSpaceSpringForceValueAt)
+{
+    const Vector value;
+    const Vector point(0,0,0);
+    const Vector normal(0,0,2);
+    const Real k = 1;
+
+    const Vector outside(2, 2, 2);
+    const Vector inside(-1, -1, -1);
+    const Vector border(0, 0, 0);
+
+    HalfSpaceSpringForce f(k, point, normal);
+    EXPECT_EQ( Vector::ZERO, f.get_value_at(outside) );
+    EXPECT_EQ( Vector::ZERO, f.get_value_at(border) );
+    const Vector val = f.get_value_at(inside);
+    // check that force is collinear to normal
+    EXPECT_EQ( Vector::ZERO, cross_product(val, normal) );
+    // check that force is along normal (looks at the same direction!)
+    // (projection is > 0)
+    EXPECT_GT( val*normal, 0 );
+    // check value
+    EXPECT_EQ( abs(k*inside[2]), val.norm() );
+}

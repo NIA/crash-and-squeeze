@@ -71,9 +71,9 @@ Application::Application() :
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false)
 {
-    static Core::PlaneForce forces_instances[FORCES_NUM] = {
-        Core::PlaneForce(Math::Vector(0,0,100), Math::Vector(0,0,0), Math::Vector(0,0,1), 0.5),
-        Core::PlaneForce(Math::Vector(0,0,-100), Math::Vector(0,0,2), Math::Vector(0,0,1), 0.5)
+    static Core::HalfSpaceSpringForce forces_instances[FORCES_NUM] = {
+        Core::HalfSpaceSpringForce(10000, Math::Vector(0,0,0.25), Math::Vector(0,0,1)),
+        Core::HalfSpaceSpringForce(10000, Math::Vector(0,0,1.75), Math::Vector(0,0,-1))
     };
     for(int i = 0; i < FORCES_NUM; ++i)
     {
