@@ -69,8 +69,21 @@ namespace
 Application::Application() :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(3.2f, 1.5f, 0.0f), // Constants selected for better view of cylinder
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
-    emulation_enabled(true)
+    emulation_enabled(true), forces_enabled(false)
 {
+    static Core::PlaneForce forces_instances[FORCES_NUM] = {
+        Core::PlaneForce(Math::Vector(0,0,100), Math::Vector(0,0,0), Math::Vector(0,0,1), 0.5),
+        Core::PlaneForce(Math::Vector(0,0,-100), Math::Vector(0,0,2), Math::Vector(0,0,1), 0.5)
+    };
+    for(int i = 0; i < FORCES_NUM; ++i)
+    {
+        forces[i] = &forces_instances[i];
+        if(forces_enabled)
+            forces[i]->activate();
+        else
+            forces[i]->deactivate();
+    }
+    
     try
     {
         init_device();
@@ -231,6 +244,21 @@ void Application::process_key(unsigned code)
     case VK_SPACE:
         emulation_enabled = !emulation_enabled;
         break;
+    case 'F':
+        for(int i = 0; i < FORCES_NUM; ++i)
+        {
+            if(forces_enabled)
+            {
+                forces[i]->deactivate();
+            }
+            else
+            {
+                forces[i]->activate();
+            }
+        }
+        forces_enabled = !forces_enabled;
+        my_log("        [Renderer]", forces_enabled ? "enabled forces" : "disabled forces", __FILE__, __LINE__);
+        break;
     }
 }
 
@@ -238,15 +266,6 @@ void Application::run()
 {
     window.show();
     window.update();
-
-    const int FORCES_NUM = 2;
-    Core::PlaneForce forces_instances[FORCES_NUM] = {
-        Core::PlaneForce(Math::Vector(0,0,100), Math::Vector(0,0,0), Math::Vector(0,0,1), 0.1),
-        Core::PlaneForce(Math::Vector(0,0,-100), Math::Vector(0,0,2), Math::Vector(0,0,1), 0.1)
-    };
-    Core::Force * forces[FORCES_NUM];
-    for(int i = 0; i < FORCES_NUM; ++i)
-        forces[i] = &forces_instances[i];
 
     int physics_frames = 0;
 
@@ -280,12 +299,6 @@ void Application::run()
                     (*m_iter)->unlock_vertex_buffer();
                 }
                 ++physics_frames;
-                if(physics_frames == 50)
-                {
-                    my_log("        [Renderer]", "disabled forces", __FILE__, __LINE__);
-                    for(int i = 0; i < FORCES_NUM; ++i)
-                        forces[i]->deactivate();
-                }
             }
 
             // graphics

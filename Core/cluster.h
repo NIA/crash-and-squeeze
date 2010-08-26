@@ -21,7 +21,8 @@ namespace CrashAndSqueeze
         };
         
         const Math::Real DEFAULT_GOAL_SPEED_CONSTANT = 1;
-        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.01;
+        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.05;
+        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.99;
 
         class Cluster
         {
@@ -54,6 +55,10 @@ namespace CrashAndSqueeze
             // Thus 0 means freely (but only linearly) deformable body,
             // 1 means absolutely rigid
             Math::Real linear_elasticity_constant;
+
+            // a constant, determining how much energy is lost:
+            // 0 - approx. no loss, 1 - maximum damping, no repulse
+            Math::Real damping_constant;
 
             /* -- variable (at run-time) fields -- */
             /* ( just stored here, calculated elsewhere )- */
@@ -105,6 +110,7 @@ namespace CrashAndSqueeze
             
             Math::Real get_goal_speed_constant() const { return goal_speed_constant; }
             Math::Real get_linear_elasticity_constant() const { return linear_elasticity_constant; }
+            Math::Real get_damping_constant() const { return damping_constant; }
             
             const Math::Vector & get_center_of_mass() const { return center_of_mass; }
             void set_center_of_mass(Math::Vector point) { center_of_mass = point; }

@@ -8,9 +8,14 @@
 #include "Core/model.h"
 
 extern const unsigned VECTORS_IN_MATRIX;
+
 typedef std::vector<Model*> Models;
+
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
 typedef std::vector<PhysicalModel*> PhysicalModels;
+
+using ::CrashAndSqueeze::Core::Force;
+using ::CrashAndSqueeze::Core::PlaneForce;
 
 class Application
 {
@@ -29,6 +34,11 @@ private:
 
     Models models;
     PhysicalModels physical_models;
+
+    static const int FORCES_NUM = 2;
+
+    Force * forces[FORCES_NUM];
+    bool forces_enabled;
 
     Camera camera;
 

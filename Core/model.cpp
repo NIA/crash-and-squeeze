@@ -166,7 +166,9 @@ namespace CrashAndSqueeze
                     
                     Vector goal_position = total_deformation*init_pos + center_of_mass;
                     // TODO: thread-safe cluster addition: velocity_additions[]...
-                    vertex.velocity += cluster.get_goal_speed_constant()*(goal_position - vertex.pos)/dt;
+                    vertex.velocity_addition += cluster.get_goal_speed_constant()*(goal_position - vertex.pos)/dt;
+                    // TODO: thread-safe cluster addition: velocity_addition_coeffs[]...
+                    vertex.velocity_addition_coeff = 1 - cluster.get_damping_constant();
                 }
             }
 
@@ -174,8 +176,9 @@ namespace CrashAndSqueeze
             for(int i = 0; i < vertices_num; ++i)
             {
                 Vector acceleration = Vector::ZERO;
+                PhysicalVertex &v = vertices[i];
 
-                if(0 != vertices[i].mass && NULL != forces)
+                if(0 != v.mass && NULL != forces)
                 {
                     for(int j=0; j < forces_num; ++j)
                     {
@@ -184,12 +187,14 @@ namespace CrashAndSqueeze
                             logger.error("null pointer item of `forces` array in Model::compute_next_step", __FILE__, __LINE__);
                             return;
                         }
-                        acceleration += forces[j]->get_value_at(vertices[i].pos)/vertices[i].mass;
+                        acceleration += forces[j]->get_value_at(v.pos)/v.mass;
                     }
                 }
 
-                vertices[i].velocity += acceleration*dt;
-                vertices[i].pos += vertices[i].velocity*dt;
+                v.velocity += acceleration*dt;
+                v.pos += (v.velocity + v.velocity_addition)*dt;
+                v.velocity += v.velocity_addition_coeff*v.velocity_addition;
+                v.velocity_addition = Vector::ZERO;
             }
         }
 

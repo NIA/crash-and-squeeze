@@ -14,6 +14,7 @@ namespace CrashAndSqueeze
               total_mass(0),
               goal_speed_constant(DEFAULT_GOAL_SPEED_CONSTANT),
               linear_elasticity_constant(DEFAULT_LINEAR_ELASTICITY_CONSTANT),
+              damping_constant(DEFAULT_DAMPING_CONSTANT),
               initial_center_of_mass(Vector::ZERO),
               center_of_mass(Vector::ZERO),
               rotation(Matrix::IDENTITY),
