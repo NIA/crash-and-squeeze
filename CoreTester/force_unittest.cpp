@@ -5,9 +5,10 @@ TEST(ForceTest, EverywhereForceDefault)
 {
     const EverywhereForce f;
     const Vector somewhere(2, 3, 20);
+    const Vector no_speed = Vector::ZERO;
     EXPECT_TRUE(f.is_active());
     EXPECT_TRUE(f.is_applied_to(somewhere));
-    EXPECT_EQ(Vector::ZERO, f.get_value_at(somewhere));
+    EXPECT_EQ(Vector::ZERO, f.get_value_at(somewhere, no_speed));
 }
 
 TEST(ForceTest, EverywhereForceActivation)
@@ -71,7 +72,8 @@ TEST(ForceTest, PointForceIsApplied)
     const Vector near(0.5, 0.5, 0.5);
     const Vector border(0,1,0);
 
-    PointForce f(value, point, radius);
+    const PointForce force(value, point, radius);
+    const Force &f = force;
     EXPECT_FALSE( f.is_applied_to(far) );
     EXPECT_TRUE( f.is_applied_to(near) );
     EXPECT_TRUE( f.is_applied_to(border) );
@@ -141,7 +143,8 @@ TEST(ForceTest, PlaneForceIsApplied)
     const Vector near(125, 125, -0.5);
     const Vector border(225, -225, 1);
 
-    PlaneForce f(value, point, normal, epsilon);
+    const PlaneForce force(value, point, normal, epsilon);
+    const Force &f = force;
     EXPECT_FALSE( f.is_applied_to(far) );
     EXPECT_TRUE( f.is_applied_to(near) );
     EXPECT_TRUE( f.is_applied_to(border) );
@@ -200,7 +203,8 @@ TEST(ForceTest, HalfSpaceSpringForceIsApplied)
     const Vector inside(-1, -1, -1);
     const Vector border(0, 0, 0);
 
-    const HalfSpaceSpringForce f(k, point, normal);
+    const HalfSpaceSpringForce force(k, point, normal);
+    const Force &f = force;
 
     EXPECT_FALSE( f.is_applied_to(outside) );
     EXPECT_FALSE( f.is_applied_to(border) );
@@ -213,17 +217,19 @@ TEST(ForceTest, HalfSpaceSpringForceValueAt)
     const Vector point(0,0,0);
     const Vector normal(0,0,2);
     const Real k = 1;
+    const Vector no_speed = Vector::ZERO;
 
     const Vector outside(2, 2, 2);
     const Vector inside(-1, -1, -1);
     const Vector border(0, 0, 0);
 
-    const HalfSpaceSpringForce f(k, point, normal);
+    const HalfSpaceSpringForce force(k, point, normal);
+    const Force &f = force;
 
-    EXPECT_EQ( Vector::ZERO, f.get_value_at(outside) );
-    EXPECT_EQ( Vector::ZERO, f.get_value_at(border) );
+    EXPECT_EQ( Vector::ZERO, f.get_value_at(outside, no_speed) );
+    EXPECT_EQ( Vector::ZERO, f.get_value_at(border, no_speed) );
     
-    const Vector val = f.get_value_at(inside);
+    const Vector val = f.get_value_at(inside, no_speed);
     // check that force is collinear to normal
     EXPECT_EQ( Vector::ZERO, cross_product(val, normal) );
     // check that force is along normal (looks at the same direction!)

@@ -35,7 +35,7 @@ private:
     Models models;
     PhysicalModels physical_models;
 
-    static const int FORCES_NUM = 2;
+    static const int FORCES_NUM = 3;
 
     Force * forces[FORCES_NUM];
     bool forces_enabled;

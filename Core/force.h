@@ -20,9 +20,10 @@ namespace CrashAndSqueeze
             bool is_active_;
 
         protected:
-            virtual Math::Vector compute_value_at(Math::Vector const &point) const
+            virtual Math::Vector compute_value_at(const Math::Vector &point, const Math::Vector &velocity) const
             {
                 ignore_unreferenced(point);
+                ignore_unreferenced(velocity);
                 return value;
             }
             
@@ -38,11 +39,11 @@ namespace CrashAndSqueeze
             Force() { activate(); set_value(Math::Vector::ZERO); }
             Force(const Math::Vector &value) { set_value(value); activate(); }
             
-            virtual bool is_applied_to(Math::Vector const &point) const = 0;
+            virtual bool is_applied_to(const Math::Vector &point) const = 0;
             
-            Math::Vector get_value_at(Math::Vector const &point) const
+            Math::Vector get_value_at(const Math::Vector &point, const Math::Vector &velocity) const
             {
-                return is_active() && is_applied_to(point) ? compute_value_at(point) : Math::Vector::ZERO;
+                return is_active() && is_applied_to(point) ? compute_value_at(point, velocity) : Math::Vector::ZERO;
             }
         };
 
@@ -92,7 +93,7 @@ namespace CrashAndSqueeze
                 set_radius(radius);
             }
             
-            virtual /*override*/ bool is_applied_to(Math::Vector const &point) const
+            virtual /*override*/ bool is_applied_to(const Math::Vector &point) const
             {
                 return Math::less_or_equal( distance(point, point_of_application), radius );
             }
@@ -132,7 +133,7 @@ namespace CrashAndSqueeze
                 set_plane(plane_point, plane_normal);
             }
             
-            virtual /*override*/ bool is_applied_to(Math::Vector const &point) const
+            virtual /*override*/ bool is_applied_to(const Math::Vector &point) const
             {
                 return Math::less_or_equal( plane.distance_to(point), max_distance );
             }
@@ -146,6 +147,7 @@ namespace CrashAndSqueeze
         private:
             Math::Plane plane;
             Math::Real spring_constant;
+            Math::Real damping_constant;
         public:
             const Math::Vector & get_plane_point() const { return plane.get_point(); }
             const Math::Vector & get_plane_normal() const { return plane.get_normal(); }
@@ -161,24 +163,37 @@ namespace CrashAndSqueeze
                     Logging::logger.warning("given spring constant for HalfSpaceSpringForce is less than 0, corrected to 0", __FILE__, __LINE__);
                 }
             }
+
+            Math::Real get_damping_constant() const { return damping_constant; }
+            void set_damping_constant(Math::Real value)
+            {
+                damping_constant = value;
+                if(damping_constant < 0)
+                {
+                    damping_constant = 0;
+                    Logging::logger.warning("given damping constant for HalfSpaceSpringForce is less than 0, corrected to 0", __FILE__, __LINE__);
+                }
+            }
             
-            virtual /*override*/ bool is_applied_to(Math::Vector const &point) const
+            virtual /*override*/ bool is_applied_to(const Math::Vector &point) const
             {
                 return plane.projection_to_normal(point) < 0;
             }
 
-            virtual /*override*/ Math::Vector compute_value_at(Math::Vector const &point) const
+            virtual /*override*/ Math::Vector compute_value_at(const Math::Vector &point, const Math::Vector &velocity) const
             {
                 Math::Real x = plane.projection_to_normal(point);
-                return - spring_constant*x*plane.get_normal();
+                return - spring_constant*x*plane.get_normal() - damping_constant*velocity;
             }
 
-            HalfSpaceSpringForce() { set_spring_constant(0); }
+            HalfSpaceSpringForce() { set_spring_constant(0); set_damping_constant(0); }
             HalfSpaceSpringForce(const Math::Real spring_constant,
                                  const Math::Vector &plane_point,
-                                 const Math::Vector &plane_normal)
+                                 const Math::Vector &plane_normal,
+                                 const Math::Real damping_constant = 0)
             {
                 set_spring_constant(spring_constant);
+                set_damping_constant(damping_constant);
                 set_plane(plane_point, plane_normal);
             }
         };

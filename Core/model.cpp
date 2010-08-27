@@ -187,7 +187,7 @@ namespace CrashAndSqueeze
                             logger.error("null pointer item of `forces` array in Model::compute_next_step", __FILE__, __LINE__);
                             return;
                         }
-                        acceleration += forces[j]->get_value_at(v.pos)/v.mass;
+                        acceleration += forces[j]->get_value_at(v.pos, v.velocity)/v.mass;
                     }
                 }
 
