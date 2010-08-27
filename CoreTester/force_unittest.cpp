@@ -120,12 +120,15 @@ TEST(ForceTest, PlaneForceProperties)
     EXPECT_EQ(D2, f.get_max_distance());
 }
 
-TEST(ForceTest, PlaneForceBadPlaneNormal)
+TEST(ForceTest, PlaneForceMaxDistanceCorrection)
 {
-    PlaneForce f;
-    set_tester_err_callback();
-    EXPECT_THROW( f.set_plane(f.get_plane_point(), Vector::ZERO), CoreTesterException ); 
-    unset_tester_err_callback();
+    suppress_warnings();
+    const Vector V(1,1,1);
+    PlaneForce f(V, V, V, -1);
+    EXPECT_EQ(0, f.get_max_distance());
+    f.set_max_distance(-3);
+    EXPECT_EQ(0, f.get_max_distance());
+    unsuppress_warnings();
 }
 
 TEST(ForceTest, PlaneForceIsApplied)
@@ -144,9 +147,47 @@ TEST(ForceTest, PlaneForceIsApplied)
     EXPECT_TRUE( f.is_applied_to(border) );
 }
 
-// TODO: TEST(ForceTest, HalfSpaceSpringForceDefault)
-// TODO: TEST(ForceTest, HalfSpaceSpringForceProperties)
-// TODO: TEST(ForceTest, HalfSpaceSpringForceBad<Smth>)
+TEST(ForceTest, HalfSpaceSpringForceDefault)
+{
+    const HalfSpaceSpringForce f;
+    EXPECT_EQ(Vector::ZERO, f.get_plane_point());
+    const Vector N = f.get_plane_normal();
+    EXPECT_EQ(1, N.squared_norm());
+    EXPECT_EQ(0, f.get_spring_constant());
+}
+
+TEST(ForceTest, HalfSpaceSpringForceProperties)
+{
+    const Vector P1(3,3,3);
+    const Vector P2(1,3,7);
+    const Vector N1(1,4,5);
+    const Vector N2(8,4,8);
+    const Real k1 = 100;
+    const Real k2 = 5000;
+    
+    HalfSpaceSpringForce f(k1, P1, N1);
+    EXPECT_EQ(P1, f.get_plane_point());
+    EXPECT_EQ(N1.normalized(), f.get_plane_normal());
+    EXPECT_EQ(k1, f.get_spring_constant());
+
+    f.set_plane(P2, N2);
+    EXPECT_EQ(P2, f.get_plane_point());
+    EXPECT_EQ(N2.normalized(), f.get_plane_normal());
+
+    f.set_spring_constant(k2);
+    EXPECT_EQ(k2, f.get_spring_constant());
+}
+
+TEST(ForceTest, HalfSpaceSpringForceSpringConstantCorrection)
+{
+    suppress_warnings();
+    const Vector V(1,1,1);
+    HalfSpaceSpringForce f(-1, V, V);
+    EXPECT_EQ(0, f.get_spring_constant());
+    f.set_spring_constant(-3);
+    EXPECT_EQ(0, f.get_spring_constant());
+    unsuppress_warnings();
+}
 
 TEST(ForceTest, HalfSpaceSpringForceIsApplied)
 {
@@ -159,7 +200,8 @@ TEST(ForceTest, HalfSpaceSpringForceIsApplied)
     const Vector inside(-1, -1, -1);
     const Vector border(0, 0, 0);
 
-    HalfSpaceSpringForce f(k, point, normal);
+    const HalfSpaceSpringForce f(k, point, normal);
+
     EXPECT_FALSE( f.is_applied_to(outside) );
     EXPECT_FALSE( f.is_applied_to(border) );
     EXPECT_TRUE( f.is_applied_to(inside) );
@@ -176,9 +218,11 @@ TEST(ForceTest, HalfSpaceSpringForceValueAt)
     const Vector inside(-1, -1, -1);
     const Vector border(0, 0, 0);
 
-    HalfSpaceSpringForce f(k, point, normal);
+    const HalfSpaceSpringForce f(k, point, normal);
+
     EXPECT_EQ( Vector::ZERO, f.get_value_at(outside) );
     EXPECT_EQ( Vector::ZERO, f.get_value_at(border) );
+    
     const Vector val = f.get_value_at(inside);
     // check that force is collinear to normal
     EXPECT_EQ( Vector::ZERO, cross_product(val, normal) );

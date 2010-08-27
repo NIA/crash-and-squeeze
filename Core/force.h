@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/core.h"
 #include "Math/vector.h"
+#include "Math/plane.h"
 
 namespace CrashAndSqueeze
 {
@@ -8,12 +9,22 @@ namespace CrashAndSqueeze
     {
         // An abstract force:
         // * stores value
-        // * provides interface to check if it is applies to some point
+        // * provides Force::is_applied_to to check if it is applied to some point
+        //   (virtual, so override it to change behaviour)
+        // * provides Force::get_value_at to get value of force at some point
+        //   (override Force::compute_value_at to change behaviour)
         class Force
         {
         private:
             Math::Vector value;
             bool is_active_;
+
+        protected:
+            virtual Math::Vector compute_value_at(Math::Vector const &point) const
+            {
+                ignore_unreferenced(point);
+                return value;
+            }
             
         public:
             bool is_active() const { return is_active_; }
@@ -28,10 +39,10 @@ namespace CrashAndSqueeze
             Force(const Math::Vector &value) { set_value(value); activate(); }
             
             virtual bool is_applied_to(Math::Vector const &point) const = 0;
-            virtual Math::Vector get_value_at(Math::Vector const &point) const
+            
+            Math::Vector get_value_at(Math::Vector const &point) const
             {
-                ignore_unreferenced(point);
-                return is_active() && is_applied_to(point) ? value : Math::Vector::ZERO;
+                return is_active() && is_applied_to(point) ? compute_value_at(point) : Math::Vector::ZERO;
             }
         };
 
@@ -91,22 +102,13 @@ namespace CrashAndSqueeze
         class PlaneForce : public Force
         {
         private:
-            Math::Vector plane_point;
-            Math::Vector plane_normal;
+            Math::Plane plane;
             Math::Real max_distance;
 
         public:
-            const Math::Vector & get_plane_point() const { return plane_point; }
-            const Math::Vector & get_plane_normal() const { return plane_normal; }
-            void set_plane(const Math::Vector &point, const Math::Vector &normal)
-            {
-                this->plane_point = point;
-                this->plane_normal = normal;
-                if(Math::equal(0, plane_normal.squared_norm()))
-                    Logging::logger.error("setting zero vector as plane normal for PlaneForce", __FILE__, __LINE__);
-                else
-                    this->plane_normal /= this->plane_normal.norm();
-            }
+            const Math::Vector & get_plane_point() const { return plane.get_point(); }
+            const Math::Vector & get_plane_normal() const { return plane.get_normal(); }
+            void set_plane(const Math::Vector &point, const Math::Vector &normal) { plane.set_point(point); plane.set_normal(normal); }
 
             Math::Real get_max_distance() const { return max_distance; }
             void set_max_distance(const Math::Real &value)
@@ -119,7 +121,7 @@ namespace CrashAndSqueeze
                 }
             }
 
-            PlaneForce() { set_max_distance(0); set_plane(Math::Vector::ZERO, Math::Vector(1,0,0)); }
+            PlaneForce() { set_max_distance(0); }
             PlaneForce(const Math::Vector &value,
                        const Math::Vector &plane_point,
                        const Math::Vector &plane_normal,
@@ -132,7 +134,7 @@ namespace CrashAndSqueeze
             
             virtual /*override*/ bool is_applied_to(Math::Vector const &point) const
             {
-                return Math::less_or_equal( abs( (point - plane_point)*plane_normal ), max_distance );
+                return Math::less_or_equal( plane.distance_to(point), max_distance );
             }
         };
         
@@ -142,22 +144,12 @@ namespace CrashAndSqueeze
         class HalfSpaceSpringForce : public Force
         {
         private:
-            Math::Vector plane_point;
-            Math::Vector plane_normal;
+            Math::Plane plane;
             Math::Real spring_constant;
         public:
-            // TODO: aaah, copy+paste!!!! class Plane needed
-            const Math::Vector & get_plane_point() const { return plane_point; }
-            const Math::Vector & get_plane_normal() const { return plane_normal; }
-            void set_plane(const Math::Vector &point, const Math::Vector &normal)
-            {
-                this->plane_point = point;
-                this->plane_normal = normal;
-                if(Math::equal(0, plane_normal.squared_norm()))
-                    Logging::logger.error("setting zero vector as plane normal for HalfSpaceSpringForce", __FILE__, __LINE__);
-                else
-                    this->plane_normal /= this->plane_normal.norm();
-            }
+            const Math::Vector & get_plane_point() const { return plane.get_point(); }
+            const Math::Vector & get_plane_normal() const { return plane.get_normal(); }
+            void set_plane(const Math::Vector &point, const Math::Vector &normal) { plane.set_point(point); plane.set_normal(normal); }
 
             Math::Real get_spring_constant() const { return spring_constant; }
             void set_spring_constant(Math::Real value)
@@ -172,19 +164,16 @@ namespace CrashAndSqueeze
             
             virtual /*override*/ bool is_applied_to(Math::Vector const &point) const
             {
-                return (point - plane_point)*plane_normal < 0;
+                return plane.projection_to_normal(point) < 0;
             }
 
-            virtual /*override*/ Math::Vector get_value_at(Math::Vector const &point) const
+            virtual /*override*/ Math::Vector compute_value_at(Math::Vector const &point) const
             {
-                if( ! is_active() || ! is_applied_to(point) )
-                    return Math::Vector::ZERO;
-
-                Math::Real x = (point - plane_point)*plane_normal;
-                return - spring_constant*x*plane_normal;
+                Math::Real x = plane.projection_to_normal(point);
+                return - spring_constant*x*plane.get_normal();
             }
 
-            HalfSpaceSpringForce() { set_spring_constant(0); set_plane(Math::Vector::ZERO, Math::Vector(1,0,0)); }
+            HalfSpaceSpringForce() { set_spring_constant(0); }
             HalfSpaceSpringForce(const Math::Real spring_constant,
                                  const Math::Vector &plane_point,
                                  const Math::Vector &plane_normal)
