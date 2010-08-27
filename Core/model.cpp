@@ -38,11 +38,12 @@ namespace CrashAndSqueeze
             {
                 this->vertices = new PhysicalVertex[this->vertices_num];
 
-                // TODO: decomposition into clusters, only one so far
-                clusters_num = 1;
-                clusters = new Cluster[clusters_num];
+                // Read vertices
 
+                Vector min_pos, max_pos;
                 const void *source_vertex = source_vertices;
+                if( equal(0, constant_mass) && NULL == masses )
+                    logger.warning("creating model with constant zero mass of vertices. Forces will not be applied to such model", __FILE__, __LINE__);
                 for(int i = 0; i < this->vertices_num; ++i)
                 {
                     PhysicalVertex &vertex = this->vertices[i];
@@ -62,15 +63,64 @@ namespace CrashAndSqueeze
                     {
                         vertex.mass = constant_mass;
                     }
-                    
-                    
 
-                    clusters[0].add_vertex(i, vertex);
+                    for(int j = 0; j < VECTOR_SIZE; ++j)
+                    {
+                        if(vertex.pos[j] < min_pos[j])
+                            min_pos[j] = vertex.pos[j];
 
+                        if(vertex.pos[j] > max_pos[j])
+                            max_pos[j] = vertex.pos[j];
+                    }
+                    
                     source_vertex = add_to_pointer(source_vertex, vertex_info.get_vertex_size());
                 }
-                if( equal(0, constant_mass) && NULL == masses )
-                    logger.warning("creating model with constant zero mass of vertices. Forces will not be applied to such model", __FILE__, __LINE__);
+                
+                // Decompose to clusters
+
+                clusters_num = 8; // !!! hard-coded
+
+                const Vector dimensions = max_pos - min_pos;
+                Real cluster_size = dimensions[2]/clusters_num;
+                if( equal(0, cluster_size) )
+                {
+                    clusters_num = 1;
+                    cluster_size = 1;
+                }
+                clusters = new Cluster[clusters_num];
+                
+                const Real padding = cluster_size*0.25; // !!! hard-coded
+
+                // For each vertex...
+                for(int i = 0; i < this->vertices_num; ++i)
+                {
+                    const PhysicalVertex &vertex = this->vertices[i];
+                    
+                    // ...find position, measured off the min_pos...
+                    const Vector position = vertex.pos - min_pos;
+                    
+                    // ...choose a cluster...
+                    int cluster_index = static_cast<int>(position[2]/cluster_size);
+                    if(cluster_index < 0)
+                        cluster_index = 0;
+                    if(cluster_index > clusters_num - 1)
+                        cluster_index = clusters_num - 1;
+                    
+                    // ...and assign to it...
+                    clusters[cluster_index].add_vertex(i, vertex);
+
+                    // ...and, probably, to his neighbours
+                    if( cluster_index - 1 >= 0 &&
+                        abs(position[2] - cluster_index*cluster_size) < padding )
+                    {
+                        clusters[cluster_index - 1].add_vertex(i, vertex);
+                    }
+                    if( cluster_index + 1 <= clusters_num - 1 &&
+                        abs((cluster_index + 1)*cluster_size - position[2]) < padding )
+                    {
+                        clusters[cluster_index + 1].add_vertex(i, vertex);
+                    }
+                }
 
             }
         }

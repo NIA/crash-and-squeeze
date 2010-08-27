@@ -1,8 +1,8 @@
 #include "cylinder.h"
 
-const Index CYLINDER_EDGES_PER_BASE = 8;
-const Index CYLINDER_EDGES_PER_HEIGHT = 3;
-const Index CYLINDER_EDGES_PER_CAP = 2;
+const Index CYLINDER_EDGES_PER_BASE = 16;
+const Index CYLINDER_EDGES_PER_HEIGHT = 20;
+const Index CYLINDER_EDGES_PER_CAP = 3;
 
 const Index CYLINDER_VERTICES_COUNT 
     = (CYLINDER_EDGES_PER_BASE)*((CYLINDER_EDGES_PER_HEIGHT + 1) + 2 + 2*(CYLINDER_EDGES_PER_CAP -1)) // vertices per CYLINDER_EDGES_PER_HEIGHT+1 levels plus last ans first levels again, plus CYLINDER_EDGES_PER_CAP-1 levels per each of 2 caps

@@ -89,7 +89,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         cylinder_indices = new Index[CYLINDER_INDICES_COUNT];
 
         float height = 2.0f;
-        cylinder( 0.7f, height,
+        cylinder( 0.25f, height,
                   colors, colors_count,
                   cylinder_vertices, cylinder_indices );
 
