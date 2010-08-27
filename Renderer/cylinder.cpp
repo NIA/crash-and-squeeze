@@ -1,7 +1,7 @@
 #include "cylinder.h"
 
-const Index CYLINDER_EDGES_PER_BASE = 16;
-const Index CYLINDER_EDGES_PER_HEIGHT = 20;
+const Index CYLINDER_EDGES_PER_BASE = 12;
+const Index CYLINDER_EDGES_PER_HEIGHT = 16;
 const Index CYLINDER_EDGES_PER_CAP = 3;
 
 const Index CYLINDER_VERTICES_COUNT 
