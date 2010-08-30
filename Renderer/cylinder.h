@@ -10,6 +10,6 @@ extern const Index CYLINDER_VERTICES_COUNT;
 extern const DWORD CYLINDER_INDICES_COUNT; // Calculated for TRIANGLESTRIP primitive type
 
 // Writes data into arrays given as `res_vertices' and `res_indices',
-void cylinder( float radius, float height,
+void cylinder( float radius, float height, D3DXVECTOR3 position,
                const D3DCOLOR *colors, unsigned colors_count,
                Vertex *res_vertices, Index *res_indices);

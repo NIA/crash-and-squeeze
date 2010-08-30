@@ -21,8 +21,9 @@ namespace CrashAndSqueeze
                 return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
             }
 
-            const int CLUSTERS_NUM[VECTOR_SIZE] = {2, 2, 6}; // !!! hard-coded
-            const Real PADDING_COEFF = 0.5; // !!! hard-coded
+            const int CLUSTERS_NUM[VECTOR_SIZE] = {2, 2, 8}; // !!! hard-coded
+            const Real PADDING_COEFF = 1; // !!! hard-coded
+            const Real MAX_COORDINATE = 1.0e+100; // !!! hard-coded
 
             inline int compute_cluster_index(const int indices[VECTOR_SIZE], const int clusters_num[VECTOR_SIZE])
             {
@@ -48,7 +49,9 @@ namespace CrashAndSqueeze
 
                 // -- Read vertices --
 
-                Vector min_pos, max_pos;
+                Vector min_pos( MAX_COORDINATE, MAX_COORDINATE, MAX_COORDINATE);
+                Vector max_pos(-MAX_COORDINATE,-MAX_COORDINATE,-MAX_COORDINATE);
+
                 const void *source_vertex = source_vertices;
                 if( equal(0, constant_mass) && NULL == masses )
                     logger.warning("creating model with constant zero mass of vertices. Forces will not be applied to such model", __FILE__, __LINE__);
@@ -168,6 +171,9 @@ namespace CrashAndSqueeze
             for(int i = 0; i < clusters_num; ++i)
             {
                 Cluster &cluster = clusters[i];
+
+                if(0 == cluster.get_vertices_num())
+                    continue;
                 
                 Vector center_of_mass = Vector::ZERO;
                 Matrix Apq = Matrix::ZERO;
@@ -214,6 +220,8 @@ namespace CrashAndSqueeze
                 Math::Real det = linear_transformation.determinant();
                 if( 0 != det)
                 {
+                    if( det < 0 )
+                        logger.warning("in Model::compute_next_step: linear_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
                     linear_transformation /= pow( abs(det), 1.0/3);
                 }
                 else
