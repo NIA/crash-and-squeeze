@@ -20,6 +20,9 @@ namespace CrashAndSqueeze
             {
                 return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
             }
+
+            const int CLUSTERS_NUM = 8; // !!! hard-coded
+            const Real PADDING_COEFF = 0.3; // !!! hard-coded
         }
 
         Model::Model( const void *source_vertices,
@@ -78,7 +81,7 @@ namespace CrashAndSqueeze
                 
                 // Decompose to clusters
 
-                clusters_num = 8; // !!! hard-coded
+                clusters_num = CLUSTERS_NUM;
 
                 const Vector dimensions = max_pos - min_pos;
                 Real cluster_size = dimensions[2]/clusters_num;
@@ -89,7 +92,7 @@ namespace CrashAndSqueeze
                 }
                 clusters = new Cluster[clusters_num];
                 
-                const Real padding = cluster_size*0.25; // !!! hard-coded
+                const Real padding = cluster_size*PADDING_COEFF;
 
                 // For each vertex...
                 for(int i = 0; i < this->vertices_num; ++i)
@@ -134,7 +137,7 @@ namespace CrashAndSqueeze
             }
             
             // TODO: QueryPerformanceCounter
-            Real dt = 0.001;
+            Real dt = 0.01;
 
             // -- For each cluster of model (and then for each vertex in it) --
             for(int i = 0; i < clusters_num; ++i)
@@ -169,7 +172,7 @@ namespace CrashAndSqueeze
                     Apq += vertex.mass*Matrix( vertex.pos - center_of_mass, init_pos );
                     Aqq += vertex.mass*Matrix( init_pos, init_pos );
                 }
-                if(0 != Aqq.determinant())
+                if( !( equal(0, Aqq.determinant()) ) )
                 {
                     Aqq = Aqq.inverted();
                 }
@@ -192,12 +195,11 @@ namespace CrashAndSqueeze
                 {
                     logger.warning("in Model::compute_next_step: linear_transformation is singular, so volume-preserving constraint cannot be enforced", __FILE__, __LINE__);
                     // but now, while polar decomposition is only for invertible matrix - it's very, very bad...
-                    logger.error("in Model::compute_next_step: linear_transformation is singular, so polar decomposition will fail", __FILE__, __LINE__);
                 }
 
                 // -- Shape matching: retrieve optimal rotation from optimal linear transformation --
 
-                Apq.do_polar_decomposition(rotation, scale);
+                Apq.do_polar_decomposition(rotation, scale, 3);
                 cluster.set_rotation(rotation);
                 
                 // -- Shape matching: allow linear deformation by interpolating linear_transformation and rotation --
