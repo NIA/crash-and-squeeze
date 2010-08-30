@@ -12,6 +12,8 @@ namespace CrashAndSqueeze
             Math::Vector pos;
             Math::Real mass;
             Math::Vector velocity;
+            // Number of clusters which include current vertex
+            int including_clusters_num;
             // TODO: thread-safe cluster addition: velocity_additions[], velocity_addition_coeffs[]...
             Math::Vector velocity_addition;
             // specifies, which part of velocity_addition will be actually added to velocity
@@ -21,10 +23,12 @@ namespace CrashAndSqueeze
             PhysicalVertex( Math::Vector pos,
                             Math::Real mass,
                             Math::Vector velocity = Math::Vector(0,0,0) )
-                : pos(pos), mass(mass), velocity(velocity), velocity_addition(Math::Vector::ZERO), velocity_addition_coeff(1) {}
+                : pos(pos), mass(mass), velocity(velocity), velocity_addition(Math::Vector::ZERO),
+                  velocity_addition_coeff(1), including_clusters_num(0) {}
             
             PhysicalVertex()
-                : mass(0), pos(Math::Vector::ZERO), velocity(Math::Vector::ZERO), velocity_addition(Math::Vector::ZERO), velocity_addition_coeff(1) {}
+                : mass(0), pos(Math::Vector::ZERO), velocity(Math::Vector::ZERO), velocity_addition(Math::Vector::ZERO),
+                  velocity_addition_coeff(1), including_clusters_num(0) {}
         };
     }
 }

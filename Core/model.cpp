@@ -21,8 +21,13 @@ namespace CrashAndSqueeze
                 return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
             }
 
-            const int CLUSTERS_NUM = 8; // !!! hard-coded
-            const Real PADDING_COEFF = 0.3; // !!! hard-coded
+            const int CLUSTERS_NUM[VECTOR_SIZE] = {2, 2, 6}; // !!! hard-coded
+            const Real PADDING_COEFF = 0.5; // !!! hard-coded
+
+            inline int compute_cluster_index(const int indices[VECTOR_SIZE], const int clusters_num[VECTOR_SIZE])
+            {
+                return indices[0] + indices[1]*clusters_num[0] + indices[2]*clusters_num[0]*clusters_num[1];
+            }
         }
 
         Model::Model( const void *source_vertices,
@@ -41,7 +46,7 @@ namespace CrashAndSqueeze
             {
                 this->vertices = new PhysicalVertex[this->vertices_num];
 
-                // Read vertices
+                // -- Read vertices --
 
                 Vector min_pos, max_pos;
                 const void *source_vertex = source_vertices;
@@ -79,52 +84,72 @@ namespace CrashAndSqueeze
                     source_vertex = add_to_pointer(source_vertex, vertex_info.get_vertex_size());
                 }
                 
-                // Decompose to clusters
+                // -- Decompose to clusters --
 
-                clusters_num = CLUSTERS_NUM;
+                clusters_num = 1;
+                for(int i = 0; i < VECTOR_SIZE; ++i)
+                    clusters_num *= CLUSTERS_NUM[i];
+                clusters = new Cluster[clusters_num];
 
                 const Vector dimensions = max_pos - min_pos;
-                Real cluster_size = dimensions[2]/clusters_num;
-                if( equal(0, cluster_size) )
-                {
-                    clusters_num = 1;
-                    cluster_size = 1;
-                }
-                clusters = new Cluster[clusters_num];
                 
-                const Real padding = cluster_size*PADDING_COEFF;
+                Vector cluster_size;
+                for(int i = 0; i < VECTOR_SIZE; ++i)
+                    cluster_size[i] = dimensions[i]/CLUSTERS_NUM[i];
+                
+                const Vector padding = cluster_size*PADDING_COEFF;
 
-                // For each vertex...
+                // -- For each vertex --
                 for(int i = 0; i < this->vertices_num; ++i)
                 {
-                    const PhysicalVertex &vertex = this->vertices[i];
+                    PhysicalVertex &vertex = this->vertices[i];
                     
-                    // ...find position, measured off the min_pos...
+                    // -- find position, measured off the min_pos --
                     const Vector position = vertex.pos - min_pos;
                     
-                    // ...choose a cluster...
-                    int cluster_index = static_cast<int>(position[2]/cluster_size);
-                    if(cluster_index < 0)
-                        cluster_index = 0;
-                    if(cluster_index > clusters_num - 1)
-                        cluster_index = clusters_num - 1;
+                    // -- choose a cluster --
+
+                    // "coordinates" of a cluster: axis indices
+                    int cluster_indices[VECTOR_SIZE];
+                    for(int j = 0; j < VECTOR_SIZE; ++j)
+                    {
+                        cluster_indices[j] = static_cast<int>(position[j]/cluster_size[j]);
+                        if(cluster_indices[j] < 0)
+                            cluster_indices[j] = 0;
+                        if(cluster_indices[j] > CLUSTERS_NUM[j] - 1)
+                            cluster_indices[j] = CLUSTERS_NUM[j] - 1;
+                    }
                     
-                    // ...and assign to it...
+                    // -- and assign to it --
+                    int cluster_index = compute_cluster_index(cluster_indices, CLUSTERS_NUM);
                     clusters[cluster_index].add_vertex(i, vertex);
 
-                    // ...and, probably, to his neighbours
-                    if( cluster_index - 1 >= 0 &&
-                        abs(position[2] - cluster_index*cluster_size) < padding )
+                    // -- and, probably, to his neighbours --
+                    for(int j = 0; j < VECTOR_SIZE; ++j)
                     {
-                        clusters[cluster_index - 1].add_vertex(i, vertex);
-                    }
-                    if( cluster_index + 1 <= clusters_num - 1 &&
-                        abs((cluster_index + 1)*cluster_size - position[2]) < padding )
-                    {
-                        clusters[cluster_index + 1].add_vertex(i, vertex);
+                        // -- previous cluster --
+                        
+                        if( cluster_indices[j] - 1 >= 0 &&
+                            abs(position[j] - cluster_indices[j]*cluster_size[j]) < padding[j] )
+                        {
+                            --cluster_indices[j];
+                            int cluster_index = compute_cluster_index(cluster_indices, CLUSTERS_NUM);
+                            clusters[cluster_index].add_vertex(i, vertex);
+                            ++cluster_indices[j];
+                        }
+                        
+                        // -- next cluster --
+                        
+                        if( cluster_indices[j] + 1 <= CLUSTERS_NUM[j] - 1 &&
+                            abs((cluster_indices[j] + 1)*cluster_size[j] - position[j]) < padding[j] )
+                        {
+                            ++cluster_indices[j];
+                            int cluster_index = compute_cluster_index(cluster_indices, CLUSTERS_NUM);
+                            clusters[cluster_index].add_vertex(i, vertex);
+                            --cluster_indices[j];
+                        }
                     }
                 }
-
             }
         }
 
@@ -132,7 +157,7 @@ namespace CrashAndSqueeze
         {
             if(NULL == forces && 0 != forces_num)
             {
-                logger.error("null pointer `forces` in Model::compute_next_step", __FILE__, __LINE__);
+                logger.error("in Model::compute_next_step null pointer `forces`", __FILE__, __LINE__);
                 return;
             }
             
@@ -200,6 +225,7 @@ namespace CrashAndSqueeze
                 // -- Shape matching: retrieve optimal rotation from optimal linear transformation --
 
                 Apq.do_polar_decomposition(rotation, scale, 3);
+
                 cluster.set_rotation(rotation);
                 
                 // -- Shape matching: allow linear deformation by interpolating linear_transformation and rotation --
@@ -236,12 +262,21 @@ namespace CrashAndSqueeze
                     {
                         if(NULL == forces[j])
                         {
-                            logger.error("null pointer item of `forces` array in Model::compute_next_step", __FILE__, __LINE__);
+                            logger.error("in Model::compute_next_step: null pointer item of `forces` array ", __FILE__, __LINE__);
                             return;
                         }
                         acceleration += forces[j]->get_value_at(v.pos, v.velocity)/v.mass;
                     }
                 }
+
+                if(0 == v.including_clusters_num)
+                {
+                    logger.error("in Model::compute_next_step: internal error: orphan vertex not belonging to any cluster", __FILE__, __LINE__);
+                    return;
+                }
+                
+                // we need average velocity addition, not sum
+                v.velocity_addition /= v.including_clusters_num;
 
                 v.velocity += acceleration*dt;
                 v.pos += (v.velocity + v.velocity_addition)*dt;
@@ -254,7 +289,7 @@ namespace CrashAndSqueeze
         {
             if(vertices_num > this->vertices_num)
             {
-                logger.warning("requested to update too many vertices in Model::update_vertices, probably wrong vertices given?");
+                logger.warning("in Model::update_vertices: requested to update too many vertices, probably wrong vertices given?");
                 vertices_num = this->vertices_num;
             }
 

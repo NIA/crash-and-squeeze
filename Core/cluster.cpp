@@ -23,7 +23,7 @@ namespace CrashAndSqueeze
             vertices = new PhysicalVertexMappingInfo[allocated_vertices_num];
         }
 
-        void Cluster::add_vertex(int vertex_index, const PhysicalVertex &vertex)
+        void Cluster::add_vertex(int vertex_index, PhysicalVertex &vertex)
         {
             // recompute center of mass
             Vector old_initial_center_of_mass = initial_center_of_mass;
@@ -47,10 +47,14 @@ namespace CrashAndSqueeze
                 delete[] vertices;
                 vertices = new_vertices;
             }
+            
             // add new vertex
             ++vertices_num;
             vertices[vertices_num - 1].vertex_index = vertex_index;
             vertices[vertices_num - 1].initial_offset_position = vertex.pos - initial_center_of_mass;
+
+            // increment vertex's cluster counter
+            ++vertex.including_clusters_num;
         }
 
         Cluster::~Cluster()

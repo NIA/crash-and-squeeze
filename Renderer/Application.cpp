@@ -75,7 +75,7 @@ Application::Application() :
         Core::HalfSpaceSpringForce(200, Math::Vector(0,0,0.25), Math::Vector(0,0,1), 18),
         Core::HalfSpaceSpringForce(200, Math::Vector(0,0,1.75), Math::Vector(0,4,-10), 18),
     };
-    static Core::EverywhereForce gravity(Math::Vector(0, 0, -3));
+    static Core::EverywhereForce gravity(Math::Vector(0, 0, -5));
     
     for(int i = 0; i < FORCES_NUM-1; ++i)
     {

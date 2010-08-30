@@ -20,9 +20,24 @@ namespace CrashAndSqueeze
             Math::Vector initial_offset_position;
         };
         
+        // a constant, determining how fast points are pulled to
+        // their position, i.e. how rigid the body is:
+        // 0 means no constraint at all, 1 means absolutely rigid
         const Math::Real DEFAULT_GOAL_SPEED_CONSTANT = 1;
-        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.4;
-        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.5;
+        
+        // a constant, determining how rigid body is:
+        // if it equals `b`, then optimal deformation for goal positions
+        // is calculated as (1 - b)*A + b*R, where R is optimal rotation
+        // and A is optimal linear transformation.
+        // Thus 0 means freely (but only linearly) deformable body,
+        // 1 means absolutely rigid
+        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.6;
+        
+        // a constant, determining how much energy is lost:
+        // 0 - approx. no loss, 1 - maximum damping, no repulse
+        // (WARNING: setting too close to 1 may cause collapse of model,
+        //  but setting too close to 0 may cause instability)
+        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.6;
 
         class Cluster
         {
@@ -84,7 +99,7 @@ namespace CrashAndSqueeze
             Cluster();
             virtual ~Cluster();
 
-            void add_vertex(int vertex_index, const PhysicalVertex &vertex);
+            void add_vertex(int vertex_index, PhysicalVertex &vertex);
 
             int get_vertices_num() const { return vertices_num; }
 
