@@ -1,7 +1,7 @@
 #include "main.h"
 #include "Application.h"
 #include "Model.h"
-#include "cylinder.h"
+#include "cubic.h"
 #include "tessellate.h"
 #include <fstream>
 #include <ctime>
@@ -76,8 +76,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 
     srand( static_cast<unsigned>( time(NULL) ) );
     
-    Vertex * cylinder_vertices = NULL;
-    Index * cylinder_indices = NULL;
+    Vertex * cubic_vertices = NULL;
+    Index * cubic_indices = NULL;
     try
     {
         Application app;
@@ -86,30 +86,28 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         
         // -------------------------- C y l i n d e r -----------------------
 
-        cylinder_vertices = new Vertex[CYLINDER_VERTICES_COUNT];
-        cylinder_indices = new Index[CYLINDER_INDICES_COUNT];
+        cubic_vertices = new Vertex[CUBIC_VERTICES_COUNT];
+        cubic_indices = new Index[CUBIC_INDICES_COUNT];
 
-        float height = 2.0f;
-        cylinder( 0.25f, height, D3DXVECTOR3(0, 0, 5),
-                  colors, colors_count,
-                  cylinder_vertices, cylinder_indices );
+        cubic(1, 1, 1, D3DXVECTOR3(-0.5f, -0.5f, -0.5f), D3DCOLOR_XRGB(0, 150, 250),
+              cubic_vertices, cubic_indices);
 
-        Model cylinder1(app.get_device(),
-                        D3DPT_TRIANGLESTRIP,
-                        simple_shader,
-                        sizeof(cylinder_vertices[0]),
-                        cylinder_vertices,
-                        CYLINDER_VERTICES_COUNT,
-                        cylinder_indices,
-                        CYLINDER_INDICES_COUNT,
-                        CYLINDER_INDICES_COUNT - 2,
-                        D3DXVECTOR3(0.0f, 0.0f, -height/2),
-                        D3DXVECTOR3(0,0,0));
+        Model cube(app.get_device(),
+                   D3DPT_LINELIST,
+                   simple_shader,
+                   sizeof(cubic_vertices[0]),
+                   cubic_vertices,
+                   CUBIC_VERTICES_COUNT,
+                   cubic_indices,
+                   CUBIC_INDICES_COUNT,
+                   CUBIC_PRIMITIVES_COUNT,
+                   D3DXVECTOR3(0,0,0),
+                   D3DXVECTOR3(0,0,0));
 
-        app.add_model(cylinder1);
+        app.add_model(cube);
         app.run();
-        delete_array(&cylinder_indices);
-        delete_array(&cylinder_vertices);
+        delete_array(&cubic_indices);
+        delete_array(&cubic_vertices);
         
         if(log_file.is_open())
         {
@@ -119,8 +117,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     }
     catch(RuntimeError &e)
     {
-        delete_array(&cylinder_indices);
-        delete_array(&cylinder_vertices);
+        delete_array(&cubic_indices);
+        delete_array(&cubic_vertices);
         if(log_file.is_open())
         {
             my_log("ERROR!! [Renderer]", "application crash\n");
