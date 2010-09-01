@@ -1,6 +1,6 @@
 #include "cylinder.h"
 
-const Index CYLINDER_EDGES_PER_BASE = 8;
+const Index CYLINDER_EDGES_PER_BASE = 12;
 const Index CYLINDER_EDGES_PER_HEIGHT = 18;
 const Index CYLINDER_EDGES_PER_CAP = 3;
 

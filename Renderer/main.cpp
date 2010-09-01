@@ -90,7 +90,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         cylinder_indices = new Index[CYLINDER_INDICES_COUNT];
 
         float height = 2.0f;
-        cylinder( 0.25f, height, D3DXVECTOR3(0, 0, 5),
+        cylinder( 0.5f, height, D3DXVECTOR3(0, 0, 1),
                   colors, colors_count,
                   cylinder_vertices, cylinder_indices );
 

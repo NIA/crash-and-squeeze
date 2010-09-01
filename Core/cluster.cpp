@@ -11,14 +11,20 @@ namespace CrashAndSqueeze
             : vertices(NULL),
               vertices_num(0),
               allocated_vertices_num(INITIAL_ALLOCATED_VERTICES_NUM),
+
               total_mass(0),
+
               goal_speed_constant(DEFAULT_GOAL_SPEED_CONSTANT),
               linear_elasticity_constant(DEFAULT_LINEAR_ELASTICITY_CONSTANT),
               damping_constant(DEFAULT_DAMPING_CONSTANT),
+              yield_constant(DEFAULT_YIELD_CONSTANT),
+              creep_constant(DEFAULT_CREEP_CONSTANT),
+
               initial_center_of_mass(Vector::ZERO),
               center_of_mass(Vector::ZERO),
               rotation(Matrix::IDENTITY),
-              total_deformation(Matrix::IDENTITY)
+              total_deformation(Matrix::IDENTITY),
+              plasticity_state(Matrix::IDENTITY)
         {
             vertices = new PhysicalVertexMappingInfo[allocated_vertices_num];
         }

@@ -238,7 +238,7 @@ namespace CrashAndSqueeze
 
                 Matrix rotation; // optimal rotation
                 Matrix scale;
-                Apq.do_polar_decomposition(rotation, scale, 6);
+                linear_transformation.do_polar_decomposition(rotation, scale, 6);
 
                 cluster.set_rotation(rotation);
                 
@@ -261,6 +261,24 @@ namespace CrashAndSqueeze
                     vertex.velocity_addition += cluster.get_goal_speed_constant()*(goal_position - vertex.pos)/dt;
                     // TODO: thread-safe cluster addition: velocity_addition_coeffs[]...
                     vertex.velocity_addition_coeff = 1 - cluster.get_damping_constant();
+                }
+
+                // -- Update plasticity state --
+                
+                Matrix plasticity_state = cluster.get_plasticity_state();
+                Matrix plastic_deformation = plasticity_state - Matrix::IDENTITY;
+                Real plastic_deform_meausure = plastic_deformation.norm();
+                Matrix deformation = linear_transformation - Matrix::IDENTITY;
+                Real deformation_measure = deformation.norm();
+                if(deformation_measure > cluster.get_yield_constant())
+                {
+                    plasticity_state = (Matrix::IDENTITY + dt*cluster.get_creep_constant()*deformation)*plasticity_state;
+                    
+                    if( plastic_deform_meausure > DEFAULT_MAX_DEFORMATION_CONSTANT ) // !!!
+                    {
+                        plasticity_state = Matrix::IDENTITY + DEFAULT_MAX_DEFORMATION_CONSTANT*plastic_deformation/plastic_deform_meausure;
+                    }
+                    cluster.set_plasticity_state(plasticity_state);
                 }
             }
 

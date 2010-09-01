@@ -31,13 +31,17 @@ namespace CrashAndSqueeze
         // and A is optimal linear transformation.
         // Thus 0 means freely (but only linearly) deformable body,
         // 1 means absolutely rigid
-        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.7;
+        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.99;
         
         // a constant, determining how much energy is lost:
         // 0 - approx. no loss, 1 - maximum damping, no repulse
         // (WARNING: setting too close to 1 may cause collapse of model,
         //  but setting too close to 0 may cause instability)
         const Math::Real DEFAULT_DAMPING_CONSTANT = 0.4;
+
+        const Math::Real DEFAULT_YIELD_CONSTANT = 0.13; //!!!
+        const Math::Real DEFAULT_CREEP_CONSTANT = 20;
+        const Math::Real DEFAULT_MAX_DEFORMATION_CONSTANT = 5;
 
         class Cluster
         {
@@ -75,6 +79,14 @@ namespace CrashAndSqueeze
             // 0 - approx. no loss, 1 - maximum damping, no repulse
             Math::Real damping_constant;
 
+            // plasticity parameter: a treshold of strain, after
+            // which deformation becomes non-reversible
+            Math::Real yield_constant;
+            
+            // plasticity paramter: a coefficient determining how fast
+            // plasticity_state will be changed on large deformation
+            Math::Real creep_constant;
+
             /* -- variable (at run-time) fields -- */
             /* ( just stored here, calculated elsewhere )- */
             
@@ -82,8 +94,7 @@ namespace CrashAndSqueeze
             Math::Vector center_of_mass;
             Math::Matrix rotation;
             Math::Matrix total_deformation;
-            
-            // TODO: Math::Matrix plasticity_state;
+            Math::Matrix plasticity_state;
             
             bool check_vertex_index(int index, const char *error_message) const
             {
@@ -111,10 +122,12 @@ namespace CrashAndSqueeze
                     return 0;
             }
 
-            const Math::Vector & get_initial_vertex_offset_position(int index) const
+            // returns offset of vector position in equilibrium state
+            // taking into account plasticity_state
+            const Math::Vector get_initial_vertex_offset_position(int index) const
             {
                 if( check_vertex_index(index, "Cluster::get_initial_vertex_offset_position: index out of range") )
-                    return vertices[index].initial_offset_position;
+                    return plasticity_state*vertices[index].initial_offset_position;
                 else
                     return Math::Vector::ZERO;
             }
@@ -126,6 +139,8 @@ namespace CrashAndSqueeze
             Math::Real get_goal_speed_constant() const { return goal_speed_constant; }
             Math::Real get_linear_elasticity_constant() const { return linear_elasticity_constant; }
             Math::Real get_damping_constant() const { return damping_constant; }
+            Math::Real get_yield_constant() const { return yield_constant; }
+            Math::Real get_creep_constant() const { return creep_constant; }
             
             const Math::Vector & get_center_of_mass() const { return center_of_mass; }
             void set_center_of_mass(Math::Vector point) { center_of_mass = point; }
@@ -138,7 +153,20 @@ namespace CrashAndSqueeze
             {
                 total_deformation = matrix;
             }
-            // TODO: const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
+            const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
+            void set_plasticity_state(const Math::Matrix &matrix)
+            {
+                Math::Real det = matrix.determinant();
+                if(0 == det)
+                {
+                    logger.warning("in Cluster::set_plasticity_state: singular matrix given, ingnored", __FILE__, __LINE__);
+                }
+                else
+                {
+                    plasticity_state = matrix;
+                    plasticity_state /= pow( abs(det), 1.0/3);
+                }
+            }
         private:
             // No copying!
             Cluster(const Cluster &);
