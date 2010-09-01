@@ -3,6 +3,7 @@
 _Bin/
 _Build/
 _Lib/
+_Demos/
 #tags for ctags
 tags
 #ignore thumbnails created by windows
@@ -33,3 +34,4 @@ obj/
 [Rr]elease*/
 _ReSharper*/
 [Tt]est[Rr]esult*
+*.lnk

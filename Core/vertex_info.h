@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/core.h"
+#include "Math/vector.h"
 
 namespace CrashAndSqueeze
 {
@@ -21,7 +22,7 @@ namespace CrashAndSqueeze
             // are placed in vertex structure by specifying their offsets in structure.
             // The first element of array is treated as a position of vertex
             int points_offsets[MAX_COMPONENT_NUM];
-            
+
             // Number of points associated with each vertex
             // (i.e. number of significant elements in points_offsets).
             // Minimum is 1 (position only), maximum is MAX_COMPONENT_NUM
@@ -84,7 +85,7 @@ namespace CrashAndSqueeze
 
             int get_max_valid_offset() const
             {
-                return vertex_size - 3*sizeof(VertexFloat);
+                return vertex_size - Math::VECTOR_SIZE*sizeof(VertexFloat);
             }
 
         public:

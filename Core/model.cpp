@@ -98,7 +98,11 @@ namespace CrashAndSqueeze
                 
                 Vector cluster_size;
                 for(int i = 0; i < VECTOR_SIZE; ++i)
+                {
+                    if(0 == CLUSTERS_NUM[i])
+                        logger.error("creating model with zero CLUSTERS_NUM component", __FILE__, __LINE__);
                     cluster_size[i] = dimensions[i]/CLUSTERS_NUM[i];
+                }
                 
                 const Vector padding = cluster_size*PADDING_COEFF;
 
@@ -116,7 +120,10 @@ namespace CrashAndSqueeze
                     int cluster_indices[VECTOR_SIZE];
                     for(int j = 0; j < VECTOR_SIZE; ++j)
                     {
+                        if(0 == cluster_size[j])
+                            logger.error("creating model with zero cluster_size component", __FILE__, __LINE__);
                         cluster_indices[j] = static_cast<int>(position[j]/cluster_size[j]);
+                        
                         if(cluster_indices[j] < 0)
                             cluster_indices[j] = 0;
                         if(cluster_indices[j] > CLUSTERS_NUM[j] - 1)
@@ -175,14 +182,9 @@ namespace CrashAndSqueeze
                 if(0 == cluster.get_vertices_num())
                     continue;
                 
-                Vector center_of_mass = Vector::ZERO;
-                Matrix Apq = Matrix::ZERO;
-                Matrix Aqq = Matrix::ZERO;
-                Matrix rotation; // optimal rotation
-                Matrix scale;
-                
                 // -- Find current center of mass --
 
+                Vector center_of_mass = Vector::ZERO;
                 if( 0 != cluster.get_total_mass() )
                 {
                     for(int j = 0; j < cluster.get_vertices_num(); ++j)
@@ -195,6 +197,8 @@ namespace CrashAndSqueeze
                 
                 // -- Shape matching: find optimal linear transformation --
 
+                Matrix Apq = Matrix::ZERO;
+                Matrix Aqq = Matrix::ZERO;
                 for(int j = 0; j < cluster.get_vertices_num(); ++j)
                 {
                     PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
@@ -217,7 +221,7 @@ namespace CrashAndSqueeze
                 
                 // -- Shape matching: adjust volume --
                 
-                Math::Real det = linear_transformation.determinant();
+                Real det = linear_transformation.determinant();
                 if( 0 != det)
                 {
                     if( det < 0 )
@@ -232,7 +236,9 @@ namespace CrashAndSqueeze
 
                 // -- Shape matching: retrieve optimal rotation from optimal linear transformation --
 
-                Apq.do_polar_decomposition(rotation, scale, 3);
+                Matrix rotation; // optimal rotation
+                Matrix scale;
+                Apq.do_polar_decomposition(rotation, scale, 6);
 
                 cluster.set_rotation(rotation);
                 
@@ -322,8 +328,8 @@ namespace CrashAndSqueeze
 
         Model::~Model()
         {
-            if(NULL != vertices) delete[] vertices;
-            if(NULL != clusters) delete[] clusters;
+            delete[] vertices;
+            delete[] clusters;
         }
 
     }

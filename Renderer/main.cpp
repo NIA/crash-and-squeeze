@@ -34,6 +34,7 @@ namespace
     void my_warning_callback(const char * message, const char * file, int line)
     {
         my_log("WARNING [Crash-And-Squeeze]", message, file, line);
+        MessageBox(NULL, _T("Physical subsystem warning! See log"), _T("Crash-And-Squeeze warning!"), MB_OK | MB_ICONERROR);
     }
 
     void my_error_callback(const char * message, const char * file, int line)
