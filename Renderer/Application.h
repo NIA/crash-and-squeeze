@@ -29,6 +29,7 @@ private:
     bool ambient_light_enabled;
 
     bool emulation_enabled;
+    bool emultate_one_step;
 
     Window window;
 

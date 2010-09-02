@@ -2,7 +2,7 @@
 
 const Index CUBIC_X_EDGES = 6;
 const Index CUBIC_Y_EDGES = 6;
-const Index CUBIC_Z_EDGES = 12;
+const Index CUBIC_Z_EDGES = 24;
 
 const Index CUBIC_VERTICES_COUNT = (CUBIC_X_EDGES + 1)*(CUBIC_Y_EDGES + 1)*(CUBIC_Z_EDGES + 1);
 

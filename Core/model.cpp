@@ -21,8 +21,8 @@ namespace CrashAndSqueeze
                 return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
             }
 
-            const int CLUSTERS_NUM[VECTOR_SIZE] = {2, 2, 4}; // !!! hard-coded
-            const Real PADDING_COEFF = 0.33; // !!! hard-coded
+            const int CLUSTERS_NUM[VECTOR_SIZE] = {2, 2, 6}; // !!! hard-coded
+            const Real PADDING_COEFF = 0.4; // !!! hard-coded
             const Real MAX_COORDINATE = 1.0e+100; // !!! hard-coded
 
             inline int compute_cluster_index(const int indices[VECTOR_SIZE], const int clusters_num[VECTOR_SIZE])
@@ -205,6 +205,7 @@ namespace CrashAndSqueeze
                     Vector const &init_pos = cluster.get_initial_vertex_offset_position(j);
 
                     Apq += vertex.mass*Matrix( vertex.pos - center_of_mass, init_pos );
+                    // TODO: re-compute this only on update of plasticity_state
                     Aqq += vertex.mass*Matrix( init_pos, init_pos );
                 }
                 if( !( equal(0, Aqq.determinant()) ) )
@@ -226,7 +227,7 @@ namespace CrashAndSqueeze
                 {
                     if( det < 0 )
                         logger.warning("in Model::compute_next_step: linear_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
-                    linear_transformation /= pow( abs(det), 1.0/3);
+                    linear_transformation /= pow( abs(det), 1.0/3)*sign(det);
                 }
                 else
                 {
@@ -266,19 +267,24 @@ namespace CrashAndSqueeze
                 // -- Update plasticity state --
                 
                 Matrix plasticity_state = cluster.get_plasticity_state();
-                Matrix plastic_deformation = plasticity_state - Matrix::IDENTITY;
-                Real plastic_deform_meausure = plastic_deformation.norm();
+                    Matrix plastic_deformation = plasticity_state - Matrix::IDENTITY;
+                    Real plastic_deform_meausure = plastic_deformation.norm();
                 Matrix deformation = linear_transformation - Matrix::IDENTITY;
                 Real deformation_measure = deformation.norm();
                 if(deformation_measure > cluster.get_yield_constant())
                 {
                     plasticity_state = (Matrix::IDENTITY + dt*cluster.get_creep_constant()*deformation)*plasticity_state;
-                    
-                    if( plastic_deform_meausure > DEFAULT_MAX_DEFORMATION_CONSTANT ) // !!!
+                    Math::Real det = plasticity_state.determinant();
+                    if(0 != det)
                     {
-                        plasticity_state = Matrix::IDENTITY + DEFAULT_MAX_DEFORMATION_CONSTANT*plastic_deformation/plastic_deform_meausure;
+                        plasticity_state /= pow( abs(det), 1.0/3);
+                        
+                        Matrix plastic_deformation = plasticity_state - Matrix::IDENTITY;
+                        Real plastic_deform_meausure = plastic_deformation.norm();
+                        
+                        if( plastic_deform_meausure < DEFAULT_MAX_DEFORMATION_CONSTANT ) // !!!
+                            cluster.set_plasticity_state(plasticity_state);
                     }
-                    cluster.set_plasticity_state(plasticity_state);
                 }
             }
 

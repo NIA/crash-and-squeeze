@@ -31,16 +31,16 @@ namespace CrashAndSqueeze
         // and A is optimal linear transformation.
         // Thus 0 means freely (but only linearly) deformable body,
         // 1 means absolutely rigid
-        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.6;
+        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.9;
         
         // a constant, determining how much energy is lost:
         // 0 - approx. no loss, 1 - maximum damping, no repulse
         // (WARNING: setting too close to 1 may cause collapse of model,
         //  but setting too close to 0 may cause instability)
-        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.6;
+        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.4;
 
-        const Math::Real DEFAULT_YIELD_CONSTANT = 0.2; //!!!
-        const Math::Real DEFAULT_CREEP_CONSTANT = 2;
+        const Math::Real DEFAULT_YIELD_CONSTANT = 0.25; //!!!
+        const Math::Real DEFAULT_CREEP_CONSTANT = 25;
         const Math::Real DEFAULT_MAX_DEFORMATION_CONSTANT = 2;
 
         class Cluster
@@ -156,16 +156,7 @@ namespace CrashAndSqueeze
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
             void set_plasticity_state(const Math::Matrix &matrix)
             {
-                Math::Real det = matrix.determinant();
-                if(0 == det)
-                {
-                    logger.warning("in Cluster::set_plasticity_state: singular matrix given, ingnored", __FILE__, __LINE__);
-                }
-                else
-                {
-                    plasticity_state = matrix;
-                    plasticity_state /= pow( abs(det), 1.0/3);
-                }
+                plasticity_state = matrix;
             }
         private:
             // No copying!

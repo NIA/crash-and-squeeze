@@ -67,13 +67,13 @@ namespace
 }
 
 Application::Application() :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(4.2f, 1.9f, 0.0f), // Constants selected for better view of cylinder
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(4.2f, 1.9f, -0.6f), // Constants selected for better view of cylinder
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
-    emulation_enabled(true), forces_enabled(false)
+    emulation_enabled(true), forces_enabled(false), emultate_one_step(false)
 {
     static Core::HalfSpaceSpringForce springs[FORCES_NUM-1] = {
-        Core::HalfSpaceSpringForce(400, Math::Vector(0,0,0.25), Math::Vector(0,0,1), 18),
-        Core::HalfSpaceSpringForce(400, Math::Vector(0,0,6.75), Math::Vector(0,4,-10), 18),
+        Core::HalfSpaceSpringForce(400, Math::Vector(0,0,0.25), Math::Vector(0,0,1), 28),
+        Core::HalfSpaceSpringForce(400, Math::Vector(0,0,4.75), Math::Vector(0,4,-10), 28),
     };
     static Core::EverywhereForce gravity(Math::Vector(0, 0, -5));
     
@@ -266,6 +266,9 @@ void Application::process_key(unsigned code)
         forces_enabled = !forces_enabled;
         my_log("        [Renderer]", forces_enabled ? "enabled forces" : "disabled forces", __FILE__, __LINE__);
         break;
+    case 'S':
+        emultate_one_step = true;
+        break;
     }
 }
 
@@ -294,7 +297,7 @@ void Application::run()
         else
         {
             // physics
-            if(emulation_enabled)
+            if(emulation_enabled || emultate_one_step)
             {
                 // for each model and corresponding physical model
                 Models::iterator m_iter = models.begin();
@@ -308,6 +311,8 @@ void Application::run()
                 ++physics_frames;
             }
 
+            emultate_one_step = false;
+            
             // graphics
             render();
         }
