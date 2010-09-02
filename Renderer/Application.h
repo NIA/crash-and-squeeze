@@ -27,6 +27,7 @@ private:
     bool point_light_enabled;
     bool spot_light_enabled;
     bool ambient_light_enabled;
+    bool alpha_test_enabled;
 
     bool emulation_enabled;
     bool emultate_one_step;
@@ -71,6 +72,8 @@ private:
     {
         set_shader_const(reg, D3DXCOLOR(color), 1);
     }
+
+    void set_alpha_test();
 
     void rotate_models(float phi);
     void process_key(unsigned code);

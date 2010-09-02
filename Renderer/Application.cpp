@@ -67,9 +67,9 @@ namespace
 }
 
 Application::Application() :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(4.2f, 1.9f, -0.6f), // Constants selected for better view of cylinder
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(3.2f, 1.9f, -0.6f), // Constants selected for better view of cylinder
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
-    emulation_enabled(true), forces_enabled(false), emultate_one_step(false)
+    emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true)
 {
     static Core::HalfSpaceSpringForce springs[FORCES_NUM-1] = {
         Core::HalfSpaceSpringForce(400, Math::Vector(0,0,0.25), Math::Vector(0,0,1), 28),
@@ -122,9 +122,23 @@ void Application::init_device()
                                       D3DCREATE_HARDWARE_VERTEXPROCESSING,
                                       &present_parameters, &device ) ) )
         throw D3DInitError();
+    
     check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE ) );
+	check_state( device->SetRenderState( D3DRS_ALPHAREF, (DWORD)0xffffffff ) );
+    check_state( device->SetRenderState( D3DRS_ALPHATESTENABLE, TRUE ) );
+
     toggle_wireframe();
+    set_alpha_test();
 }
+
+void  Application::set_alpha_test()
+{
+    if(alpha_test_enabled)
+        check_state( device->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL) );
+    else
+        check_state( device->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS) );
+}
+
 
 void Application::render()
 {
@@ -268,6 +282,10 @@ void Application::process_key(unsigned code)
         break;
     case 'S':
         emultate_one_step = true;
+        break;
+    case VK_TAB:
+        alpha_test_enabled = !alpha_test_enabled;
+        set_alpha_test();
         break;
     }
 }
