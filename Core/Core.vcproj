@@ -157,7 +157,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\force.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\model.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\vertex_info.cpp"
 				>
 			</File>
 		</Filter>

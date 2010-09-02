@@ -8,17 +8,7 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
-        struct PhysicalVertexMappingInfo
-        {
-            // index in model's vertex array
-            int vertex_index;
-
-            // TODO: thread-safe cluster addition: Math::Vector velocity_additions[MAX_CLUSTERS_FOR_VERTEX]
-            
-            // initial offset of position of vertex from
-            // cluster's center of mass
-            Math::Vector initial_offset_position;
-        };
+        struct PhysicalVertexMappingInfo;
         
         // a constant, determining how fast points are pulled to
         // their position, i.e. how rigid the body is:
@@ -96,15 +86,7 @@ namespace CrashAndSqueeze
             Math::Matrix total_deformation;
             Math::Matrix plasticity_state;
             
-            bool check_vertex_index(int index, const char *error_message) const
-            {
-                if(index < 0 || index >= vertices_num)
-                {
-                    logger.error(error_message, __FILE__, __LINE__);
-                    return false;
-                }
-                return true;
-            }
+            bool check_vertex_index(int index, const char *error_message) const;
 
         public:
             Cluster();
@@ -114,23 +96,11 @@ namespace CrashAndSqueeze
 
             int get_vertices_num() const { return vertices_num; }
 
-            int get_vertex_index(int index) const
-            {
-                if( check_vertex_index(index, "Cluster::get_vertex_index: index out of range") )
-                    return vertices[index].vertex_index;
-                else
-                    return 0;
-            }
+            int get_vertex_index(int index) const;
 
             // returns offset of vector position in equilibrium state
             // taking into account plasticity_state
-            const Math::Vector get_initial_vertex_offset_position(int index) const
-            {
-                if( check_vertex_index(index, "Cluster::get_initial_vertex_offset_position: index out of range") )
-                    return plasticity_state*vertices[index].initial_offset_position;
-                else
-                    return Math::Vector::ZERO;
-            }
+            const Math::Vector get_initial_vertex_offset_position(int index) const;
 
             const Math::Vector & get_initial_center_of_mass() const { return initial_center_of_mass; }
             

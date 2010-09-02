@@ -267,8 +267,6 @@ namespace CrashAndSqueeze
                 // -- Update plasticity state --
                 
                 Matrix plasticity_state = cluster.get_plasticity_state();
-                    Matrix plastic_deformation = plasticity_state - Matrix::IDENTITY;
-                    Real plastic_deform_meausure = plastic_deformation.norm();
                 Matrix deformation = linear_transformation - Matrix::IDENTITY;
                 Real deformation_measure = deformation.norm();
                 if(deformation_measure > cluster.get_yield_constant())

@@ -7,6 +7,18 @@ namespace CrashAndSqueeze
     
     namespace Core
     {
+        struct PhysicalVertexMappingInfo
+        {
+            // index in model's vertex array
+            int vertex_index;
+
+            // TODO: thread-safe cluster addition: Math::Vector velocity_additions[MAX_CLUSTERS_FOR_VERTEX]
+            
+            // initial offset of position of vertex from
+            // cluster's center of mass
+            Math::Vector initial_offset_position;
+        };
+
         Cluster::Cluster()
             : vertices(NULL),
               vertices_num(0),
@@ -61,6 +73,34 @@ namespace CrashAndSqueeze
 
             // increment vertex's cluster counter
             ++vertex.including_clusters_num;
+        }
+            
+        bool Cluster::check_vertex_index(int index, const char *error_message) const
+        {
+            if(index < 0 || index >= vertices_num)
+            {
+                logger.error(error_message, __FILE__, __LINE__);
+                return false;
+            }
+            return true;
+        }
+
+        int Cluster::get_vertex_index(int index) const
+        {
+            if( check_vertex_index(index, "Cluster::get_vertex_index: index out of range") )
+                return vertices[index].vertex_index;
+            else
+                return 0;
+        }
+
+        // returns offset of vector position in equilibrium state
+        // taking into account plasticity_state
+        const Vector Cluster::get_initial_vertex_offset_position(int index) const
+        {
+            if( check_vertex_index(index, "Cluster::get_initial_vertex_offset_position: index out of range") )
+                return plasticity_state*vertices[index].initial_offset_position;
+            else
+                return Math::Vector::ZERO;
         }
 
         Cluster::~Cluster()

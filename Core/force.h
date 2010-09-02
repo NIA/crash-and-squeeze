@@ -20,12 +20,7 @@ namespace CrashAndSqueeze
             bool is_active_;
 
         protected:
-            virtual Math::Vector compute_value_at(const Math::Vector &point, const Math::Vector &velocity) const
-            {
-                ignore_unreferenced(point);
-                ignore_unreferenced(velocity);
-                return value;
-            }
+            virtual Math::Vector compute_value_at(const Math::Vector &point, const Math::Vector &velocity) const;
             
         public:
             bool is_active() const { return is_active_; }
@@ -41,10 +36,7 @@ namespace CrashAndSqueeze
             
             virtual bool is_applied_to(const Math::Vector &point) const = 0;
             
-            Math::Vector get_value_at(const Math::Vector &point, const Math::Vector &velocity) const
-            {
-                return is_active() && is_applied_to(point) ? compute_value_at(point, velocity) : Math::Vector::ZERO;
-            }
+            Math::Vector get_value_at(const Math::Vector &point, const Math::Vector &velocity) const;
         };
 
         // A simplest force applied everywhere
@@ -72,18 +64,7 @@ namespace CrashAndSqueeze
             void set_point_of_application(const Math::Vector &point) { point_of_application = point; }
 
             Math::Real get_radius() const { return radius; }
-            void set_radius(Math::Real radius)
-            {
-                if( radius < 0 )
-                {
-                    Logging::logger.warning("given radius for PointForce is less than 0, corrected to 0", __FILE__, __LINE__);
-                    this->radius = 0;
-                }
-                else
-                {
-                    this->radius = radius;
-                }
-            }
+            void set_radius(Math::Real radius);
 
             PointForce() { set_radius(0); }
             PointForce(const Math::Vector &value, const Math::Vector &point_of_application, Math::Real radius)
@@ -112,15 +93,7 @@ namespace CrashAndSqueeze
             void set_plane(const Math::Vector &point, const Math::Vector &normal) { plane.set_point(point); plane.set_normal(normal); }
 
             Math::Real get_max_distance() const { return max_distance; }
-            void set_max_distance(const Math::Real &value)
-            {
-                max_distance = value;
-                if(max_distance < 0)
-                {
-                    max_distance = 0;
-                    Logging::logger.warning("given max distance for PlaneForce is less than 0, corrected to 0", __FILE__, __LINE__);
-                }
-            }
+            void set_max_distance(const Math::Real &value);
 
             PlaneForce() { set_max_distance(0); }
             PlaneForce(const Math::Vector &value,
@@ -154,26 +127,10 @@ namespace CrashAndSqueeze
             void set_plane(const Math::Vector &point, const Math::Vector &normal) { plane.set_point(point); plane.set_normal(normal); }
 
             Math::Real get_spring_constant() const { return spring_constant; }
-            void set_spring_constant(Math::Real value)
-            {
-                spring_constant = value;
-                if(spring_constant < 0)
-                {
-                    spring_constant = 0;
-                    Logging::logger.warning("given spring constant for HalfSpaceSpringForce is less than 0, corrected to 0", __FILE__, __LINE__);
-                }
-            }
+            void set_spring_constant(Math::Real value);
 
             Math::Real get_damping_constant() const { return damping_constant; }
-            void set_damping_constant(Math::Real value)
-            {
-                damping_constant = value;
-                if(damping_constant < 0)
-                {
-                    damping_constant = 0;
-                    Logging::logger.warning("given damping constant for HalfSpaceSpringForce is less than 0, corrected to 0", __FILE__, __LINE__);
-                }
-            }
+            void set_damping_constant(Math::Real value);
             
             virtual /*override*/ bool is_applied_to(const Math::Vector &point) const
             {
