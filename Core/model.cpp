@@ -21,8 +21,8 @@ namespace CrashAndSqueeze
                 return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
             }
 
-            const int CLUSTERS_NUM[VECTOR_SIZE] = {2, 2, 8}; // !!! hard-coded
-            const Real PADDING_COEFF = 1; // !!! hard-coded
+            const int CLUSTERS_NUM[VECTOR_SIZE] = {2, 2, 4}; // !!! hard-coded
+            const Real PADDING_COEFF = 0.33; // !!! hard-coded
             const Real MAX_COORDINATE = 1.0e+100; // !!! hard-coded
 
             inline int compute_cluster_index(const int indices[VECTOR_SIZE], const int clusters_num[VECTOR_SIZE])

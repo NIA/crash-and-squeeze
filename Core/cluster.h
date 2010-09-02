@@ -31,17 +31,17 @@ namespace CrashAndSqueeze
         // and A is optimal linear transformation.
         // Thus 0 means freely (but only linearly) deformable body,
         // 1 means absolutely rigid
-        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.99;
+        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.6;
         
         // a constant, determining how much energy is lost:
         // 0 - approx. no loss, 1 - maximum damping, no repulse
         // (WARNING: setting too close to 1 may cause collapse of model,
         //  but setting too close to 0 may cause instability)
-        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.4;
+        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.6;
 
-        const Math::Real DEFAULT_YIELD_CONSTANT = 0.13; //!!!
-        const Math::Real DEFAULT_CREEP_CONSTANT = 20;
-        const Math::Real DEFAULT_MAX_DEFORMATION_CONSTANT = 5;
+        const Math::Real DEFAULT_YIELD_CONSTANT = 0.2; //!!!
+        const Math::Real DEFAULT_CREEP_CONSTANT = 2;
+        const Math::Real DEFAULT_MAX_DEFORMATION_CONSTANT = 2;
 
         class Cluster
         {
