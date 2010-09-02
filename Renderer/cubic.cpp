@@ -1,8 +1,8 @@
 #include "cubic.h"
 
-const Index CUBIC_X_EDGES = 2;
-const Index CUBIC_Y_EDGES = 2;
-const Index CUBIC_Z_EDGES = 2;
+const Index CUBIC_X_EDGES = 6;
+const Index CUBIC_Y_EDGES = 6;
+const Index CUBIC_Z_EDGES = 12;
 
 const Index CUBIC_VERTICES_COUNT = (CUBIC_X_EDGES + 1)*(CUBIC_Y_EDGES + 1)*(CUBIC_Z_EDGES + 1);
 
@@ -14,7 +14,7 @@ namespace
     const DWORD XYZ_SEGMENTS_COUNT = XY_SEGMENTS_COUNT*(CUBIC_Z_EDGES + 1)
                                    + CUBIC_Z_EDGES*(CUBIC_X_EDGES + 1)*(CUBIC_Y_EDGES + 1);
 }
-const DWORD CUBIC_PRIMITIVES_COUNT = X_SEGMENTS_COUNT*(CUBIC_Y_EDGES + 1)*(CUBIC_Z_EDGES + 1);//XYZ_SEGMENTS_COUNT;
+const DWORD CUBIC_PRIMITIVES_COUNT = XYZ_SEGMENTS_COUNT;
 const DWORD CUBIC_INDICES_COUNT = 2*CUBIC_PRIMITIVES_COUNT; // Calculated for D3DPT_LINELIST primitive type
 
 namespace
@@ -33,8 +33,8 @@ namespace
 
     // generates an adge along x-axis
     void generate_edge(float x_step, D3DXVECTOR3 position, D3DCOLOR color,
-                       Index &vertex, DWORD &index,
-                       Vertex *res_vertices, Index *res_indices)
+                       bool connect_with_previous_edge, bool connect_with_previous_layer,
+                       Index &vertex, DWORD &index, Vertex *res_vertices, Index *res_indices)
     {
         for(int i = 0; i <= CUBIC_X_EDGES; ++i)
         {
@@ -44,17 +44,29 @@ namespace
                 res_indices[index++] = vertex - 1;
                 res_indices[index++] = vertex;
             }
+            if(connect_with_previous_edge)
+            {
+                res_indices[index++] = vertex - CUBIC_X_EDGES - 1;
+                res_indices[index++] = vertex;
+            }
+            if(connect_with_previous_layer)
+            {
+                res_indices[index++] = vertex - (CUBIC_X_EDGES + 1)*(CUBIC_Y_EDGES + 1);
+                res_indices[index++] = vertex;
+            }
             ++vertex;
         }
     }
     
     void generate_layer(float x_step, float y_step, D3DXVECTOR3 position, D3DCOLOR color,
-                        Index &vertex, DWORD &index,
-                        Vertex *res_vertices, Index *res_indices)
+                        bool connect_with_previous_layer,
+                        Index &vertex, DWORD &index, Vertex *res_vertices, Index *res_indices)
     {
         for(int i = 0; i <= CUBIC_Y_EDGES; ++i)
         {
-            generate_edge(x_step, position + D3DXVECTOR3(0, i*y_step, 0), color, vertex, index, res_vertices, res_indices);
+            generate_edge(x_step, position + D3DXVECTOR3(0, i*y_step, 0), color,
+                          ( 0 != i ), connect_with_previous_layer,
+                          vertex, index, res_vertices, res_indices);
         }
     }
 }
@@ -74,6 +86,7 @@ void cubic( float x_size, float y_size, float z_size, D3DXVECTOR3 position, cons
 
     for(int i = 0; i <= CUBIC_Z_EDGES; ++i)
     {
-        generate_layer(x_step, y_step, position + D3DXVECTOR3(0, 0, i*z_step), color, vertex, index, res_vertices, res_indices);
+        generate_layer(x_step, y_step, position + D3DXVECTOR3(0, 0, i*z_step), color, ( 0 != i),
+                       vertex, index, res_vertices, res_indices);
     }
 }

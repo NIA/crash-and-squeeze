@@ -89,7 +89,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         cubic_vertices = new Vertex[CUBIC_VERTICES_COUNT];
         cubic_indices = new Index[CUBIC_INDICES_COUNT];
 
-        cubic(1, 1, 1, D3DXVECTOR3(-0.5f, -0.5f, -0.5f), D3DCOLOR_XRGB(0, 150, 250),
+        cubic(1, 1, 2, D3DXVECTOR3(-0.5f, -0.5f, 4), D3DCOLOR_XRGB(0, 150, 255),
               cubic_vertices, cubic_indices);
 
         Model cube(app.get_device(),
