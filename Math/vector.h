@@ -5,7 +5,7 @@
 
 namespace CrashAndSqueeze
 {
-    using namespace Logging;
+    using Logging::logger;
 
     namespace Math
     {

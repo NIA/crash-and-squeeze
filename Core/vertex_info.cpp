@@ -3,7 +3,7 @@
 
 namespace CrashAndSqueeze
 {
-    using namespace Math;
+    using Math::Vector;
     using Logging::logger;
     
     namespace Core

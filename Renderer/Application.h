@@ -14,9 +14,6 @@ typedef std::vector<Model*> Models;
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
 typedef std::vector<PhysicalModel*> PhysicalModels;
 
-using ::CrashAndSqueeze::Core::Force;
-using ::CrashAndSqueeze::Core::PlaneForce;
-
 class Application
 {
 private:
@@ -39,7 +36,7 @@ private:
 
     static const int FORCES_NUM = 3;
 
-    Force * forces[FORCES_NUM];
+    ::CrashAndSqueeze::Core::Force * forces[FORCES_NUM];
     bool forces_enabled;
 
     Camera camera;

@@ -2,7 +2,8 @@
 
 namespace CrashAndSqueeze
 {
-    using namespace Math;
+    using Math::Vector;
+    using Math::Real;
     using Logging::logger;
 
     namespace Core

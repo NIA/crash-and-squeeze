@@ -5,8 +5,13 @@
 
 namespace CrashAndSqueeze
 {
-    using namespace Math;
-    using namespace Logging;
+    using Math::Vector;
+    using Math::VECTOR_SIZE;
+    using Math::Matrix;
+    using Math::Real;
+    using Math::equal;
+    using Math::sign;
+    using Logging::logger;
     
     namespace Core
     {

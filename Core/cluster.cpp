@@ -3,7 +3,8 @@
 
 namespace CrashAndSqueeze
 {
-    using namespace Math;
+    using Math::Vector;
+    using Math::Matrix;
     
     namespace Core
     {

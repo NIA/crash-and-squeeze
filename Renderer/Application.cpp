@@ -1,7 +1,10 @@
 #include "Application.h"
 #include <time.h>
 
-using namespace CrashAndSqueeze;
+using CrashAndSqueeze::Core::Force;
+using CrashAndSqueeze::Core::HalfSpaceSpringForce;
+using CrashAndSqueeze::Core::EverywhereForce;
+using CrashAndSqueeze::Math::Vector;
 
 const unsigned VECTORS_IN_MATRIX = sizeof(D3DXMATRIX)/sizeof(D3DXVECTOR4);
 
@@ -71,11 +74,11 @@ Application::Application() :
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true)
 {
-    static Core::HalfSpaceSpringForce springs[FORCES_NUM-1] = {
-        Core::HalfSpaceSpringForce(400, Math::Vector(0,0,0.25), Math::Vector(0,0,1), 28),
-        Core::HalfSpaceSpringForce(400, Math::Vector(0,0,4.75), Math::Vector(0,4,-10), 28),
+    static HalfSpaceSpringForce springs[FORCES_NUM-1] = {
+        HalfSpaceSpringForce(400, Vector(0,0,0.25), Vector(0,0,1), 28),
+        HalfSpaceSpringForce(400, Vector(0,0,4.75), Vector(0,4,-10), 28),
     };
-    static Core::EverywhereForce gravity(Math::Vector(0, 0, -5));
+    static EverywhereForce gravity(Vector(0, 0, -5));
     
     for(int i = 0; i < FORCES_NUM-1; ++i)
     {
