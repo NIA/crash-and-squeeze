@@ -244,7 +244,7 @@ namespace CrashAndSqueeze
 
                 Matrix rotation; // optimal rotation
                 Matrix scale;
-                linear_transformation.do_polar_decomposition(rotation, scale, 6);
+                Apq.do_polar_decomposition(rotation, scale, 6);
 
                 cluster.set_rotation(rotation);
                 
@@ -272,6 +272,7 @@ namespace CrashAndSqueeze
                 // -- Update plasticity state --
                 
                 Matrix plasticity_state = cluster.get_plasticity_state();
+                        
                 Matrix deformation = linear_transformation - Matrix::IDENTITY;
                 Real deformation_measure = deformation.norm();
                 if(deformation_measure > cluster.get_yield_constant())
@@ -283,10 +284,12 @@ namespace CrashAndSqueeze
                         plasticity_state /= pow( abs(det), 1.0/3);
                         
                         Matrix plastic_deformation = plasticity_state - Matrix::IDENTITY;
-                        Real plastic_deform_meausure = plastic_deformation.norm();
+                        Real plastic_deform_measure = plastic_deformation.norm();
                         
-                        if( plastic_deform_meausure < DEFAULT_MAX_DEFORMATION_CONSTANT ) // !!!
+                        if( plastic_deform_measure < DEFAULT_MAX_DEFORMATION_CONSTANT ) // !!!
+                        {
                             cluster.set_plasticity_state(plasticity_state);
+                        }
                     }
                 }
             }
