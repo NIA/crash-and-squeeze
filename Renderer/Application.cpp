@@ -2,8 +2,6 @@
 #include <time.h>
 
 using CrashAndSqueeze::Core::Force;
-using CrashAndSqueeze::Core::HalfSpaceSpringForce;
-using CrashAndSqueeze::Core::EverywhereForce;
 using CrashAndSqueeze::Math::Vector;
 
 const unsigned VECTORS_IN_MATRIX = sizeof(D3DXMATRIX)/sizeof(D3DXVECTOR4);
@@ -72,28 +70,10 @@ namespace
 Application::Application() :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(3.2f, 1.9f, -0.6f), // Constants selected for better view of cylinder
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
-    emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true)
+    emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
+    forces(NULL), forces_num(0)
 {
-    static HalfSpaceSpringForce springs[FORCES_NUM-1] = {
-        HalfSpaceSpringForce(400, Vector(0,0,0.25), Vector(0,0,1), 28),
-        HalfSpaceSpringForce(400, Vector(0,0,4.75), Vector(0,4,-10), 28),
-    };
-    static EverywhereForce gravity(Vector(0, 0, -5));
-    
-    for(int i = 0; i < FORCES_NUM-1; ++i)
-    {
-        forces[i] = &springs[i];
-    }
-    forces[FORCES_NUM-1] = &gravity;
 
-    for(int i = 0; i < FORCES_NUM; ++i)
-    {
-        if(forces_enabled)
-            forces[i]->activate();
-        else
-            forces[i]->deactivate();
-    }
-    
     try
     {
         init_device();
@@ -213,6 +193,17 @@ void Application::add_model(Model &model, bool physical)
         physical_models.push_back( NULL );
 }
 
+void Application::set_forces(Force ** forces, int forces_num)
+{
+    if(forces_num < 0)
+        throw ForcesError();
+    if(NULL == forces && 0 != forces_num)
+        throw ForcesError();
+    
+    this->forces_num = forces_num;
+    this->forces = forces;
+}
+
 void Application::rotate_models(float phi)
 {
     for ( Models::iterator iter = models.begin(); iter != models.end(); ++iter )
@@ -272,7 +263,7 @@ void Application::process_key(unsigned code)
         emulation_enabled = !emulation_enabled;
         break;
     case 'F':
-        for(int i = 0; i < FORCES_NUM; ++i)
+        for(int i = 0; i < forces_num; ++i)
         {
             if(forces_enabled)
             {
@@ -302,6 +293,14 @@ void Application::run()
     window.update();
 
     int physics_frames = 0;
+    for(int i = 0; i < forces_num; ++i)
+    {
+        if(forces_enabled)
+            forces[i]->activate();
+        else
+            forces[i]->deactivate();
+    }
+    
 
     // Enter the message loop
     MSG msg;
@@ -330,7 +329,7 @@ void Application::run()
                 {
                     if( NULL != *pm_iter )
                     {
-                        (*pm_iter)->compute_next_step(forces, FORCES_NUM);
+                        (*pm_iter)->compute_next_step(forces, forces_num);
                         
                         Vertex *vertices = (*m_iter)->lock_vertex_buffer();
                         (*pm_iter)->update_vertices(vertices, (*m_iter)->get_vertices_count(), VERTEX_INFO);

@@ -8,6 +8,10 @@
 #include "Logging/logger.h"
 
 using ::CrashAndSqueeze::Logging::logger;
+using CrashAndSqueeze::Core::Force;
+using CrashAndSqueeze::Core::HalfSpaceSpringForce;
+using CrashAndSqueeze::Core::EverywhereForce;
+using CrashAndSqueeze::Math::Vector;
 
 namespace
 {
@@ -84,7 +88,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 
         VertexShader simple_shader(app.get_device(), VERTEX_DECL_ARRAY, SIMPLE_SHADER_FILENAME);
         
-        // -------------------------- C y l i n d e r -----------------------
+        // -------------------------- M o d e l -----------------------
 
         cubic_vertices = new Vertex[CUBIC_VERTICES_COUNT];
         cubic_indices = new Index[CUBIC_INDICES_COUNT];
@@ -105,6 +109,25 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                    D3DXVECTOR3(0,0,0));
 
         app.add_model(cube, true);
+        
+        // -------------------------- F o r c e s -----------------------
+        const int FORCES_NUM = 3;
+        Force * forces[FORCES_NUM];
+
+        HalfSpaceSpringForce springs[FORCES_NUM-1] = {
+            HalfSpaceSpringForce(400, Vector(0,0,0.25), Vector(0,0,1), 28),
+            HalfSpaceSpringForce(400, Vector(0,0,4.75), Vector(0,4,-10), 28),
+        };
+        static EverywhereForce gravity(Vector(0, 0, -5));
+        
+        for(int i = 0; i < FORCES_NUM-1; ++i)
+        {
+            forces[i] = &springs[i];
+        }
+        forces[FORCES_NUM-1] = &gravity;
+        app.set_forces(forces, FORCES_NUM);
+        
+        // -------------------------- G O ! ! ! -----------------------
         app.run();
         delete_array(&cubic_indices);
         delete_array(&cubic_vertices);

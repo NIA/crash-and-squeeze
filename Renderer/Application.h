@@ -34,9 +34,8 @@ private:
     Models models;
     PhysicalModels physical_models;
 
-    static const int FORCES_NUM = 3;
-
-    ::CrashAndSqueeze::Core::Force * forces[FORCES_NUM];
+    ::CrashAndSqueeze::Core::Force ** forces;
+    int forces_num;
     bool forces_enabled;
 
     Camera camera;
@@ -85,6 +84,7 @@ public:
     IDirect3DDevice9 * get_device();
 
     void add_model(Model &model, bool physical = false);
+    void set_forces(::CrashAndSqueeze::Core::Force ** forces, int forces_num);
     void run();
 
     void toggle_wireframe();

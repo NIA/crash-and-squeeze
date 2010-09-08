@@ -76,7 +76,11 @@ class PhysicsError : public RuntimeError
 public:
     PhysicsError() : RuntimeError( _T("Physics subsystem error, see log file for details") ) {}
 };
-
+class ForcesError : public RuntimeError
+{
+public:
+    ForcesError() : RuntimeError( _T("Bad forces given") ) {}
+};
 inline void check_render( HRESULT res )
 {
     if( FAILED(res) )
