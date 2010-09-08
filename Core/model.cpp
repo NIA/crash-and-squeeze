@@ -257,16 +257,29 @@ namespace CrashAndSqueeze
                 
                 // -- Shape matching: finally find goal position and add a correction to velocity --
                 
+                Vector linear_momentum_addition = Vector::ZERO;
                 for(int j = 0; j < cluster.get_vertices_num(); ++j)
                 {
                     PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
-                    Vector const &init_pos = cluster.get_initial_vertex_offset_position(j);
+                    const Vector &init_pos = cluster.get_initial_vertex_offset_position(j);
                     
                     Vector goal_position = total_deformation*init_pos + center_of_mass;
                     // TODO: thread-safe cluster addition: velocity_additions[]...
-                    vertex.velocity_addition += cluster.get_goal_speed_constant()*(goal_position - vertex.pos)/dt;
+                    Vector velocity_addition = cluster.get_goal_speed_constant()*(goal_position - vertex.pos)/dt;
+                    vertex.velocity_addition += velocity_addition;
                     // TODO: thread-safe cluster addition: velocity_addition_coeffs[]...
                     vertex.velocity_addition_coeff = 1 - cluster.get_damping_constant();
+                    
+                    linear_momentum_addition += vertex.mass*velocity_addition;
+                }
+                if( 0 != cluster.get_total_mass() )
+                {
+                    Vector velocity_correction = - linear_momentum_addition / cluster.get_total_mass();
+                    for(int j = 0; j < cluster.get_vertices_num(); ++j)
+                    {
+                        PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                        vertex.velocity_addition += velocity_correction;
+                    }
                 }
 
                 // -- Update plasticity state --
