@@ -3,7 +3,7 @@
 #include "Model.h"
 #include "cubic.h"
 #include "plane.h"
-#include "tessellate.h"
+#include "cylinder.h"
 #include <fstream>
 #include <ctime>
 #include "Logging/logger.h"
@@ -12,6 +12,7 @@ using ::CrashAndSqueeze::Logging::logger;
 using CrashAndSqueeze::Core::Force;
 using CrashAndSqueeze::Core::HalfSpaceSpringForce;
 using CrashAndSqueeze::Core::EverywhereForce;
+using CrashAndSqueeze::Core::CylinderSpringForce;
 using CrashAndSqueeze::Math::Vector;
 
 namespace
@@ -84,6 +85,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     Index * cubic_indices = NULL;
     Vertex * plane_vertices = NULL;
     Index * plane_indices = NULL;
+    Vertex * cylinder_vertices = NULL;
+    Index * cylinder_indices = NULL;
     try
     {
         Application app;
@@ -113,28 +116,31 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         app.add_model(cube, true);
         
         // -------------------------- F o r c e s -----------------------
-        const int FORCES_NUM = 3;
-        const int SPRINGS_NUM = FORCES_NUM - 1;
+        const int FORCES_NUM = 4;
+        const int SPRINGS_NUM = FORCES_NUM - 2;
         Force * forces[FORCES_NUM];
 
         HalfSpaceSpringForce springs[SPRINGS_NUM] = {
-            HalfSpaceSpringForce(1200, Vector(0,0,0.25), Vector(0,0,1), 28),
-            HalfSpaceSpringForce(400, Vector(0,0,4.75), Vector(0,4,-10), 28),
+            HalfSpaceSpringForce(1200, Vector(0,0,0.25), Vector(0,0,1), 60),
+            HalfSpaceSpringForce(400, Vector(0,0,4.75), Vector(0,3,-1), 60),
         };
-        static EverywhereForce gravity(Vector(0, 0, -5));
+        EverywhereForce gravity(Vector(0, 0, -2));
+        CylinderSpringForce cylinder_force(10000, Vector(-1, 0.5, 0.5), Vector(1, 0.5, 0.5), 0.25, 160);
         
         for(int i = 0; i < SPRINGS_NUM; ++i)
         {
             forces[i] = &springs[i];
         }
-        forces[FORCES_NUM-1] = &gravity;
+        forces[SPRINGS_NUM] = &gravity;
+        forces[SPRINGS_NUM+1] = &cylinder_force;
         app.set_forces(forces, FORCES_NUM);
         
         // ------------------- F o r c e   m o d e l s ----------------
+        // ---- 1: Plane
         plane_vertices = new Vertex[PLANE_VERTICES_COUNT];
         plane_indices = new Index[PLANE_INDICES_COUNT];
 
-        plane(5, 5, plane_vertices, plane_indices, OBSTACLE_COLOR);
+        plane(7, 7, plane_vertices, plane_indices, OBSTACLE_COLOR);
 
         Model plane1(app.get_device(),
                      D3DPT_TRIANGLELIST,
@@ -148,6 +154,29 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                      math_vector_to_d3dxvector(springs[0].get_plane_point()),
                      D3DXVECTOR3(0,0,0));
         app.add_model(plane1, false);
+        
+        // ---- 2: Cylinder
+        cylinder_vertices = new Vertex[CYLINDER_VERTICES_COUNT];
+        cylinder_indices = new Index[CYLINDER_INDICES_COUNT];
+        
+        float radius = static_cast<float>( cylinder_force.get_radius() );
+        float height = static_cast<float>( distance(cylinder_force.get_point1(), cylinder_force.get_point2()) );
+        cylinder( radius, height, D3DXVECTOR3(0, 0, 0),
+                         &OBSTACLE_COLOR, 1,
+                         cylinder_vertices, cylinder_indices );
+
+        Model cylinder1(app.get_device(),
+                        D3DPT_TRIANGLESTRIP,
+                        simple_shader,
+                        sizeof(cylinder_vertices[0]),
+                        cylinder_vertices,
+                        CYLINDER_VERTICES_COUNT,
+                        cylinder_indices,
+                        CYLINDER_INDICES_COUNT,
+                        CYLINDER_INDICES_COUNT - 2,
+                        math_vector_to_d3dxvector(cylinder_force.get_point1()),
+                        D3DXVECTOR3(0, D3DX_PI/2, 0));
+        app.add_model(cylinder1, false);
 
         // -------------------------- G O ! ! ! -----------------------
         app.run();
@@ -166,6 +195,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         delete_array(&cubic_vertices);
         delete_array(&plane_indices);
         delete_array(&plane_vertices);
+        delete_array(&cylinder_indices);
+        delete_array(&cylinder_vertices);
         if(log_file.is_open())
         {
             my_log("ERROR!! [Renderer]", "application crash\n");

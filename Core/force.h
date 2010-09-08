@@ -148,5 +148,36 @@ namespace CrashAndSqueeze
             virtual /*override*/ bool is_applied_to(const Math::Vector &point) const;
             virtual /*override*/ Math::Vector compute_value_at(const Math::Vector &point, const Math::Vector &velocity) const;
         };
+
+        // A force, imitating collision with cylinder: works like HalfSpringForce,
+        // but the shape is cylinder instead of half-space
+        class CylinderSpringForce : public ForceWithRadius
+        {
+        private:
+            Math::Vector point1;
+            Math::Vector point2;
+            Spring spring;
+
+        public:
+            CylinderSpringForce();
+            CylinderSpringForce(const Math::Real spring_constant,
+                                const Math::Vector &point1,
+                                const Math::Vector &point2,
+                                const Math::Real radius,
+                                const Math::Real damping_constant = 0);
+
+            const Math::Vector & get_point1() const { return point1; }
+            const Math::Vector & get_point2() const { return point2; }
+            void set_points(const Math::Vector &p1, const Math::Vector &p2);
+
+            Math::Real get_spring_constant() const { return spring.get_spring_constant(); }
+            void set_spring_constant(Math::Real value) { spring.set_spring_constant(value); }
+
+            Math::Real get_damping_constant() const { return spring.get_damping_constant(); }
+            void set_damping_constant(Math::Real value) { spring.set_damping_constant(value); };
+            
+            virtual /*override*/ bool is_applied_to(const Math::Vector &point) const;
+            virtual /*override*/ Math::Vector compute_value_at(const Math::Vector &point, const Math::Vector &velocity) const;
+        };
     }
 }

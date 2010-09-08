@@ -123,8 +123,10 @@ void cylinder( float radius, float height, D3DXVECTOR3 position,
     Index vertex = 0; // current vertex
     DWORD index = 0; // current index
     
-    _ASSERT(res_vertices != NULL);
-    _ASSERT(res_indices != NULL);
+    _ASSERT(NULL != res_vertices);
+    _ASSERT(NULL != res_indices);
+    _ASSERT(NULL != colors);
+    _ASSERT(0 != colors_count);
 
     GENERATION_PARAMS params;
     // output buffers
@@ -154,6 +156,7 @@ void cylinder( float radius, float height, D3DXVECTOR3 position,
     for( unsigned level = CYLINDER_EDGES_PER_HEIGHT; level != 0; --level )
     {
         res_vertices[vertex] = Vertex( D3DXVECTOR3(0, 0, level*STEP_UP) + position,
+                                       colors[0],
                                        D3DXVECTOR3(0,0,1.0f) );
         res_indices[index++] = vertex;
         ++vertex;

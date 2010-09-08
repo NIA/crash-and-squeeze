@@ -183,7 +183,7 @@ namespace CrashAndSqueeze
         
         bool HalfSpaceSpringForce::is_applied_to(const Vector &point) const
         {
-            return plane.projection_to_normal(point) < 0;
+            return plane.projection_to_normal(point) <= 0;
         }
 
         Vector HalfSpaceSpringForce::compute_value_at(const Vector &point, const Vector &velocity) const
@@ -192,5 +192,66 @@ namespace CrashAndSqueeze
             return spring.compute_force(x*plane.get_normal(), velocity);
         }
 
+        // -- CylinderSpringForce --
+
+        CylinderSpringForce::CylinderSpringForce()
+        {
+            set_points(Vector::ZERO, Vector(1,1,1));
+        }
+
+        CylinderSpringForce::CylinderSpringForce(const Real spring_constant,
+                                                 const Vector &point1,
+                                                 const Vector &point2,
+                                                 const Real radius,
+                                                 const Real damping_constant)
+            : ForceWithRadius(Vector::ZERO, radius),
+              spring(spring_constant, damping_constant)
+        {
+            set_points(point1, point2);
+        }
+
+        void CylinderSpringForce::set_points(const Vector &p1, const Vector &p2)
+        {
+            if(p1 == p2)
+            {
+                logger.error("given points for CylinderSpringForce are equal", __FILE__, __LINE__);
+            }
+            else
+            {
+                point1 = p1;
+                point2 = p2;
+            }
+        }
+
+        namespace
+        {
+            inline Real project(const Vector &vector_to_project, const Vector &direction, /*out*/ Vector &normal_component)
+            {
+                Vector axis = direction.normalized();
+                Real projection = vector_to_project*axis;
+                normal_component = vector_to_project - projection*axis;
+                return projection;
+            }
+        }
+
+        bool CylinderSpringForce::is_applied_to(const Vector &point) const
+        {
+            Vector normal_component;
+            Real projection = project(point - point1, point2 - point1, normal_component);
+            return projection >= 0
+                && projection <= distance(point1, point2)
+                && normal_component.norm() <= get_radius();
+        }
+
+        Vector CylinderSpringForce::compute_value_at(const Vector &point, const Vector &velocity) const
+        {
+            Vector normal_component;
+            project(point - point1, point2 - point1, normal_component);
+
+            Vector direction = normal_component.is_zero() ? Vector(0,0,1) : normal_component.normalized();
+            Vector shift = normal_component - direction*get_radius();
+
+            return spring.compute_force(shift, velocity);
+        }
     }
 }

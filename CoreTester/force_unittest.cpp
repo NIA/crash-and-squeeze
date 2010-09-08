@@ -7,7 +7,6 @@ TEST(ForceTest, EverywhereForceDefault)
     const Vector somewhere(2, 3, 20);
     const Vector no_speed = Vector::ZERO;
     EXPECT_TRUE(f.is_active());
-    EXPECT_TRUE(f.is_applied_to(somewhere));
     EXPECT_EQ(Vector::ZERO, f.get_value_at(somewhere, no_speed));
 }
 
@@ -28,6 +27,15 @@ TEST(ForceTest, EverywhereForceToggle)
     EXPECT_TRUE(f.is_active());
     f.toggle();
     EXPECT_FALSE(f.is_active());
+}
+
+TEST(ForceTest, EverywhereForceIsApplied)
+{
+    const EverywhereForce force;
+    const Force &f = force;
+    const Vector somewhere(2, 3, 20);
+    
+    EXPECT_TRUE( f.is_applied_to(somewhere) );
 }
 
 TEST(ForceTest, EverywhereForceValue)
@@ -57,6 +65,7 @@ TEST(ForceTest, PointForceProperties)
     const Real R2 = 0.03;
     PointForce f(value, P1, R1);
     EXPECT_EQ(P1, f.get_point_of_application());
+    EXPECT_EQ(R1, f.get_radius());
     f.set_point_of_application(P2);
     EXPECT_EQ(P2, f.get_point_of_application());
     f.set_radius(R2);
@@ -157,6 +166,7 @@ TEST(ForceTest, HalfSpaceSpringForceDefault)
     const Vector N = f.get_plane_normal();
     EXPECT_EQ(1, N.squared_norm());
     EXPECT_EQ(0, f.get_spring_constant());
+    EXPECT_EQ(0, f.get_damping_constant());
 }
 
 TEST(ForceTest, HalfSpaceSpringForceProperties)
@@ -167,11 +177,14 @@ TEST(ForceTest, HalfSpaceSpringForceProperties)
     const Vector N2(8,4,8);
     const Real k1 = 100;
     const Real k2 = 5000;
+    const Real d1 = 10;
+    const Real d2 = 50;
     
-    HalfSpaceSpringForce f(k1, P1, N1);
+    HalfSpaceSpringForce f(k1, P1, N1, d1);
     EXPECT_EQ(P1, f.get_plane_point());
     EXPECT_EQ(N1.normalized(), f.get_plane_normal());
     EXPECT_EQ(k1, f.get_spring_constant());
+    EXPECT_EQ(d1, f.get_damping_constant());
 
     f.set_plane(P2, N2);
     EXPECT_EQ(P2, f.get_plane_point());
@@ -179,6 +192,9 @@ TEST(ForceTest, HalfSpaceSpringForceProperties)
 
     f.set_spring_constant(k2);
     EXPECT_EQ(k2, f.get_spring_constant());
+
+    f.set_damping_constant(d2);
+    EXPECT_EQ(d2, f.get_damping_constant());
 }
 
 TEST(ForceTest, HalfSpaceSpringForceSpringConstantCorrection)
@@ -194,7 +210,6 @@ TEST(ForceTest, HalfSpaceSpringForceSpringConstantCorrection)
 
 TEST(ForceTest, HalfSpaceSpringForceIsApplied)
 {
-    const Vector value;
     const Vector point(0,0,0);
     const Vector normal(0,0,2);
     const Real k = 1;
@@ -207,7 +222,7 @@ TEST(ForceTest, HalfSpaceSpringForceIsApplied)
     const Force &f = force;
 
     EXPECT_FALSE( f.is_applied_to(outside) );
-    EXPECT_FALSE( f.is_applied_to(border) );
+    EXPECT_TRUE( f.is_applied_to(border) );
     EXPECT_TRUE( f.is_applied_to(inside) );
 }
 
@@ -230,11 +245,102 @@ TEST(ForceTest, HalfSpaceSpringForceValueAt)
     EXPECT_EQ( Vector::ZERO, f.get_value_at(border, no_speed) );
     
     const Vector val = f.get_value_at(inside, no_speed);
-    // check that force is collinear to normal
-    EXPECT_EQ( Vector::ZERO, cross_product(val, normal) );
-    // check that force is along normal (looks at the same direction!)
-    // (projection is > 0)
-    EXPECT_GT( val*normal, 0 );
-    // check value
-    EXPECT_EQ( abs(k*inside[2]), val.norm() );
+    EXPECT_EQ( k*abs(inside[2])*normal.normalized(), val );
+}
+
+TEST(ForceTest, CylinderSpringForceDefault)
+{
+    const CylinderSpringForce f;
+    EXPECT_FALSE( (f.get_point2() - f.get_point1()).is_zero() );
+    EXPECT_EQ(0, f.get_radius());
+    EXPECT_EQ(0, f.get_spring_constant());
+    EXPECT_EQ(0, f.get_damping_constant());
+}
+
+TEST(ForceTest, CylinderSpringForceProperties)
+{
+    const Vector P1(3,3,3);
+    const Vector Q1(4,4,4);
+    const Vector P2(1,3,7);
+    const Vector Q2(-1,-3,-7);
+    const Real R1 = 0.01;
+    const Real R2 = 0.03;
+    const Real k1 = 100;
+    const Real k2 = 5000;
+    const Real d1 = 10;
+    const Real d2 = 50;
+
+    CylinderSpringForce f(k1, P1, Q1, R1, d1);
+    EXPECT_EQ(R1, f.get_radius());
+    EXPECT_EQ(P1, f.get_point1());
+    EXPECT_EQ(Q1, f.get_point2());
+    EXPECT_EQ(k1, f.get_spring_constant());
+    EXPECT_EQ(d1, f.get_damping_constant());
+
+    f.set_radius(R2);
+    EXPECT_EQ(R2, f.get_radius());
+
+    f.set_points(P2, Q2);
+    EXPECT_EQ(P2, f.get_point1());
+    EXPECT_EQ(Q2, f.get_point2());
+
+    f.set_spring_constant(k2);
+    EXPECT_EQ(k2, f.get_spring_constant());
+
+    f.set_damping_constant(d2);
+    EXPECT_EQ(d2, f.get_damping_constant());
+}
+
+TEST(ForceTest, CylinderSpringForceIsApplied)
+{
+    const Vector p1(0,0,0);
+    const Vector p2(0,0,1);
+    const Real R = 1;
+    const Real k = 1;
+
+    const Vector outside1(2, 2, 0.5);
+    const Vector outside2(0, 0, 10);
+    const Vector outside3(2, 2, 10);
+    const Vector surface(1, 0, 0.3);
+    const Vector base(0.1, -0.1, 1);
+    const Vector inside(0.1, -0.1, 0.1);
+
+    CylinderSpringForce force(k, p1, p2, R);
+    const Force &f = force;
+    
+    EXPECT_FALSE( f.is_applied_to(outside1) );
+    EXPECT_FALSE( f.is_applied_to(outside2) );
+    EXPECT_FALSE( f.is_applied_to(outside3) );
+    EXPECT_TRUE( f.is_applied_to(surface) );
+    EXPECT_TRUE( f.is_applied_to(base) );
+}
+
+TEST(ForceTest, CylinderSpringForceValueAt)
+{
+    const Vector p1(0,0,0);
+    const Vector p2(0,0,1);
+    const Real R = 1;
+    const Real k = 1;
+    const Vector no_speed = Vector::ZERO;
+
+    const Vector outside1(2, 2, 0.5);
+    const Vector outside2(0, 0, 10);
+    const Vector outside3(2, 2, 10);
+    const Vector surface(1, 0, 0.3);
+    const Vector base(0.1, 0, 1);
+    const Vector inside(0, -0.9, 0.1);
+
+    CylinderSpringForce force(k, p1, p2, R);
+    const Force &f = force;
+
+    EXPECT_EQ( Vector::ZERO, f.get_value_at(outside1, no_speed) );
+    EXPECT_EQ( Vector::ZERO, f.get_value_at(outside2, no_speed) );
+    EXPECT_EQ( Vector::ZERO, f.get_value_at(outside3, no_speed) );
+    EXPECT_EQ( Vector::ZERO, f.get_value_at(surface, no_speed) );
+
+    Vector val = f.get_value_at(base, no_speed);
+    EXPECT_EQ( k*(R - base[0])*Vector(1,0,0), val);
+
+    val = f.get_value_at(inside, no_speed);
+    EXPECT_EQ( k*(inside[1] - (-R))*Vector(0,-1,0), val);
 }

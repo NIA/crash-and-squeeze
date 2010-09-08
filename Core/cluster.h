@@ -27,10 +27,10 @@ namespace CrashAndSqueeze
         // 0 - approx. no loss, 1 - maximum damping, no repulse
         // (WARNING: setting too close to 1 may cause collapse of model,
         //  but setting too close to 0 may cause instability)
-        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.4;
+        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.5;
 
-        const Math::Real DEFAULT_YIELD_CONSTANT = 0.25; //!!!
-        const Math::Real DEFAULT_CREEP_CONSTANT = 25;
+        const Math::Real DEFAULT_YIELD_CONSTANT = 0.15; //!!!
+        const Math::Real DEFAULT_CREEP_CONSTANT = 50;
         const Math::Real DEFAULT_MAX_DEFORMATION_CONSTANT = 2;
 
         class Cluster
