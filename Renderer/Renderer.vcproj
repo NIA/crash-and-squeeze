@@ -200,6 +200,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\plane.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Shader.cpp"
 				>
 			</File>
@@ -251,6 +255,10 @@
 			</File>
 			<File
 				RelativePath=".\Model.h"
+				>
+			</File>
+			<File
+				RelativePath=".\plane.h"
 				>
 			</File>
 			<File
