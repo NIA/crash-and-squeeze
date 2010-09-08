@@ -204,10 +204,13 @@ IDirect3DDevice9 * Application::get_device()
     return device;
 }
 
-void Application::add_model(Model &model)
+void Application::add_model(Model &model, bool physical)
 {
     models.push_back( &model );
-    physical_models.push_back( new PhysicalModel(model.lock_vertex_buffer(), model.get_vertices_count(), VERTEX_INFO, NULL, VERTEX_MASS) );
+    if(physical)
+        physical_models.push_back( new PhysicalModel(model.lock_vertex_buffer(), model.get_vertices_count(), VERTEX_INFO, NULL, VERTEX_MASS) );
+    else
+        physical_models.push_back( NULL );
 }
 
 void Application::rotate_models(float phi)
@@ -325,9 +328,14 @@ void Application::run()
                 PhysicalModels::iterator pm_iter = physical_models.begin();
                 for ( ; m_iter != models.end() && pm_iter != physical_models.end(); ++m_iter, ++pm_iter )
                 {
-                    (*pm_iter)->compute_next_step(forces, FORCES_NUM);
-                    (*pm_iter)->update_vertices((*m_iter)->lock_vertex_buffer(), (*m_iter)->get_vertices_count(), VERTEX_INFO);
-                    (*m_iter)->unlock_vertex_buffer();
+                    if( NULL != *pm_iter )
+                    {
+                        (*pm_iter)->compute_next_step(forces, FORCES_NUM);
+                        
+                        Vertex *vertices = (*m_iter)->lock_vertex_buffer();
+                        (*pm_iter)->update_vertices(vertices, (*m_iter)->get_vertices_count(), VERTEX_INFO);
+                        (*m_iter)->unlock_vertex_buffer();
+                    }
                 }
                 ++physics_frames;
             }

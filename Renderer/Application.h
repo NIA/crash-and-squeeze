@@ -84,7 +84,7 @@ public:
     Application();
     IDirect3DDevice9 * get_device();
 
-    void add_model(Model &model);
+    void add_model(Model &model, bool physical = false);
     void run();
 
     void toggle_wireframe();

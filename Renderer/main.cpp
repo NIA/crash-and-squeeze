@@ -104,7 +104,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                    D3DXVECTOR3(0,0,0),
                    D3DXVECTOR3(0,0,0));
 
-        app.add_model(cube);
+        app.add_model(cube, true);
         app.run();
         delete_array(&cubic_indices);
         delete_array(&cubic_vertices);
