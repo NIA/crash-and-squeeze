@@ -68,7 +68,7 @@ namespace
 }
 
 Application::Application() :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(4.8f, 0.8f, -0.5f), // Constants selected for better view of cylinder
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(3.3f, 1.0f, 0.97f), // Constants selected for better view of cylinder
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
     forces(NULL), forces_num(0)
@@ -263,19 +263,14 @@ void Application::process_key(unsigned code)
         emulation_enabled = !emulation_enabled;
         break;
     case 'F':
-        for(int i = 0; i < forces_num; ++i)
-        {
-            if(forces_enabled)
-            {
-                forces[i]->deactivate();
-            }
-            else
-            {
-                forces[i]->activate();
-            }
-        }
         forces_enabled = !forces_enabled;
-        my_log("        [Renderer]", forces_enabled ? "enabled forces" : "disabled forces", __FILE__, __LINE__);
+        for(int i = 0; i < forces_num; ++i)
+            forces[i]->toggle();
+        break;
+    case 'C':
+        // toggle last
+        if(0 != forces_num)
+            forces[forces_num - 1]->toggle();
         break;
     case 'S':
         emultate_one_step = true;

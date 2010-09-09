@@ -48,7 +48,7 @@ namespace CrashAndSqueeze
             
             Matrix(const Real values[MATRIX_ELEMENTS_NUM]);
             
-            // construct matrix as multiplication of left_vector to transposed right_vector
+            // construct matrix as outer product of two vectors: matrix product of left_vector to transposed right_vector
             Matrix(const Vector &left_vector, const Vector &right_vector);
 
             static const Matrix IDENTITY;

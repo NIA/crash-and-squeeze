@@ -21,13 +21,13 @@ namespace CrashAndSqueeze
         // and A is optimal linear transformation.
         // Thus 0 means freely (but only linearly) deformable body,
         // 1 means absolutely rigid
-        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.9;
+        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 1;
         
         // a constant, determining how much energy is lost:
         // 0 - approx. no loss, 1 - maximum damping, no repulse
         // (WARNING: setting too close to 1 may cause collapse of model,
         //  but setting too close to 0 may cause instability)
-        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.5;
+        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.6;
 
         const Math::Real DEFAULT_YIELD_CONSTANT = 0.15; //!!!
         const Math::Real DEFAULT_CREEP_CONSTANT = 50;

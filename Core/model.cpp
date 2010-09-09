@@ -26,8 +26,8 @@ namespace CrashAndSqueeze
                 return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
             }
 
-            const int CLUSTERS_NUM[VECTOR_SIZE] = {2, 2, 6}; // !!! hard-coded
-            const Real PADDING_COEFF = 0.4; // !!! hard-coded
+            const int CLUSTERS_NUM[VECTOR_SIZE] = {2, 2, 12}; // !!! hard-coded
+            const Real PADDING_COEFF = 0.6; // !!! hard-coded
             const Real MAX_COORDINATE = 1.0e+100; // !!! hard-coded
 
             inline int compute_cluster_index(const int indices[VECTOR_SIZE], const int clusters_num[VECTOR_SIZE])
@@ -41,7 +41,7 @@ namespace CrashAndSqueeze
                       VertexInfo const &vertex_info,
                       const MassFloat *masses,
                       const MassFloat constant_mass)
-            : vertices_num(vertices_num), clusters_num(0), vertices(NULL), clusters(NULL)
+            : vertices_num(vertices_num), clusters_num(0), vertices(NULL), clusters(NULL), total_mass(0)
         {
             if(this->vertices_num < 0)
             {
@@ -79,6 +79,7 @@ namespace CrashAndSqueeze
                     {
                         vertex.mass = constant_mass;
                     }
+                    total_mass += vertex.mass;
 
                     for(int j = 0; j < VECTOR_SIZE; ++j)
                     {
@@ -307,7 +308,7 @@ namespace CrashAndSqueeze
                 }
             }
 
-            // -- For each vertex of model: integrate --
+            // -- For each vertex of model: integrate velocities --
             for(int i = 0; i < vertices_num; ++i)
             {
                 Vector acceleration = Vector::ZERO;
@@ -335,10 +336,50 @@ namespace CrashAndSqueeze
                 // we need average velocity addition, not sum
                 v.velocity_addition /= v.including_clusters_num;
 
-                v.velocity += acceleration*dt;
-                v.pos += (v.velocity + v.velocity_addition)*dt;
-                v.velocity += v.velocity_addition_coeff*v.velocity_addition;
+                v.velocity += v.velocity_addition + acceleration*dt;
                 v.velocity_addition = Vector::ZERO;
+            }
+            
+            // -- Compute macroscopic characteristics --
+            Vector center_of_mass = Vector::ZERO;
+            Vector center_of_mass_velocity = Vector::ZERO;
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                PhysicalVertex &v = vertices[i];
+                
+                center_of_mass += v.mass*v.pos/total_mass;
+                center_of_mass_velocity += v.mass*v.velocity/total_mass;
+            }
+            Vector angular_momentum = Vector::ZERO;
+            Matrix inertia_tensor = Matrix::ZERO;
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                PhysicalVertex &v = vertices[i];
+                Vector offset = v.pos - center_of_mass;
+                
+                angular_momentum += v.mass * cross_product(offset, v.velocity);
+                
+                inertia_tensor += v.mass * (offset*offset*Matrix::IDENTITY - Matrix(offset, offset));
+            }
+
+            if( !inertia_tensor.is_invertible() )
+            {
+                logger.warning("in Model::compute_next_step: inertia_tensor is singular, assumed it to be Matrix::IDENTITY");
+                inertia_tensor = Matrix::IDENTITY;
+            }
+            Matrix inertia_tensor_inverted = inertia_tensor.inverted();
+            Vector angular_velocity = inertia_tensor.inverted()*angular_momentum;
+
+            // -- For each vertex of model: damp velocities and integrate positions --
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                PhysicalVertex &v = vertices[i];
+
+                Vector rigid_velocity = center_of_mass_velocity + cross_product(angular_velocity, v.pos - center_of_mass);
+                Vector deformation_velocity = v.velocity - rigid_velocity;
+                v.velocity -= DEFAULT_DAMPING_CONSTANT*deformation_velocity; // !!!
+
+                v.pos += v.velocity*dt;
             }
         }
 

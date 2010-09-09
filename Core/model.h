@@ -2,6 +2,7 @@
 #include "Core/core.h"
 #include "Core/vertex_info.h"
 #include "Core/force.h"
+#include "Math/floating_point.h"
 
 namespace CrashAndSqueeze
 {
@@ -15,6 +16,8 @@ namespace CrashAndSqueeze
         private:
             PhysicalVertex *vertices;
             int vertices_num;
+
+            Math::Real total_mass;
 
             Cluster *clusters;
             int clusters_num;
