@@ -266,6 +266,12 @@ TEST_F(MatrixTest, Determinant)
     EXPECT_EQ( 1, I.determinant() );
 }
 
+TEST_F(MatrixTest, IsInvertible)
+{
+    EXPECT_FALSE( m1.is_invertible() );
+    EXPECT_TRUE(  m2.is_invertible() );
+}
+
 TEST_F(MatrixTest, Inverted)
 {
     EXPECT_EQ( I, m2*m2.inverted() );

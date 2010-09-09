@@ -149,6 +149,11 @@ namespace CrashAndSqueeze
                      + get_at(0,2)*get_at(1,0)*get_at(2,1) - get_at(0,2)*get_at(1,1)*get_at(2,0);
             }
             
+            bool is_invertible() const
+            {
+                return ! equal(0, determinant());
+            }
+
             Matrix inverted() const;
 
             // squared Frobenius norm of matrix

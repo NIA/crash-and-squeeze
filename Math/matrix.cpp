@@ -288,7 +288,7 @@ namespace CrashAndSqueeze
         {
             symmetric_part = (this->transposed()*(*this)).compute_function(cautious_sqrt, diagonalization_rotations_count);
             // FIXME: what if symmetric_part.determinant() == 0?
-            if( equal(0, symmetric_part.determinant()) )
+            if( ! symmetric_part.is_invertible() )
                 logger.error("in Matrix::do_polar_decomposition: symmetric_part is singular, cannot invert", __FILE__, __LINE__);
 
             orthogonal_part = (*this)*symmetric_part.inverted();

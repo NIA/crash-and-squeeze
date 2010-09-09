@@ -213,7 +213,7 @@ namespace CrashAndSqueeze
                     // TODO: re-compute this only on update of plasticity_state
                     Aqq += vertex.mass*Matrix( init_pos, init_pos );
                 }
-                if( !( equal(0, Aqq.determinant()) ) )
+                if( Aqq.is_invertible() )
                 {
                     Aqq = Aqq.inverted();
                 }
@@ -228,7 +228,7 @@ namespace CrashAndSqueeze
                 // -- Shape matching: adjust volume --
                 
                 Real det = linear_transformation.determinant();
-                if( 0 != det)
+                if( ! equal(0, det) )
                 {
                     if( det < 0 )
                         logger.warning("in Model::compute_next_step: linear_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
@@ -292,7 +292,7 @@ namespace CrashAndSqueeze
                 {
                     plasticity_state = (Matrix::IDENTITY + dt*cluster.get_creep_constant()*deformation)*plasticity_state;
                     Math::Real det = plasticity_state.determinant();
-                    if(0 != det)
+                    if( ! equal(0, det) )
                     {
                         plasticity_state /= pow( abs(det), 1.0/3);
                         
