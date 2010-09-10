@@ -43,7 +43,8 @@ namespace CrashAndSqueeze
                       const MassFloat *masses,
                       const MassFloat constant_mass)
             : vertices_num(vertices_num), clusters_num(0), vertices(NULL), clusters(NULL), total_mass(0),
-              min_pos(MAX_COORDINATE_VECTOR), max_pos(-MAX_COORDINATE_VECTOR), cluster_padding_coeff(cluster_padding_coeff)
+              min_pos(MAX_COORDINATE_VECTOR), max_pos(-MAX_COORDINATE_VECTOR), cluster_padding_coeff(cluster_padding_coeff),
+              center_of_mass_velocity(Vector::ZERO), angular_velocity(Vector::ZERO), center_of_mass(Vector::ZERO)
 
         {
             init_vertices(source_vertices, vertex_info, masses, constant_mass);
@@ -188,150 +189,11 @@ namespace CrashAndSqueeze
             }
         }
 
-        void Model::compute_next_step(const Force * const forces[], int forces_num)
+        namespace
         {
-            if(NULL == forces && 0 != forces_num)
-            {
-                logger.error("in Model::compute_next_step null pointer `forces`", __FILE__, __LINE__);
-                return;
-            }
-            
-            // TODO: QueryPerformanceCounter
-            Real dt = 0.01;
-
-            // -- For each cluster of model (and then for each vertex in it) --
-            for(int i = 0; i < clusters_num; ++i)
-            {
-                Cluster &cluster = clusters[i];
-
-                if(0 == cluster.get_vertices_num())
-                    continue;
-                
-                // -- Find current center of mass --
-
-                Vector center_of_mass = Vector::ZERO;
-                if( 0 != cluster.get_total_mass() )
-                {
-                    for(int j = 0; j < cluster.get_vertices_num(); ++j)
-                    {
-                        PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
-                        center_of_mass += vertex.mass*vertex.pos/cluster.get_total_mass();
-                    }
-                }
-                cluster.set_center_of_mass(center_of_mass);
-                
-                // -- Shape matching: find optimal linear transformation --
-
-                Matrix Apq = Matrix::ZERO;
-                Matrix Aqq = Matrix::ZERO;
-                for(int j = 0; j < cluster.get_vertices_num(); ++j)
-                {
-                    PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
-                    Vector const &init_pos = cluster.get_initial_vertex_offset_position(j);
-
-                    Apq += vertex.mass*Matrix( vertex.pos - center_of_mass, init_pos );
-                    // TODO: re-compute this only on update of plasticity_state
-                    Aqq += vertex.mass*Matrix( init_pos, init_pos );
-                }
-                if( Aqq.is_invertible() )
-                {
-                    Aqq = Aqq.inverted();
-                }
-                else
-                {
-                    logger.warning("in Model::compute_next_step: singular matrix Aqq, unable to compute Aqq.inverted(), assumed it to be Matrix::IDENTITY", __FILE__, __LINE__);
-                    Aqq = Matrix::IDENTITY; // TODO: is this good workaround???
-                }
-
-                Matrix linear_transformation = Apq*Aqq; // optimal linear transformation
-                
-                // -- Shape matching: adjust volume --
-                
-                Real det = linear_transformation.determinant();
-                if( ! equal(0, det) )
-                {
-                    if( det < 0 )
-                        logger.warning("in Model::compute_next_step: linear_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
-                    linear_transformation /= pow( abs(det), 1.0/3)*sign(det);
-                }
-                else
-                {
-                    logger.warning("in Model::compute_next_step: linear_transformation is singular, so volume-preserving constraint cannot be enforced", __FILE__, __LINE__);
-                    // but now, while polar decomposition is only for invertible matrix - it's very, very bad...
-                }
-
-                // -- Shape matching: retrieve optimal rotation from optimal linear transformation --
-
-                Matrix rotation; // optimal rotation
-                Matrix scale;
-                Apq.do_polar_decomposition(rotation, scale, 6);
-
-                cluster.set_rotation(rotation);
-                
-                // -- Shape matching: allow linear deformation by interpolating linear_transformation and rotation --
-                
-                Real beta = cluster.get_linear_elasticity_constant();
-                Matrix total_deformation = beta*rotation + (1 - beta)*linear_transformation;
-                
-                cluster.set_total_deformation(total_deformation);
-                
-                // -- Shape matching: finally find goal position and add a correction to velocity --
-                
-                Vector linear_momentum_addition = Vector::ZERO;
-                for(int j = 0; j < cluster.get_vertices_num(); ++j)
-                {
-                    PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
-                    const Vector &init_pos = cluster.get_initial_vertex_offset_position(j);
-                    
-                    Vector goal_position = total_deformation*init_pos + center_of_mass;
-                    // TODO: thread-safe cluster addition: velocity_additions[]...
-                    Vector velocity_addition = cluster.get_goal_speed_constant()*(goal_position - vertex.pos)/dt;
-                    vertex.velocity_addition += velocity_addition;
-                    // TODO: thread-safe cluster addition: velocity_addition_coeffs[]...
-                    vertex.velocity_addition_coeff = 1 - cluster.get_damping_constant();
-                    
-                    linear_momentum_addition += vertex.mass*velocity_addition;
-                }
-                if( 0 != cluster.get_total_mass() )
-                {
-                    Vector velocity_correction = - linear_momentum_addition / cluster.get_total_mass();
-                    for(int j = 0; j < cluster.get_vertices_num(); ++j)
-                    {
-                        PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
-                        vertex.velocity_addition += velocity_correction;
-                    }
-                }
-
-                // -- Update plasticity state --
-                
-                Matrix plasticity_state = cluster.get_plasticity_state();
-                        
-                Matrix deformation = linear_transformation - Matrix::IDENTITY;
-                Real deformation_measure = deformation.norm();
-                if(deformation_measure > cluster.get_yield_constant())
-                {
-                    plasticity_state = (Matrix::IDENTITY + dt*cluster.get_creep_constant()*deformation)*plasticity_state;
-                    Math::Real det = plasticity_state.determinant();
-                    if( ! equal(0, det) )
-                    {
-                        plasticity_state /= pow( abs(det), 1.0/3);
-                        
-                        Matrix plastic_deformation = plasticity_state - Matrix::IDENTITY;
-                        Real plastic_deform_measure = plastic_deformation.norm();
-                        
-                        if( plastic_deform_measure < DEFAULT_MAX_DEFORMATION_CONSTANT ) // !!!
-                        {
-                            cluster.set_plasticity_state(plasticity_state);
-                        }
-                    }
-                }
-            }
-
-            // -- For each vertex of model: integrate velocities --
-            for(int i = 0; i < vertices_num; ++i)
+            void integrate_velocity(PhysicalVertex &v, const Force * const forces[], int forces_num, Math::Real dt)
             {
                 Vector acceleration = Vector::ZERO;
-                PhysicalVertex &v = vertices[i];
 
                 if(0 != v.mass && NULL != forces)
                 {
@@ -348,7 +210,7 @@ namespace CrashAndSqueeze
 
                 if(0 == v.including_clusters_num)
                 {
-                    logger.error("in Model::compute_next_step: internal error: orphan vertex not belonging to any cluster", __FILE__, __LINE__);
+                    logger.error("in Model::integrate_velocity: internal error: orphan vertex not belonging to any cluster", __FILE__, __LINE__);
                     return;
                 }
                 
@@ -358,10 +220,17 @@ namespace CrashAndSqueeze
                 v.velocity += v.velocity_addition + acceleration*dt;
                 v.velocity_addition = Vector::ZERO;
             }
-            
-            // -- Compute macroscopic characteristics --
-            Vector center_of_mass = Vector::ZERO;
-            Vector center_of_mass_velocity = Vector::ZERO;
+
+            void integrate_position(PhysicalVertex &v, Math::Real dt)
+            {
+                v.pos += v.velocity*dt;
+            }
+        }
+
+        void Model::find_body_motion()
+        {
+            center_of_mass = Vector::ZERO;
+            center_of_mass_velocity = Vector::ZERO;
             for(int i = 0; i < vertices_num; ++i)
             {
                 PhysicalVertex &v = vertices[i];
@@ -378,26 +247,180 @@ namespace CrashAndSqueeze
                 
                 angular_momentum += v.mass * cross_product(offset, v.velocity);
                 
-                inertia_tensor += v.mass * (offset*offset*Matrix::IDENTITY - Matrix(offset, offset));
+                inertia_tensor += v.mass * ( (offset*offset)*Matrix::IDENTITY - Matrix(offset, offset) );
             }
 
             if( !inertia_tensor.is_invertible() )
             {
-                logger.warning("in Model::compute_next_step: inertia_tensor is singular, assumed it to be Matrix::IDENTITY");
+                logger.warning("in Model::find_body_motion: inertia_tensor is singular, assumed it to be Matrix::IDENTITY");
                 inertia_tensor = Matrix::IDENTITY;
             }
-            Vector angular_velocity = inertia_tensor.inverted()*angular_momentum;
+            angular_velocity = inertia_tensor.inverted()*angular_momentum;
+        }
+
+        void Model::damp_velocity(PhysicalVertex &v)
+        {
+            Vector rigid_velocity = center_of_mass_velocity + cross_product(angular_velocity, v.pos - center_of_mass);
+            Vector deformation_velocity = v.velocity - rigid_velocity;
+            v.velocity -= DEFAULT_DAMPING_CONSTANT*deformation_velocity; // !!!
+        }
+
+        void Model::compute_next_step(const Force * const forces[], int forces_num)
+        {
+            if(NULL == forces && 0 != forces_num)
+            {
+                logger.error("in Model::compute_next_step null pointer `forces`", __FILE__, __LINE__);
+                return;
+            }
+            
+            // TODO: QueryPerformanceCounter
+            Real dt = 0.01;
+
+            // -- For each cluster of model do shape matching --
+            for(int i = 0; i < clusters_num; ++i)
+            {
+                handle_cluster( clusters[i], dt );
+            }
+
+            // -- For each vertex of model: integrate velocities --
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                integrate_velocity( vertices[i], forces, forces_num, dt );
+            }
+            
+            // -- Compute macroscopic characteristics --
+            find_body_motion();
 
             // -- For each vertex of model: damp velocities and integrate positions --
             for(int i = 0; i < vertices_num; ++i)
             {
-                PhysicalVertex &v = vertices[i];
+                damp_velocity( vertices[i] );
+                integrate_position( vertices[i], dt );
+            }
+        }
 
-                Vector rigid_velocity = center_of_mass_velocity + cross_product(angular_velocity, v.pos - center_of_mass);
-                Vector deformation_velocity = v.velocity - rigid_velocity;
-                v.velocity -= DEFAULT_DAMPING_CONSTANT*deformation_velocity; // !!!
+        void Model::handle_cluster(Cluster &cluster, Math::Real dt)
+        {
+            if(0 == cluster.get_vertices_num())
+                return;
+            
+            // -- Find current center of mass --
 
-                v.pos += v.velocity*dt;
+            Vector center_of_mass = Vector::ZERO;
+            if( 0 != cluster.get_total_mass() )
+            {
+                for(int j = 0; j < cluster.get_vertices_num(); ++j)
+                {
+                    PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                    center_of_mass += vertex.mass*vertex.pos/cluster.get_total_mass();
+                }
+            }
+            cluster.set_center_of_mass(center_of_mass);
+            
+            // -- Shape matching: find optimal linear transformation --
+
+            Matrix Apq = Matrix::ZERO;
+            Matrix Aqq = Matrix::ZERO;
+            for(int j = 0; j < cluster.get_vertices_num(); ++j)
+            {
+                PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                Vector const &init_pos = cluster.get_initial_vertex_offset_position(j);
+
+                Apq += vertex.mass*Matrix( vertex.pos - center_of_mass, init_pos );
+                // TODO: re-compute this only on update of plasticity_state
+                Aqq += vertex.mass*Matrix( init_pos, init_pos );
+            }
+            if( Aqq.is_invertible() )
+            {
+                Aqq = Aqq.inverted();
+            }
+            else
+            {
+                logger.warning("in Model::compute_next_step: singular matrix Aqq, unable to compute Aqq.inverted(), assumed it to be Matrix::IDENTITY", __FILE__, __LINE__);
+                Aqq = Matrix::IDENTITY; // TODO: is this good workaround???
+            }
+
+            Matrix linear_transformation = Apq*Aqq; // optimal linear transformation
+            
+            // -- Shape matching: adjust volume --
+            
+            Real det = linear_transformation.determinant();
+            if( ! equal(0, det) )
+            {
+                if( det < 0 )
+                    logger.warning("in Model::compute_next_step: linear_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
+                linear_transformation /= pow( abs(det), 1.0/3)*sign(det);
+            }
+            else
+            {
+                logger.warning("in Model::compute_next_step: linear_transformation is singular, so volume-preserving constraint cannot be enforced", __FILE__, __LINE__);
+                // but now, while polar decomposition is only for invertible matrix - it's very, very bad...
+            }
+
+            // -- Shape matching: retrieve optimal rotation from optimal linear transformation --
+
+            Matrix rotation; // optimal rotation
+            Matrix scale;
+            Apq.do_polar_decomposition(rotation, scale, 6);
+
+            cluster.set_rotation(rotation);
+            
+            // -- Shape matching: allow linear deformation by interpolating linear_transformation and rotation --
+            
+            Real beta = cluster.get_linear_elasticity_constant();
+            Matrix total_deformation = beta*rotation + (1 - beta)*linear_transformation;
+            
+            cluster.set_total_deformation(total_deformation);
+            
+            // -- Shape matching: finally find goal position and add a correction to velocity --
+            
+            Vector linear_momentum_addition = Vector::ZERO;
+            for(int j = 0; j < cluster.get_vertices_num(); ++j)
+            {
+                PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                const Vector &init_pos = cluster.get_initial_vertex_offset_position(j);
+                
+                Vector goal_position = total_deformation*init_pos + center_of_mass;
+                // TODO: thread-safe cluster addition: velocity_additions[]...
+                Vector velocity_addition = cluster.get_goal_speed_constant()*(goal_position - vertex.pos)/dt;
+                vertex.velocity_addition += velocity_addition;
+                // TODO: thread-safe cluster addition: velocity_addition_coeffs[]...
+                vertex.velocity_addition_coeff = 1 - cluster.get_damping_constant();
+                
+                linear_momentum_addition += vertex.mass*velocity_addition;
+            }
+            if( 0 != cluster.get_total_mass() )
+            {
+                Vector velocity_correction = - linear_momentum_addition / cluster.get_total_mass();
+                for(int j = 0; j < cluster.get_vertices_num(); ++j)
+                {
+                    PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                    vertex.velocity_addition += velocity_correction;
+                }
+            }
+
+            // -- Update plasticity state --
+            
+            Matrix plasticity_state = cluster.get_plasticity_state();
+                    
+            Matrix deformation = linear_transformation - Matrix::IDENTITY;
+            Real deformation_measure = deformation.norm();
+            if(deformation_measure > cluster.get_yield_constant())
+            {
+                plasticity_state = (Matrix::IDENTITY + dt*cluster.get_creep_constant()*deformation)*plasticity_state;
+                Math::Real det = plasticity_state.determinant();
+                if( ! equal(0, det) )
+                {
+                    plasticity_state /= pow( abs(det), 1.0/3);
+                    
+                    Matrix plastic_deformation = plasticity_state - Matrix::IDENTITY;
+                    Real plastic_deform_measure = plastic_deformation.norm();
+                    
+                    if( plastic_deform_measure < DEFAULT_MAX_DEFORMATION_CONSTANT ) // !!!
+                    {
+                        cluster.set_plasticity_state(plasticity_state);
+                    }
+                }
             }
         }
 

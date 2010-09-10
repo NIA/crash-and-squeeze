@@ -25,7 +25,7 @@ namespace CrashAndSqueeze
             Cluster *clusters;
             int clusters_num;
 
-            // -- properties used in initialization --
+            // -- fields used in initialization --
             int clusters_by_axes[Math::VECTOR_SIZE];
             Math::Real cluster_padding_coeff;
             
@@ -46,11 +46,15 @@ namespace CrashAndSqueeze
             
             void add_vertex_to_clusters(PhysicalVertex &vertex, int index);
 
+            // -- fields used in step computation --
+            Math::Vector center_of_mass;
+            Math::Vector center_of_mass_velocity;
+            Math::Vector angular_velocity;
+            
             // -- step computation steps --
-            void integrate_velocities(const Force * const forces[], int forces_num);
-            void find_body_motino();
-            void damp_velocities();
-            void integrate_positions();
+            void handle_cluster(Cluster &cluster, Math::Real dt);
+            void find_body_motion();
+            void damp_velocity(PhysicalVertex &v);
 
             // TODO: DisplayVertex display_vertices; int display_vertices_num;
         public:
