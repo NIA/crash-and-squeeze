@@ -11,7 +11,7 @@ namespace CrashAndSqueeze
         struct PhysicalVertexMappingInfo
         {
             // index in model's vertex array
-            int vertex_index;
+            PhysicalVertex *vertex;
 
             // TODO: thread-safe cluster addition: Math::Vector velocity_additions[MAX_CLUSTERS_FOR_VERTEX]
             
@@ -42,7 +42,7 @@ namespace CrashAndSqueeze
             vertices = new PhysicalVertexMappingInfo[allocated_vertices_num];
         }
 
-        void Cluster::add_vertex(int vertex_index, PhysicalVertex &vertex)
+        void Cluster::add_vertex(PhysicalVertex &vertex)
         {
             // recompute center of mass
             Vector old_initial_center_of_mass = initial_center_of_mass;
@@ -69,7 +69,7 @@ namespace CrashAndSqueeze
             
             // add new vertex
             ++vertices_num;
-            vertices[vertices_num - 1].vertex_index = vertex_index;
+            vertices[vertices_num - 1].vertex = &vertex;
             vertices[vertices_num - 1].initial_offset_position = vertex.pos - initial_center_of_mass;
 
             // increment vertex's cluster counter
@@ -86,12 +86,19 @@ namespace CrashAndSqueeze
             return true;
         }
 
-        int Cluster::get_vertex_index(int index) const
+        const PhysicalVertex & Cluster::get_vertex(int index) const
         {
-            if( check_vertex_index(index, "Cluster::get_vertex_index: index out of range") )
-                return vertices[index].vertex_index;
+            if( check_vertex_index(index, "Cluster::get_vertex: index out of range") )
+                return *vertices[index].vertex;
             else
-                return 0;
+                return *vertices[0].vertex;
+        }
+        PhysicalVertex & Cluster::get_vertex(int index)
+        {
+            if( check_vertex_index(index, "Cluster::get_vertex: index out of range") )
+                return *vertices[index].vertex;
+            else
+                return *vertices[0].vertex;
         }
 
         // returns offset of vector position in equilibrium state
@@ -102,6 +109,19 @@ namespace CrashAndSqueeze
                 return plasticity_state*vertices[index].initial_offset_position;
             else
                 return Math::Vector::ZERO;
+        }
+
+        void Cluster::update_center_of_mass()
+        {
+            center_of_mass = Vector::ZERO;
+            if( 0 != total_mass )
+            {
+                for(int j = 0; j < vertices_num; ++j)
+                {
+                    PhysicalVertex &v = get_vertex(j);
+                    center_of_mass += v.mass*v.pos/total_mass;
+                }
+            }
         }
 
         Cluster::~Cluster()

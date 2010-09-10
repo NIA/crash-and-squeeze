@@ -92,11 +92,17 @@ namespace CrashAndSqueeze
             Cluster();
             virtual ~Cluster();
 
-            void add_vertex(int vertex_index, PhysicalVertex &vertex);
+            void add_vertex(PhysicalVertex &vertex);
 
+            // -- methods --
+            void update_center_of_mass();
+
+            // -- getters/setters --
+            
             int get_vertices_num() const { return vertices_num; }
 
-            int get_vertex_index(int index) const;
+            PhysicalVertex & get_vertex(int index);
+            const PhysicalVertex & get_vertex(int index) const;
 
             // returns offset of vector position in equilibrium state
             // taking into account plasticity_state

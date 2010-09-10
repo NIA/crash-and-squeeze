@@ -130,12 +130,11 @@ namespace CrashAndSqueeze
             // -- For each vertex --
             for(int i = 0; i < this->vertices_num; ++i)
             {
-                add_vertex_to_clusters(vertices[i], i);
+                add_vertex_to_clusters(vertices[i]);
             } 
         }
 
-        // TODO: remove `index` parameter after Cluster refactoring
-        void Model::add_vertex_to_clusters(PhysicalVertex &vertex, int index)
+        void Model::add_vertex_to_clusters(PhysicalVertex &vertex)
         {
             const Vector padding = cluster_sizes*cluster_padding_coeff;
 
@@ -160,7 +159,7 @@ namespace CrashAndSqueeze
 
             // -- and assign to it --
             int cluster_index = compute_cluster_index(cluster_indices, clusters_by_axes);
-            clusters[cluster_index].add_vertex(index, vertex);
+            clusters[cluster_index].add_vertex(vertex);
 
             // -- and, probably, to his neighbours --
             for(int j = 0; j < VECTOR_SIZE; ++j)
@@ -172,7 +171,7 @@ namespace CrashAndSqueeze
                 {
                     --cluster_indices[j];
                     int cluster_index = compute_cluster_index(cluster_indices, clusters_by_axes);
-                    clusters[cluster_index].add_vertex(index, vertex);
+                    clusters[cluster_index].add_vertex(vertex);
                     ++cluster_indices[j];
                 }
 
@@ -183,7 +182,7 @@ namespace CrashAndSqueeze
                 {
                     ++cluster_indices[j];
                     int cluster_index = compute_cluster_index(cluster_indices, clusters_by_axes);
-                    clusters[cluster_index].add_vertex(index, vertex);
+                    clusters[cluster_index].add_vertex(vertex);
                     --cluster_indices[j];
                 }
             }
@@ -305,28 +304,19 @@ namespace CrashAndSqueeze
                 return;
             
             // -- Find current center of mass --
-
-            Vector center_of_mass = Vector::ZERO;
-            if( 0 != cluster.get_total_mass() )
-            {
-                for(int j = 0; j < cluster.get_vertices_num(); ++j)
-                {
-                    PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
-                    center_of_mass += vertex.mass*vertex.pos/cluster.get_total_mass();
-                }
-            }
-            cluster.set_center_of_mass(center_of_mass);
             
+            cluster.update_center_of_mass();
+
             // -- Shape matching: find optimal linear transformation --
 
             Matrix Apq = Matrix::ZERO;
             Matrix Aqq = Matrix::ZERO;
             for(int j = 0; j < cluster.get_vertices_num(); ++j)
             {
-                PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                PhysicalVertex &vertex = cluster.get_vertex(j);
                 Vector const &init_pos = cluster.get_initial_vertex_offset_position(j);
 
-                Apq += vertex.mass*Matrix( vertex.pos - center_of_mass, init_pos );
+                Apq += vertex.mass*Matrix( vertex.pos - cluster.get_center_of_mass(), init_pos );
                 // TODO: re-compute this only on update of plasticity_state
                 Aqq += vertex.mass*Matrix( init_pos, init_pos );
             }
@@ -377,10 +367,10 @@ namespace CrashAndSqueeze
             Vector linear_momentum_addition = Vector::ZERO;
             for(int j = 0; j < cluster.get_vertices_num(); ++j)
             {
-                PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                PhysicalVertex &vertex = cluster.get_vertex(j);
                 const Vector &init_pos = cluster.get_initial_vertex_offset_position(j);
                 
-                Vector goal_position = total_deformation*init_pos + center_of_mass;
+                Vector goal_position = total_deformation*init_pos + cluster.get_center_of_mass();
                 // TODO: thread-safe cluster addition: velocity_additions[]...
                 Vector velocity_addition = cluster.get_goal_speed_constant()*(goal_position - vertex.pos)/dt;
                 vertex.velocity_addition += velocity_addition;
@@ -394,7 +384,7 @@ namespace CrashAndSqueeze
                 Vector velocity_correction = - linear_momentum_addition / cluster.get_total_mass();
                 for(int j = 0; j < cluster.get_vertices_num(); ++j)
                 {
-                    PhysicalVertex &vertex = vertices[cluster.get_vertex_index(j)];
+                    PhysicalVertex &vertex = cluster.get_vertex(j);
                     vertex.velocity_addition += velocity_correction;
                 }
             }

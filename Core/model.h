@@ -44,7 +44,7 @@ namespace CrashAndSqueeze
             
             void init_clusters();
             
-            void add_vertex_to_clusters(PhysicalVertex &vertex, int index);
+            void add_vertex_to_clusters(PhysicalVertex &vertex);
 
             // -- fields used in step computation --
             Math::Vector center_of_mass;
