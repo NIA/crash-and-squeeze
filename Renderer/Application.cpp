@@ -3,6 +3,8 @@
 
 using CrashAndSqueeze::Core::Force;
 using CrashAndSqueeze::Math::Vector;
+using CrashAndSqueeze::Math::VECTOR_SIZE;
+using CrashAndSqueeze::Math::Real;
 
 const unsigned VECTORS_IN_MATRIX = sizeof(D3DXMATRIX)/sizeof(D3DXVECTOR4);
 
@@ -14,6 +16,8 @@ namespace
     const D3DCOLOR    BLACK = D3DCOLOR_XRGB( 0, 0, 0 );
     const float       ROTATE_STEP = D3DX_PI/30.0f;
     const float       VERTEX_MASS = 1;
+    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 12};
+    const Real        CLUSTER_PADDING_COEFF = 0.6;
 
     //---------------- SHADER CONSTANTS ---------------------------
     //    c0-c3 is the view matrix
@@ -188,9 +192,21 @@ void Application::add_model(Model &model, bool physical)
 {
     models.push_back( &model );
     if(physical)
-        physical_models.push_back( new PhysicalModel(model.lock_vertex_buffer(), model.get_vertices_count(), VERTEX_INFO, NULL, VERTEX_MASS) );
+    {
+        Vertex * vertices = model.lock_vertex_buffer();
+        physical_models.push_back( new PhysicalModel(vertices,
+                                                     model.get_vertices_count(),
+                                                     VERTEX_INFO,
+                                                     CLUSTERS_BY_AXES,
+                                                     CLUSTER_PADDING_COEFF,
+                                                     NULL,
+                                                     VERTEX_MASS) );
+        model.unlock_vertex_buffer();
+    }
     else
+    {
         physical_models.push_back( NULL );
+    }
 }
 
 void Application::set_forces(Force ** forces, int forces_num)

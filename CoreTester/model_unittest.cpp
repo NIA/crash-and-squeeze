@@ -4,6 +4,9 @@
 
 namespace
 {
+    const int  CLUSTERS_BY_AXES[VECTOR_SIZE] = {1, 1, 1};
+    const Real PADDING = 0.6;
+
     struct TestVertex1
     {
         VertexFloat x, y, z;
@@ -33,7 +36,7 @@ namespace
     template<int SIZE,class V>
     void test_creation(V (&vertices)[SIZE], VertexInfo vi, const MassFloat *masses, MassFloat constant_mass = 0)
     {
-        Model m(vertices, SIZE, vi, masses, constant_mass);
+        Model m(vertices, SIZE, vi, CLUSTERS_BY_AXES, PADDING, masses, constant_mass);
         int vnum = m.get_vertices_num();
         const PhysicalVertex *vv = m.get_vertices();
         /* int cnum = m.get_clusters_num();
@@ -73,26 +76,25 @@ TEST(ModelTest, Creation1WithMasses)
     test_creation(vertices1, vi1, masses);
 }
 
-// TODO: fails due to so many clusters
-//TEST(ModelTest, StepComputationShouldNotFail)
-//{
-//    VertexInfo vi1( sizeof(vertices1[0]), 0 );
-//    Model m(vertices1, VERTICES1_NUM, vi1, NULL, 4);
-//    const int FORCES_NUM = 10;
-//    Force * forces[FORCES_NUM];
-//    PlaneForce f;
-//    for(int i = 0; i < FORCES_NUM; ++i)
-//        forces[i] = &f;
-//
-//    EXPECT_NO_THROW( m.compute_next_step(forces, FORCES_NUM) );
-//    // when there is no forces, pointer to them is allowed to be NULL
-//    EXPECT_NO_THROW( m.compute_next_step(NULL, 0) );
-//}
+TEST(ModelTest, StepComputationShouldNotFail)
+{
+    VertexInfo vi1( sizeof(vertices1[0]), 0 );
+    Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
+    const int FORCES_NUM = 10;
+    Force * forces[FORCES_NUM];
+    PlaneForce f;
+    for(int i = 0; i < FORCES_NUM; ++i)
+        forces[i] = &f;
+
+    EXPECT_NO_THROW( m.compute_next_step(forces, FORCES_NUM) );
+    // when there is no forces, pointer to them is allowed to be NULL
+    EXPECT_NO_THROW( m.compute_next_step(NULL, 0) );
+}
 
 TEST(ModelTest, BadForces)
 {
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
-    Model m(vertices1, VERTICES1_NUM, vi1, NULL, 4);
+    Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
     set_tester_err_callback();
     EXPECT_THROW( m.compute_next_step(NULL, 45), CoreTesterException );
     unset_tester_err_callback();

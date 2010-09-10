@@ -26,9 +26,8 @@ namespace CrashAndSqueeze
                 return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
             }
 
-            const int CLUSTERS_NUM[VECTOR_SIZE] = {2, 2, 12}; // !!! hard-coded
-            const Real PADDING_COEFF = 0.6; // !!! hard-coded
             const Real MAX_COORDINATE = 1.0e+100; // !!! hard-coded
+            const Vector MAX_COORDINATE_VECTOR(MAX_COORDINATE, MAX_COORDINATE, MAX_COORDINATE);
 
             inline int compute_cluster_index(const int indices[VECTOR_SIZE], const int clusters_num[VECTOR_SIZE])
             {
@@ -39,9 +38,26 @@ namespace CrashAndSqueeze
         Model::Model( const void *source_vertices,
                       int vertices_num,
                       VertexInfo const &vertex_info,
+                      const int clusters_by_axes[Math::VECTOR_SIZE],
+                      Math::Real cluster_padding_coeff,
                       const MassFloat *masses,
                       const MassFloat constant_mass)
-            : vertices_num(vertices_num), clusters_num(0), vertices(NULL), clusters(NULL), total_mass(0)
+            : vertices_num(vertices_num), clusters_num(0), vertices(NULL), clusters(NULL), total_mass(0),
+              min_pos(MAX_COORDINATE_VECTOR), max_pos(-MAX_COORDINATE_VECTOR), cluster_padding_coeff(cluster_padding_coeff)
+
+        {
+            init_vertices(source_vertices, vertex_info, masses, constant_mass);
+            
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+                this->clusters_by_axes[i] = clusters_by_axes[i];
+            
+            init_clusters();
+        }
+
+        void Model::init_vertices(const void *source_vertices,
+                                  VertexInfo const &vertex_info,
+                                  const MassFloat *masses,
+                                  const MassFloat constant_mass)
         {
             if(this->vertices_num < 0)
             {
@@ -52,10 +68,6 @@ namespace CrashAndSqueeze
             {
                 this->vertices = new PhysicalVertex[this->vertices_num];
 
-                // -- Read vertices --
-
-                Vector min_pos( MAX_COORDINATE, MAX_COORDINATE, MAX_COORDINATE);
-                Vector max_pos(-MAX_COORDINATE,-MAX_COORDINATE,-MAX_COORDINATE);
 
                 const void *source_vertex = source_vertices;
                 if( equal(0, constant_mass) && NULL == masses )
@@ -92,79 +104,86 @@ namespace CrashAndSqueeze
                     
                     source_vertex = add_to_pointer(source_vertex, vertex_info.get_vertex_size());
                 }
-                
-                // -- Decompose to clusters --
+            }
+        }
+        
+        void Model::init_clusters()
+        {
+            if(0 == vertices_num)
+                return;
 
-                clusters_num = 1;
-                for(int i = 0; i < VECTOR_SIZE; ++i)
-                    clusters_num *= CLUSTERS_NUM[i];
-                clusters = new Cluster[clusters_num];
+            clusters_num = 1;
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+                clusters_num *= clusters_by_axes[i];
+            clusters = new Cluster[clusters_num];
 
-                const Vector dimensions = max_pos - min_pos;
+            const Vector dimensions = max_pos - min_pos;
+            
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+            {
+                if(0 == clusters_by_axes[i])
+                    logger.error("creating model with zero clusters_by_axes component", __FILE__, __LINE__);
+                cluster_sizes[i] = dimensions[i]/clusters_by_axes[i];
+            }
+            
+            // -- For each vertex --
+            for(int i = 0; i < this->vertices_num; ++i)
+            {
+                add_vertex_to_clusters(vertices[i], i);
+            } 
+        }
+
+        // TODO: remove `index` parameter after Cluster refactoring
+        void Model::add_vertex_to_clusters(PhysicalVertex &vertex, int index)
+        {
+            const Vector padding = cluster_sizes*cluster_padding_coeff;
+
+            // -- find position, measured off the min_pos --
+            const Vector position = vertex.pos - min_pos;
+
+            // -- choose a cluster --
+
+            // "coordinates" of a cluster: axis indices
+            int cluster_indices[VECTOR_SIZE];
+            for(int j = 0; j < VECTOR_SIZE; ++j)
+            {
+                if(0 == cluster_sizes[j])
+                    logger.error("creating model with zero dimension", __FILE__, __LINE__);
+                cluster_indices[j] = static_cast<int>(position[j]/cluster_sizes[j]);
                 
-                Vector cluster_size;
-                for(int i = 0; i < VECTOR_SIZE; ++i)
+                if(cluster_indices[j] < 0)
+                    cluster_indices[j] = 0;
+                if(cluster_indices[j] > clusters_by_axes[j] - 1)
+                    cluster_indices[j] = clusters_by_axes[j] - 1;
+            }
+
+            // -- and assign to it --
+            int cluster_index = compute_cluster_index(cluster_indices, clusters_by_axes);
+            clusters[cluster_index].add_vertex(index, vertex);
+
+            // -- and, probably, to his neighbours --
+            for(int j = 0; j < VECTOR_SIZE; ++j)
+            {
+                // -- previous cluster --
+                
+                if( cluster_indices[j] - 1 >= 0 &&
+                    abs(position[j] - cluster_indices[j]*cluster_sizes[j]) < padding[j] )
                 {
-                    if(0 == CLUSTERS_NUM[i])
-                        logger.error("creating model with zero CLUSTERS_NUM component", __FILE__, __LINE__);
-                    cluster_size[i] = dimensions[i]/CLUSTERS_NUM[i];
+                    --cluster_indices[j];
+                    int cluster_index = compute_cluster_index(cluster_indices, clusters_by_axes);
+                    clusters[cluster_index].add_vertex(index, vertex);
+                    ++cluster_indices[j];
                 }
-                
-                const Vector padding = cluster_size*PADDING_COEFF;
 
-                // -- For each vertex --
-                for(int i = 0; i < this->vertices_num; ++i)
+                // -- next cluster --
+
+                if( cluster_indices[j] + 1 <= clusters_by_axes[j] - 1 &&
+                    abs((cluster_indices[j] + 1)*cluster_sizes[j] - position[j]) < padding[j] )
                 {
-                    PhysicalVertex &vertex = this->vertices[i];
-                    
-                    // -- find position, measured off the min_pos --
-                    const Vector position = vertex.pos - min_pos;
-                    
-                    // -- choose a cluster --
-
-                    // "coordinates" of a cluster: axis indices
-                    int cluster_indices[VECTOR_SIZE];
-                    for(int j = 0; j < VECTOR_SIZE; ++j)
-                    {
-                        if(0 == cluster_size[j])
-                            logger.error("creating model with zero cluster_size component", __FILE__, __LINE__);
-                        cluster_indices[j] = static_cast<int>(position[j]/cluster_size[j]);
-                        
-                        if(cluster_indices[j] < 0)
-                            cluster_indices[j] = 0;
-                        if(cluster_indices[j] > CLUSTERS_NUM[j] - 1)
-                            cluster_indices[j] = CLUSTERS_NUM[j] - 1;
-                    }
-                    
-                    // -- and assign to it --
-                    int cluster_index = compute_cluster_index(cluster_indices, CLUSTERS_NUM);
-                    clusters[cluster_index].add_vertex(i, vertex);
-
-                    // -- and, probably, to his neighbours --
-                    for(int j = 0; j < VECTOR_SIZE; ++j)
-                    {
-                        // -- previous cluster --
-                        
-                        if( cluster_indices[j] - 1 >= 0 &&
-                            abs(position[j] - cluster_indices[j]*cluster_size[j]) < padding[j] )
-                        {
-                            --cluster_indices[j];
-                            int cluster_index = compute_cluster_index(cluster_indices, CLUSTERS_NUM);
-                            clusters[cluster_index].add_vertex(i, vertex);
-                            ++cluster_indices[j];
-                        }
-                        
-                        // -- next cluster --
-                        
-                        if( cluster_indices[j] + 1 <= CLUSTERS_NUM[j] - 1 &&
-                            abs((cluster_indices[j] + 1)*cluster_size[j] - position[j]) < padding[j] )
-                        {
-                            ++cluster_indices[j];
-                            int cluster_index = compute_cluster_index(cluster_indices, CLUSTERS_NUM);
-                            clusters[cluster_index].add_vertex(i, vertex);
-                            --cluster_indices[j];
-                        }
-                    }
+                    ++cluster_indices[j];
+                    int cluster_index = compute_cluster_index(cluster_indices, clusters_by_axes);
+                    clusters[cluster_index].add_vertex(index, vertex);
+                    --cluster_indices[j];
                 }
             }
         }
@@ -367,7 +386,6 @@ namespace CrashAndSqueeze
                 logger.warning("in Model::compute_next_step: inertia_tensor is singular, assumed it to be Matrix::IDENTITY");
                 inertia_tensor = Matrix::IDENTITY;
             }
-            Matrix inertia_tensor_inverted = inertia_tensor.inverted();
             Vector angular_velocity = inertia_tensor.inverted()*angular_momentum;
 
             // -- For each vertex of model: damp velocities and integrate positions --

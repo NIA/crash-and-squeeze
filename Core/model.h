@@ -3,9 +3,12 @@
 #include "Core/vertex_info.h"
 #include "Core/force.h"
 #include "Math/floating_point.h"
+#include "Math/Vector.h"
 
 namespace CrashAndSqueeze
 {
+    class Cluster;
+
     namespace Core
     {
         struct PhysicalVertex;
@@ -22,6 +25,33 @@ namespace CrashAndSqueeze
             Cluster *clusters;
             int clusters_num;
 
+            // -- properties used in initialization --
+            int clusters_by_axes[Math::VECTOR_SIZE];
+            Math::Real cluster_padding_coeff;
+            
+            // minimum values of coordinates of vertices
+            Math::Vector min_pos;
+            // maximum values of coordinates of vertices
+            Math::Vector max_pos;
+            // dimensions of a cluster
+            Math::Vector cluster_sizes;
+
+            // -- initialization steps --
+            void init_vertices(const void *source_vertices,
+                               VertexInfo const &vertex_info,
+                               const MassFloat *masses,
+                               const MassFloat constant_mass);
+            
+            void init_clusters();
+            
+            void add_vertex_to_clusters(PhysicalVertex &vertex, int index);
+
+            // -- step computation steps --
+            void integrate_velocities(const Force * const forces[], int forces_num);
+            void find_body_motino();
+            void damp_velocities();
+            void integrate_positions();
+
             // TODO: DisplayVertex display_vertices; int display_vertices_num;
         public:
             // TODO: low-/hi-polygonal meshes
@@ -32,6 +62,8 @@ namespace CrashAndSqueeze
             Model(const void *source_vertices,
                   int vetrices_num,
                   VertexInfo const &vertex_info,
+                  const int clusters_by_axes[Math::VECTOR_SIZE],
+                  Math::Real cluster_padding_coeff,
                   const MassFloat *masses,
                   const MassFloat constant_mass = 0);
             
