@@ -142,11 +142,11 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         Force * forces[FORCES_NUM];
 
         HalfSpaceSpringForce springs[SPRINGS_NUM] = {
-            HalfSpaceSpringForce(1200, Vector(0,0,0.25), Vector(0,0,1), 60),
+            HalfSpaceSpringForce(8000, Vector(0,0,0.25), Vector(0,0,1), 100),
             HalfSpaceSpringForce(400, Vector(0,0,4.5), Vector(0,1,-3), 0),
         };
         EverywhereForce gravity(Vector(0, 0, -3));
-        CylinderSpringForce cylinder_force(8000, Vector(-1, 0.5, 0.5), Vector(1, 0.5, 0.5), 0.25, 150);
+        CylinderSpringForce cylinder_force(15000, Vector(-1, 0.5, 0.5), Vector(1, 0.5, 0.5), 0.25, 150);
         
         for(int i = 0; i < SPRINGS_NUM; ++i)
         {

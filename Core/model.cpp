@@ -200,7 +200,7 @@ namespace CrashAndSqueeze
                     {
                         if(NULL == forces[j])
                         {
-                            logger.error("in Model::compute_next_step: null pointer item of `forces` array ", __FILE__, __LINE__);
+                            logger.error("in Model::integrate_velocity: null pointer item of `forces` array ", __FILE__, __LINE__);
                             return;
                         }
                         acceleration += forces[j]->get_value_at(v.pos, v.velocity)/v.mass;
@@ -268,17 +268,17 @@ namespace CrashAndSqueeze
         {
             if(NULL == forces && 0 != forces_num)
             {
-                logger.error("in Model::compute_next_step null pointer `forces`", __FILE__, __LINE__);
+                logger.error("in Model::compute_next_step: null pointer `forces`", __FILE__, __LINE__);
                 return;
             }
             
             // TODO: QueryPerformanceCounter
             Real dt = 0.01;
 
-            // -- For each cluster of model do shape matching --
+            // -- For each cluster of model: do shape matching --
             for(int i = 0; i < clusters_num; ++i)
             {
-                handle_cluster( clusters[i], dt );
+                clusters[i].match_shape(dt);
             }
 
             // -- For each vertex of model: integrate velocities --
@@ -295,122 +295,6 @@ namespace CrashAndSqueeze
             {
                 damp_velocity( vertices[i] );
                 integrate_position( vertices[i], dt );
-            }
-        }
-
-        void Model::handle_cluster(Cluster &cluster, Math::Real dt)
-        {
-            if(0 == cluster.get_vertices_num())
-                return;
-            
-            // -- Find current center of mass --
-            
-            cluster.update_center_of_mass();
-
-            // -- Shape matching: find optimal linear transformation --
-
-            Matrix Apq = Matrix::ZERO;
-            Matrix Aqq = Matrix::ZERO;
-            for(int j = 0; j < cluster.get_vertices_num(); ++j)
-            {
-                PhysicalVertex &vertex = cluster.get_vertex(j);
-                Vector const &init_pos = cluster.get_initial_vertex_offset_position(j);
-
-                Apq += vertex.mass*Matrix( vertex.pos - cluster.get_center_of_mass(), init_pos );
-                // TODO: re-compute this only on update of plasticity_state
-                Aqq += vertex.mass*Matrix( init_pos, init_pos );
-            }
-            if( Aqq.is_invertible() )
-            {
-                Aqq = Aqq.inverted();
-            }
-            else
-            {
-                logger.warning("in Model::compute_next_step: singular matrix Aqq, unable to compute Aqq.inverted(), assumed it to be Matrix::IDENTITY", __FILE__, __LINE__);
-                Aqq = Matrix::IDENTITY; // TODO: is this good workaround???
-            }
-
-            Matrix linear_transformation = Apq*Aqq; // optimal linear transformation
-            
-            // -- Shape matching: adjust volume --
-            
-            Real det = linear_transformation.determinant();
-            if( ! equal(0, det) )
-            {
-                if( det < 0 )
-                    logger.warning("in Model::compute_next_step: linear_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
-                linear_transformation /= pow( abs(det), 1.0/3)*sign(det);
-            }
-            else
-            {
-                logger.warning("in Model::compute_next_step: linear_transformation is singular, so volume-preserving constraint cannot be enforced", __FILE__, __LINE__);
-                // but now, while polar decomposition is only for invertible matrix - it's very, very bad...
-            }
-
-            // -- Shape matching: retrieve optimal rotation from optimal linear transformation --
-
-            Matrix rotation; // optimal rotation
-            Matrix scale;
-            Apq.do_polar_decomposition(rotation, scale, 6);
-
-            cluster.set_rotation(rotation);
-            
-            // -- Shape matching: allow linear deformation by interpolating linear_transformation and rotation --
-            
-            Real beta = cluster.get_linear_elasticity_constant();
-            Matrix total_deformation = beta*rotation + (1 - beta)*linear_transformation;
-            
-            cluster.set_total_deformation(total_deformation);
-            
-            // -- Shape matching: finally find goal position and add a correction to velocity --
-            
-            Vector linear_momentum_addition = Vector::ZERO;
-            for(int j = 0; j < cluster.get_vertices_num(); ++j)
-            {
-                PhysicalVertex &vertex = cluster.get_vertex(j);
-                const Vector &init_pos = cluster.get_initial_vertex_offset_position(j);
-                
-                Vector goal_position = total_deformation*init_pos + cluster.get_center_of_mass();
-                // TODO: thread-safe cluster addition: velocity_additions[]...
-                Vector velocity_addition = cluster.get_goal_speed_constant()*(goal_position - vertex.pos)/dt;
-                vertex.velocity_addition += velocity_addition;
-                // TODO: thread-safe cluster addition: velocity_addition_coeffs[]...
-                vertex.velocity_addition_coeff = 1 - cluster.get_damping_constant();
-                
-                linear_momentum_addition += vertex.mass*velocity_addition;
-            }
-            if( 0 != cluster.get_total_mass() )
-            {
-                Vector velocity_correction = - linear_momentum_addition / cluster.get_total_mass();
-                for(int j = 0; j < cluster.get_vertices_num(); ++j)
-                {
-                    PhysicalVertex &vertex = cluster.get_vertex(j);
-                    vertex.velocity_addition += velocity_correction;
-                }
-            }
-
-            // -- Update plasticity state --
-            
-            Matrix plasticity_state = cluster.get_plasticity_state();
-                    
-            Matrix deformation = linear_transformation - Matrix::IDENTITY;
-            Real deformation_measure = deformation.norm();
-            if(deformation_measure > cluster.get_yield_constant())
-            {
-                plasticity_state = (Matrix::IDENTITY + dt*cluster.get_creep_constant()*deformation)*plasticity_state;
-                Math::Real det = plasticity_state.determinant();
-                if( ! equal(0, det) )
-                {
-                    plasticity_state /= pow( abs(det), 1.0/3);
-                    
-                    Matrix plastic_deformation = plasticity_state - Matrix::IDENTITY;
-                    Real plastic_deform_measure = plastic_deformation.norm();
-                    
-                    if( plastic_deform_measure < DEFAULT_MAX_DEFORMATION_CONSTANT ) // !!!
-                    {
-                        cluster.set_plasticity_state(plasticity_state);
-                    }
-                }
             }
         }
 

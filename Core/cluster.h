@@ -23,20 +23,18 @@ namespace CrashAndSqueeze
         // 1 means absolutely rigid
         const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 1;
         
-        // a constant, determining how much energy is lost:
-        // 0 - approx. no loss, 1 - maximum damping, no repulse
-        // (WARNING: setting too close to 1 may cause collapse of model,
-        //  but setting too close to 0 may cause instability)
-        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.6;
+        // a constant, determining how much deformation velocities are damped:
+        // 0 - no damping of vibrations, 1 - maximum damping, rigid body
+        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.7;
 
-        const Math::Real DEFAULT_YIELD_CONSTANT = 0.15; //!!!
-        const Math::Real DEFAULT_CREEP_CONSTANT = 50;
-        const Math::Real DEFAULT_MAX_DEFORMATION_CONSTANT = 2;
+        const Math::Real DEFAULT_YIELD_CONSTANT = 0.1; //!!!
+        const Math::Real DEFAULT_CREEP_CONSTANT = 40;
+        const Math::Real DEFAULT_MAX_DEFORMATION_CONSTANT = 3;
 
         class Cluster
         {
         private:
-            /* -- constant (at run-time) fields -- */
+            // -- constant (at run-time) fields --
             
             // array of vertices belonging to the cluster
             PhysicalVertexMappingInfo *vertices;
@@ -77,17 +75,48 @@ namespace CrashAndSqueeze
             // plasticity_state will be changed on large deformation
             Math::Real creep_constant;
 
-            /* -- variable (at run-time) fields -- */
-            /* ( just stored here, calculated elsewhere )- */
-            
+            // -- variable (at run-time) fields --
+
             // center of mass of vertices
             Math::Vector center_of_mass;
-            Math::Matrix rotation;
-            Math::Matrix total_deformation;
+            // plastic deformation applied to initial shape
             Math::Matrix plasticity_state;
+            // optimal linear transformation satisfying shape matching (A)
+            Math::Matrix linear_transformation;
+            // first (asymmetric) term of linear_transformation (Apq)
+            Math::Matrix asymmetric_term;
+            // second (symmetric) term of linear_transformation (Aqq)
+            Math::Matrix symmetric_term;
+            // rotational part of linear_transformation (R)
+            Math::Matrix rotation;
+            // symmetric part of linear_transformation (S)
+            Math::Matrix scale;
+            // total deformation used in goal positions calculation (interpolated from R and A)
+            Math::Matrix total_deformation;
             
+            // -- access helpers --
             bool check_vertex_index(int index, const char *error_message) const;
-
+            
+            // -- shape matching steps --
+            
+            // re-computes center of mass
+            void update_center_of_mass();
+            
+            // computes asymmetric_term and symmetric_term
+            void compute_shape_matching_terms();
+            
+            // computes required transformations
+            void compute_transformations();
+            
+            // computes linear_transformation
+            void compute_linear_transformation();
+            
+            // computes goal positions and applies corrections to velocities of vertices
+            void apply_goal_positions(Math::Real dt);
+            
+            // updates plasticity_state due to deformation applied
+            void update_plasticity_state(Math::Real dt);
+        
         public:
             Cluster();
             virtual ~Cluster();
@@ -95,7 +124,7 @@ namespace CrashAndSqueeze
             void add_vertex(PhysicalVertex &vertex);
 
             // -- methods --
-            void update_center_of_mass();
+            void match_shape(Math::Real dt);
 
             // -- getters/setters --
             
@@ -104,9 +133,10 @@ namespace CrashAndSqueeze
             PhysicalVertex & get_vertex(int index);
             const PhysicalVertex & get_vertex(int index) const;
 
-            // returns offset of vector position in equilibrium state
+            // returns equilibrium position of vertex
+            // (measured off the center of mass of the cluster)
             // taking into account plasticity_state
-            const Math::Vector get_initial_vertex_offset_position(int index) const;
+            const Math::Vector get_equilibrium_position(int index) const;
 
             const Math::Vector & get_initial_center_of_mass() const { return initial_center_of_mass; }
             
@@ -119,21 +149,9 @@ namespace CrashAndSqueeze
             Math::Real get_creep_constant() const { return creep_constant; }
             
             const Math::Vector & get_center_of_mass() const { return center_of_mass; }
-            void set_center_of_mass(Math::Vector point) { center_of_mass = point; }
-            
             const Math::Matrix & get_rotation() const { return rotation; }
-            void set_rotation(const Math::Matrix & matrix) { rotation = matrix; }
-            
             const Math::Matrix & get_total_deformation() const { return total_deformation; }
-            void set_total_deformation(const Math::Matrix &matrix)
-            {
-                total_deformation = matrix;
-            }
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
-            void set_plasticity_state(const Math::Matrix &matrix)
-            {
-                plasticity_state = matrix;
-            }
         private:
             // No copying!
             Cluster(const Cluster &);

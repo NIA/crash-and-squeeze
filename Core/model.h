@@ -52,7 +52,6 @@ namespace CrashAndSqueeze
             Math::Vector angular_velocity;
             
             // -- step computation steps --
-            void handle_cluster(Cluster &cluster, Math::Real dt);
             void find_body_motion();
             void damp_velocity(PhysicalVertex &v);
 
