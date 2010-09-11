@@ -4,6 +4,7 @@
 #include "Core/force.h"
 #include "Math/floating_point.h"
 #include "Math/Vector.h"
+#include "Math/Matrix.h"
 
 namespace CrashAndSqueeze
 {
@@ -48,12 +49,22 @@ namespace CrashAndSqueeze
 
             // -- fields used in step computation --
             Math::Vector center_of_mass;
+            Math::Matrix inertia_tensor;
             Math::Vector center_of_mass_velocity;
             Math::Vector angular_velocity;
             
             // -- step computation steps --
+            // computes center of mass and inertia tensor
+            void find_body_properties();
+            // computes velocity of center of mass and angular velocity
             void find_body_motion();
+            // corrects velocity additions from shape matching
+            void correct_velocity_additions();
+            // damps oscillation velocity
             void damp_velocity(PhysicalVertex &v);
+            
+            // helper for find_body_motion() and correct_velocity_additions()
+            Math::Vector compute_angular_velocity(const Math::Vector &angular_momentum);
 
             // TODO: DisplayVertex display_vertices; int display_vertices_num;
         public:

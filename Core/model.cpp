@@ -44,13 +44,16 @@ namespace CrashAndSqueeze
                       const MassFloat constant_mass)
             : vertices_num(vertices_num), clusters_num(0), vertices(NULL), clusters(NULL), total_mass(0),
               min_pos(MAX_COORDINATE_VECTOR), max_pos(-MAX_COORDINATE_VECTOR), cluster_padding_coeff(cluster_padding_coeff),
-              center_of_mass_velocity(Vector::ZERO), angular_velocity(Vector::ZERO), center_of_mass(Vector::ZERO)
+              center_of_mass_velocity(Vector::ZERO), angular_velocity(Vector::ZERO), center_of_mass(Vector::ZERO),
+              inertia_tensor(Matrix::ZERO)
 
         {
             init_vertices(source_vertices, vertex_info, masses, constant_mass);
             
             for(int i = 0; i < VECTOR_SIZE; ++i)
                 this->clusters_by_axes[i] = clusters_by_axes[i];
+
+            find_body_properties();
             
             init_clusters();
         }
@@ -207,15 +210,6 @@ namespace CrashAndSqueeze
                     }
                 }
 
-                if(0 == v.including_clusters_num)
-                {
-                    logger.error("in Model::integrate_velocity: internal error: orphan vertex not belonging to any cluster", __FILE__, __LINE__);
-                    return;
-                }
-                
-                // we need average velocity addition, not sum
-                v.velocity_addition /= v.including_clusters_num;
-
                 v.velocity += v.velocity_addition + acceleration*dt;
                 v.velocity_addition = Vector::ZERO;
             }
@@ -226,42 +220,102 @@ namespace CrashAndSqueeze
             }
         }
 
-        void Model::find_body_motion()
+        void Model::find_body_properties()
         {
+            if(0 == total_mass)
+                return;
+            
             center_of_mass = Vector::ZERO;
-            center_of_mass_velocity = Vector::ZERO;
             for(int i = 0; i < vertices_num; ++i)
             {
                 PhysicalVertex &v = vertices[i];
                 
                 center_of_mass += v.mass*v.pos/total_mass;
-                center_of_mass_velocity += v.mass*v.velocity/total_mass;
             }
-            Vector angular_momentum = Vector::ZERO;
-            Matrix inertia_tensor = Matrix::ZERO;
+
+            inertia_tensor = Matrix::ZERO;
             for(int i = 0; i < vertices_num; ++i)
             {
                 PhysicalVertex &v = vertices[i];
                 Vector offset = v.pos - center_of_mass;
                 
-                angular_momentum += v.mass * cross_product(offset, v.velocity);
-                
                 inertia_tensor += v.mass * ( (offset*offset)*Matrix::IDENTITY - Matrix(offset, offset) );
             }
+        }
 
+        Vector Model::compute_angular_velocity(const Vector &angular_momentum)
+        {
             if( !inertia_tensor.is_invertible() )
             {
-                logger.warning("in Model::find_body_motion: inertia_tensor is singular, assumed it to be Matrix::IDENTITY");
-                inertia_tensor = Matrix::IDENTITY;
+                logger.error("in Model::compute_next_step: inertia_tensor is singular, cannot find angular velocity");
+                return Vector::ZERO;
             }
-            angular_velocity = inertia_tensor.inverted()*angular_momentum;
+            return inertia_tensor.inverted()*angular_momentum;
+        }
+
+        void Model::find_body_motion()
+        {
+            if(0 == total_mass)
+                return;
+
+            center_of_mass_velocity = Vector::ZERO;
+            Vector angular_momentum = Vector::ZERO;
+            
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                PhysicalVertex &v = vertices[i];
+                
+                center_of_mass_velocity += v.mass*v.velocity/total_mass;
+                angular_momentum += v.mass * cross_product(v.pos - center_of_mass, v.velocity);
+            }
+            angular_velocity = compute_angular_velocity(angular_momentum);
+        }
+
+        void Model::correct_velocity_additions()
+        {
+            Vector linear_momentum_addition = Vector::ZERO;
+            Vector angular_momentum_addition = Vector::ZERO;
+
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                PhysicalVertex &v = vertices[i];
+
+                if(0 == v.including_clusters_num)
+                {
+                    logger.error("in Model::correct_velocity_additions: internal error: orphan vertex not belonging to any cluster", __FILE__, __LINE__);
+                    return;
+                }
+
+                // we need average velocity addition, not sum
+                v.velocity_addition /= v.including_clusters_num;
+
+                linear_momentum_addition += v.mass*v.velocity_addition;
+                angular_momentum_addition += v.mass * cross_product(v.pos - center_of_mass, v.velocity_addition);
+            }
+
+            
+            if(0 != total_mass)
+            {
+                Vector center_of_mass_velocity_addition = linear_momentum_addition / total_mass;
+                Vector angular_velocity_addition = compute_angular_velocity(angular_momentum_addition);
+
+                for(int i = 0; i < vertices_num; ++i)
+                {
+                    PhysicalVertex &v = vertices[i];
+
+                    Vector velocity_correction = - center_of_mass_velocity_addition
+                                                 - cross_product(angular_velocity_addition, v.pos - center_of_mass);
+
+                    v.velocity_addition += velocity_correction;
+                }
+            }
         }
 
         void Model::damp_velocity(PhysicalVertex &v)
         {
             Vector rigid_velocity = center_of_mass_velocity + cross_product(angular_velocity, v.pos - center_of_mass);
-            Vector deformation_velocity = v.velocity - rigid_velocity;
-            v.velocity -= DEFAULT_DAMPING_CONSTANT*deformation_velocity; // !!!
+            Vector oscillation_velocity = v.velocity - rigid_velocity;
+            v.velocity -= DEFAULT_DAMPING_CONSTANT*oscillation_velocity; // !!!
         }
 
         void Model::compute_next_step(const Force * const forces[], int forces_num)
@@ -280,14 +334,17 @@ namespace CrashAndSqueeze
             {
                 clusters[i].match_shape(dt);
             }
-
+            
+            find_body_properties();
+            
+            correct_velocity_additions();
+            
             // -- For each vertex of model: integrate velocities --
             for(int i = 0; i < vertices_num; ++i)
             {
                 integrate_velocity( vertices[i], forces, forces_num, dt );
             }
             
-            // -- Compute macroscopic characteristics --
             find_body_motion();
 
             // -- For each vertex of model: damp velocities and integrate positions --
