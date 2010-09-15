@@ -81,6 +81,11 @@ class ForcesError : public RuntimeError
 public:
     ForcesError() : RuntimeError( _T("Bad forces given") ) {}
 };
+class PerformanceFrequencyError : public RuntimeError
+{
+public:
+    PerformanceFrequencyError() : RuntimeError( _T("Frequency of Performance Counter is 0 (unsuppoted)") ) {}
+};
 inline void check_render( HRESULT res )
 {
     if( FAILED(res) )

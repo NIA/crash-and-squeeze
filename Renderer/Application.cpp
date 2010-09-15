@@ -17,6 +17,7 @@ namespace
     const float       ROTATE_STEP = D3DX_PI/30.0f;
     const float       VERTEX_MASS = 1;
     const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 12};
+    const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.6;
 
     //---------------- SHADER CONSTANTS ---------------------------
@@ -165,15 +166,15 @@ void Application::render()
     set_shader_float(  SHADER_REG_SPOT_X_COEF,        1/(in_cos - out_cos));
     set_shader_float(  SHADER_REG_SPOT_CONST_COEF,    out_cos/(in_cos - out_cos));
     
-    for ( Models::iterator iter = models.begin(); iter != models.end(); ++iter )
+    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
         // Set up
-        ( (*iter)->get_shader() ).set();
+        ( (*iter).display_model->get_shader() ).set();
 
-        set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, (*iter)->get_rotation_and_position() );
+        set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, (*iter).display_model->get_rotation_and_position() );
         
         // Draw
-        (*iter)->draw();
+        (*iter).display_model->draw();
     }
     // End the scene
     check_render( device->EndScene() );
@@ -190,23 +191,38 @@ IDirect3DDevice9 * Application::get_device()
 
 void Application::add_model(Model &model, bool physical)
 {
-    models.push_back( &model );
+    ModelEntity model_entity = {NULL, NULL, NULL};
+
+    // TODO: Null pointer
+    model_entity.display_model = &model;
+
     if(physical)
     {
         Vertex * vertices = model.lock_vertex_buffer();
-        physical_models.push_back( new PhysicalModel(vertices,
-                                                     model.get_vertices_count(),
-                                                     VERTEX_INFO,
-                                                     CLUSTERS_BY_AXES,
-                                                     CLUSTER_PADDING_COEFF,
-                                                     NULL,
-                                                     VERTEX_MASS) );
+        model_entity.physical_model =
+            new PhysicalModel(vertices,
+                              model.get_vertices_count(),
+                              VERTEX_INFO,
+                              CLUSTERS_BY_AXES,
+                              CLUSTER_PADDING_COEFF,
+                              NULL,
+                              VERTEX_MASS);
         model.unlock_vertex_buffer();
+
+        static const int BUFFER_SIZE = 128;
+        char description[BUFFER_SIZE];
+        sprintf_s(description, BUFFER_SIZE, "%6i vertices in %4i=%ix%ix%i clusters",
+                                            model.get_vertices_count(), TOTAL_CLUSTERS_COUNT,
+                                            CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2]);
+        model_entity.performance_reporter = new PerformanceReporter(description);
     }
     else
     {
-        physical_models.push_back( NULL );
+        model_entity.physical_model = NULL;
+        model_entity.performance_reporter = NULL;
     }
+
+    model_entities.push_back( model_entity );
 }
 
 void Application::set_forces(Force ** forces, int forces_num)
@@ -222,9 +238,9 @@ void Application::set_forces(Force ** forces, int forces_num)
 
 void Application::rotate_models(float phi)
 {
-    for ( Models::iterator iter = models.begin(); iter != models.end(); ++iter )
+    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
-        (*iter)->rotate(phi);
+        (*iter).display_model->rotate(phi);
     }
 }
 
@@ -302,6 +318,12 @@ void Application::run()
 {
     window.show();
     window.update();
+    
+    LARGE_INTEGER large_int;
+    QueryPerformanceFrequency(&large_int);
+    const double COUNTER_FREQUENCY = static_cast<double>(large_int.QuadPart);
+    if(0 == COUNTER_FREQUENCY)
+        throw PerformanceFrequencyError();
 
     int physics_frames = 0;
     for(int i = 0; i < forces_num; ++i)
@@ -312,7 +334,6 @@ void Application::run()
             forces[i]->deactivate();
     }
     
-
     // Enter the message loop
     MSG msg;
     ZeroMemory( &msg, sizeof( msg ) );
@@ -333,18 +354,32 @@ void Application::run()
             // physics
             if(emulation_enabled || emultate_one_step)
             {
-                // for each model and corresponding physical model
-                Models::iterator m_iter = models.begin();
-                PhysicalModels::iterator pm_iter = physical_models.begin();
-                for ( ; m_iter != models.end() && pm_iter != physical_models.end(); ++m_iter, ++pm_iter )
+                // for each model entity
+                for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
                 {
-                    if( NULL != *pm_iter )
+                    PhysicalModel       * physical_model       = (*iter).physical_model;
+                    Model               * display_model        = (*iter).display_model;
+                    PerformanceReporter * performance_reporter = (*iter).performance_reporter;
+                    
+                    if( NULL != physical_model )
                     {
-                        (*pm_iter)->compute_next_step(forces, forces_num);
+                        LARGE_INTEGER large_int_before;
+                        LARGE_INTEGER large_int_after;
                         
-                        Vertex *vertices = (*m_iter)->lock_vertex_buffer();
-                        (*pm_iter)->update_vertices(vertices, (*m_iter)->get_vertices_count(), VERTEX_INFO);
-                        (*m_iter)->unlock_vertex_buffer();
+                        QueryPerformanceCounter(&large_int_before);
+                        physical_model->compute_next_step(forces, forces_num);
+                        QueryPerformanceCounter(&large_int_after);
+                        
+                        double counts = static_cast<double>(large_int_after.QuadPart - large_int_before.QuadPart);
+                        double time = counts / COUNTER_FREQUENCY;
+                        if( NULL != performance_reporter )
+                        {
+                            performance_reporter->add_measurement(time);
+                        }
+                        
+                        Vertex *vertices = display_model->lock_vertex_buffer();
+                        physical_model->update_vertices(vertices, display_model->get_vertices_count(), VERTEX_INFO);
+                        display_model->unlock_vertex_buffer();
                     }
                 }
                 ++physics_frames;
@@ -356,6 +391,14 @@ void Application::run()
             render();
         }
     }
+
+    // for each model entity
+    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+    {
+        if( NULL != (*iter).performance_reporter )
+            (*iter).performance_reporter->report_results();
+    }
+
 }
 
 void Application::toggle_wireframe()
@@ -372,6 +415,17 @@ void Application::toggle_wireframe()
         check_state( device->SetRenderState( D3DRS_FILLMODE, D3DFILL_SOLID ) );
     }
 }
+void Application::delete_model_stuff()
+{
+    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+    {
+        if(NULL != (*iter).physical_model)
+            delete (*iter).physical_model;
+
+        if(NULL != (*iter).performance_reporter)
+            delete (*iter).performance_reporter;
+    }
+}
 
 void Application::release_interfaces()
 {
@@ -381,5 +435,6 @@ void Application::release_interfaces()
 
 Application::~Application()
 {
+    delete_model_stuff();
     release_interfaces();
 }

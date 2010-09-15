@@ -4,15 +4,23 @@
 #include "Window.h"
 #include "Vertex.h"
 #include "Model.h"
+#include "performance_reporter.h"
 #include <vector>
 #include "Core/model.h"
 
 extern const unsigned VECTORS_IN_MATRIX;
 
-typedef std::vector<Model*> Models;
 
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
-typedef std::vector<PhysicalModel*> PhysicalModels;
+
+struct ModelEntity
+{
+    Model               *display_model;
+    PhysicalModel       *physical_model;
+    PerformanceReporter *performance_reporter;
+};
+
+typedef std::vector<ModelEntity> ModelEntities;
 
 class Application
 {
@@ -31,8 +39,7 @@ private:
 
     Window window;
 
-    Models models;
-    PhysicalModels physical_models;
+    ModelEntities model_entities;
 
     ::CrashAndSqueeze::Core::Force ** forces;
     int forces_num;
@@ -77,6 +84,7 @@ private:
     void render();
 
     // Deinitialization steps:
+    void delete_model_stuff();
     void release_interfaces();
 
 public:
