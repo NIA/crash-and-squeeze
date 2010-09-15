@@ -247,7 +247,7 @@ namespace CrashAndSqueeze
         {
             if( !inertia_tensor.is_invertible() )
             {
-                logger.error("in Model::compute_next_step: inertia_tensor is singular, cannot find angular velocity");
+                logger.error("in Model::compute_next_step: inertia_tensor is singular, cannot find angular velocity", __FILE__, __LINE__);
                 return Vector::ZERO;
             }
             return inertia_tensor.inverted()*angular_momentum;

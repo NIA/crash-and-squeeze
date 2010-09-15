@@ -43,8 +43,7 @@ namespace CrashAndSqueeze
             int vertices_num;
             // allocated space for vertices
             int allocated_vertices_num; 
-            static const int INITIAL_ALLOCATED_VERTICES_NUM = 100;
-            
+
             // initial center of mass of vertices
             Math::Vector initial_center_of_mass;
 
@@ -152,6 +151,8 @@ namespace CrashAndSqueeze
             const Math::Matrix & get_rotation() const { return rotation; }
             const Math::Matrix & get_total_deformation() const { return total_deformation; }
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
+            
+            static const int INITIAL_ALLOCATED_VERTICES_NUM = 100;
         private:
             // No copying!
             Cluster(const Cluster &);

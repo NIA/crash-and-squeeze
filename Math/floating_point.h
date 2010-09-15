@@ -40,5 +40,10 @@ namespace CrashAndSqueeze
             a = b;
             b = temp;
         }
+
+        inline Real cube_root(Real value)
+        {
+            return pow( abs(value), 1.0/3)*sign(value);
+        }
     };
 };

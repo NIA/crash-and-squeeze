@@ -6,6 +6,7 @@ namespace CrashAndSqueeze
     using Math::Real;
     using Math::equal;
     using Math::sign;
+    using Math::cube_root;
     using Math::Vector;
     using Math::Matrix;
     
@@ -149,7 +150,7 @@ namespace CrashAndSqueeze
             {
                 if( det < 0 )
                     logger.warning("in Cluster::compute_linear_transformation: linear_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
-                linear_transformation /= pow( abs(det), 1.0/3)*sign(det);
+                linear_transformation /= cube_root(det);
             }
             else
             {
@@ -201,7 +202,7 @@ namespace CrashAndSqueeze
                 if( ! equal(0, det) )
                 {
                     // enforce volume conservation
-                    new_plasticity_state /= pow( abs(det), 1.0/3);
+                    new_plasticity_state /= cube_root(det);
                     
                     Matrix plastic_deformation = new_plasticity_state - Matrix::IDENTITY;
                     Real plastic_deform_measure = plastic_deformation.norm();
