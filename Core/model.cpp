@@ -130,11 +130,17 @@ namespace CrashAndSqueeze
                 cluster_sizes[i] = dimensions[i]/clusters_by_axes[i];
             }
             
-            // -- For each vertex --
+            // -- For each vertex: assign --
             for(int i = 0; i < this->vertices_num; ++i)
             {
                 add_vertex_to_clusters(vertices[i]);
-            } 
+            }
+
+            // -- For each cluster: precompute --
+            for(int i = 0; i < clusters_num; ++i)
+            {
+                clusters[i].compute_initial_characteristics();
+            }
         }
 
         void Model::add_vertex_to_clusters(PhysicalVertex &vertex)

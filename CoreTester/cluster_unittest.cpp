@@ -24,6 +24,7 @@ TEST(ClusterTest, AddOne)
     v.mass = 12;
     v.pos = Vector(1,2,3);
     c.add_vertex(v);
+    c.compute_initial_characteristics();
 
     EXPECT_EQ( 1, c.get_vertices_num() );
     EXPECT_EQ( v.mass, c.get_total_mass() );
@@ -43,6 +44,7 @@ TEST(ClusterTest, AddTwo)
     v.pos = Vector(4,7,10);
     c.add_vertex(u);
     c.add_vertex(v);
+    c.compute_initial_characteristics();
 
     EXPECT_EQ( 2, c.get_vertices_num() );
     EXPECT_EQ( 30, c.get_total_mass() );
@@ -67,6 +69,7 @@ TEST(ClusterTest, AddSeveral)
     c.add_vertex(v);
     c.add_vertex(w);
     c.add_vertex(z);
+    c.compute_initial_characteristics();
 
     EXPECT_EQ( 4, c.get_vertices_num() );
     EXPECT_EQ( 4, c.get_total_mass() );
@@ -96,6 +99,7 @@ TEST(ClusterTest, AddMany)
         v[i].pos = Vector(0, 0, i);
         c.add_vertex(v[i]);
     }
+    c.compute_initial_characteristics();
     
     Vector cm(0, 0, static_cast<Real>(MANY-1)/2);
     

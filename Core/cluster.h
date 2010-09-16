@@ -49,6 +49,9 @@ namespace CrashAndSqueeze
 
             Math::Real total_mass;
 
+            bool initial_characteristics_computed;
+            bool valid;
+
             // a constant, determining how fast points are pulled to
             // their position, i.e. how rigid the body is:
             // 0 means no constraint at all, 1 means absolutely rigid
@@ -95,14 +98,12 @@ namespace CrashAndSqueeze
             
             // -- access helpers --
             bool check_vertex_index(int index, const char *error_message) const;
+            bool check_initial_characteristics() const;
             
             // -- shape matching steps --
             
             // re-computes center of mass
             void update_center_of_mass();
-            
-            // computes asymmetric_term and symmetric_term
-            void compute_shape_matching_terms();
             
             // computes required transformations
             void compute_transformations();
@@ -110,19 +111,37 @@ namespace CrashAndSqueeze
             // computes linear_transformation
             void compute_linear_transformation();
             
+            // computes asymmetric_term (each step)
+            void compute_asymmetric_term();
+            
+            // computes symmetric_term (only after plasticity state changed)
+            void compute_symmetric_term();
+            
             // computes goal positions and applies corrections to velocities of vertices
             void apply_goal_positions(Math::Real dt);
             
             // updates plasticity_state due to deformation applied
             void update_plasticity_state(Math::Real dt);
+            
+            // is called after updating plasticity_state
+            void update_equilibrium_positions();
+
+            // is called after updating plasticity_state
+            void update_equilibrium_positions(Math::Real dt);
         
         public:
             Cluster();
             virtual ~Cluster();
+            
+            // -- methods --
 
             void add_vertex(PhysicalVertex &vertex);
 
-            // -- methods --
+            // this must be called after last vertex is added
+            void compute_initial_characteristics();
+
+            bool is_valid() { return valid; }
+
             void match_shape(Math::Real dt);
 
             // -- getters/setters --
@@ -132,12 +151,12 @@ namespace CrashAndSqueeze
             PhysicalVertex & get_vertex(int index);
             const PhysicalVertex & get_vertex(int index) const;
 
-            // returns equilibrium position of vertex
-            // (measured off the center of mass of the cluster)
-            // taking into account plasticity_state
-            const Math::Vector get_equilibrium_position(int index) const;
+            const Math::Vector & get_initial_center_of_mass() const;
 
-            const Math::Vector & get_initial_center_of_mass() const { return initial_center_of_mass; }
+            // returns equilibrium position of vertex
+            // (measured off the initial center of mass of the cluster)
+            // taking into account plasticity_state
+            const Math::Vector & get_equilibrium_position(int index) const;
             
             Math::Real get_total_mass() const { return total_mass; }
             

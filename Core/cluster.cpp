@@ -22,14 +22,18 @@ namespace CrashAndSqueeze
             // initial position of vertex measured off
             // the cluster's center of mass
             Math::Vector initial_offset_position;
+            // position in deformed shape (plasticity_state*initial_offset_position)
+            Math::Vector equilibrium_offset_position;
         };
 
         Cluster::Cluster()
             : vertices(NULL),
               vertices_num(0),
               allocated_vertices_num(INITIAL_ALLOCATED_VERTICES_NUM),
+              initial_characteristics_computed(true),
 
               total_mass(0),
+              valid(false),
 
               goal_speed_constant(DEFAULT_GOAL_SPEED_CONSTANT),
               linear_elasticity_constant(DEFAULT_LINEAR_ELASTICITY_CONSTANT),
@@ -48,16 +52,6 @@ namespace CrashAndSqueeze
 
         void Cluster::add_vertex(PhysicalVertex &vertex)
         {
-            // recompute center of mass
-            Vector old_initial_center_of_mass = initial_center_of_mass;
-            if( 0 != total_mass + vertex.mass )
-                initial_center_of_mass = (total_mass*initial_center_of_mass + vertex.mass*vertex.pos)/(total_mass + vertex.mass);
-            center_of_mass = initial_center_of_mass;
-            
-            // recompute vertex offsets due to change of center of mass
-            for(int i = 0; i < vertices_num; ++i)
-                vertices[i].initial_offset_position += old_initial_center_of_mass - initial_center_of_mass;
-            
             // update mass
             total_mass += vertex.mass;
 
@@ -72,12 +66,32 @@ namespace CrashAndSqueeze
             }
             
             // add new vertex
+            vertices[vertices_num].vertex = &vertex;
             ++vertices_num;
-            vertices[vertices_num - 1].vertex = &vertex;
-            vertices[vertices_num - 1].initial_offset_position = vertex.pos - initial_center_of_mass;
 
             // increment vertex's cluster counter
             ++vertex.including_clusters_num;
+
+            // invalidate initial characteristics
+            initial_characteristics_computed = false;
+        }
+
+        void Cluster::compute_initial_characteristics()
+        {
+            update_center_of_mass();
+            initial_center_of_mass = center_of_mass;
+
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                PhysicalVertex &v = get_vertex(i);
+                
+                vertices[i].initial_offset_position = v.pos - initial_center_of_mass;
+                vertices[i].equilibrium_offset_position = vertices[i].initial_offset_position;
+            }
+            
+            initial_characteristics_computed = true;
+
+            compute_symmetric_term();
         }
 
         void Cluster::match_shape(Real dt)
@@ -86,7 +100,6 @@ namespace CrashAndSqueeze
                 return;
 
             update_center_of_mass();
-            compute_shape_matching_terms();
             compute_transformations();
             apply_goal_positions(dt);
             update_plasticity_state(dt);
@@ -105,28 +118,45 @@ namespace CrashAndSqueeze
                 }
             }
         }
+        void Cluster::update_equilibrium_positions()
+        {
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                vertices[i].equilibrium_offset_position = plasticity_state * vertices[i].initial_offset_position;
+            }
+        }
 
-        void Cluster::compute_shape_matching_terms()
+        void Cluster::compute_asymmetric_term()
         {
             asymmetric_term = Matrix::ZERO;
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                PhysicalVertex &v = get_vertex(i);
+                Vector equilibrium_pos = get_equilibrium_position(i);
+
+                asymmetric_term += v.mass*Matrix( v.pos - center_of_mass, get_equilibrium_position(i) );
+            }
+        }
+
+        void Cluster::compute_symmetric_term()
+        {
             symmetric_term = Matrix::ZERO;
             for(int i = 0; i < vertices_num; ++i)
             {
                 PhysicalVertex &v = get_vertex(i);
                 Vector equilibrium_pos = get_equilibrium_position(i);
 
-                asymmetric_term += v.mass*Matrix( v.pos - center_of_mass, equilibrium_pos );
-                // TODO: re-compute this only on update of plasticity_state
                 symmetric_term += v.mass*Matrix( equilibrium_pos, equilibrium_pos );
             }
             if( symmetric_term.is_invertible() )
             {
+                valid = true;
                 symmetric_term = symmetric_term.inverted();
             }
             else
             {
-                logger.warning("in Cluster::compute_shape_matching_terms: singular matrix symmetric_term, unable to compute symmetric_term.inverted(), assumed it to be Matrix::IDENTITY", __FILE__, __LINE__);
-                symmetric_term = Matrix::IDENTITY; // TODO: is this good workaround???
+                valid = false;
+                symmetric_term = Matrix::ZERO;
             }
         }
 
@@ -141,7 +171,13 @@ namespace CrashAndSqueeze
 
         void Cluster::compute_linear_transformation()
         {
-            linear_transformation = asymmetric_term*symmetric_term; // optimal linear transformation
+            // check that symmetric_term has been precomputed...
+            if( ! check_initial_characteristics() )
+                return;
+            // ...and compute a brand new assymetric_term
+            compute_asymmetric_term();
+
+            linear_transformation = asymmetric_term*symmetric_term;
 
             // -- enforce volume conservation --
 
@@ -210,6 +246,8 @@ namespace CrashAndSqueeze
                     if( plastic_deform_measure < DEFAULT_MAX_DEFORMATION_CONSTANT ) // !!!
                     {
                         plasticity_state = new_plasticity_state;
+                        update_equilibrium_positions();
+                        compute_symmetric_term();
                     }
                 }
             }
@@ -225,6 +263,16 @@ namespace CrashAndSqueeze
             return true;
         }
 
+        bool Cluster::check_initial_characteristics() const
+        {
+            if( ! initial_characteristics_computed )
+            {
+                logger.error("missed precomputing: Cluster::compute_initial_characteristics must be called after last vertex is added", __FILE__, __LINE__);
+                return false;
+            }
+            return true;
+        }
+
         const PhysicalVertex & Cluster::get_vertex(int index) const
         {
             if( check_vertex_index(index, "Cluster::get_vertex: index out of range") )
@@ -232,6 +280,7 @@ namespace CrashAndSqueeze
             else
                 return *vertices[0].vertex;
         }
+
         PhysicalVertex & Cluster::get_vertex(int index)
         {
             if( check_vertex_index(index, "Cluster::get_vertex: index out of range") )
@@ -240,13 +289,21 @@ namespace CrashAndSqueeze
                 return *vertices[0].vertex;
         }
 
+        const Math::Vector & Cluster::get_initial_center_of_mass() const
+        {
+            check_initial_characteristics();
+            return initial_center_of_mass;
+        }
+        
         // returns equilibrium position of vertex
         // (measured off the center of mass of the cluster)
         // taking into account plasticity_state
-        const Vector Cluster::get_equilibrium_position(int index) const
+        const Vector & Cluster::get_equilibrium_position(int index) const
         {
+            check_initial_characteristics();
+            
             if( check_vertex_index(index, "Cluster::get_equilibrium_position: index out of range") )
-                return plasticity_state*vertices[index].initial_offset_position;
+                return vertices[index].equilibrium_offset_position;
             else
                 return Vector::ZERO;
         }
