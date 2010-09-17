@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "Stopwatch.h"
 #include <time.h>
 
 using CrashAndSqueeze::Core::Force;
@@ -319,11 +320,10 @@ void Application::run()
     window.show();
     window.update();
     
-    LARGE_INTEGER large_int;
-    QueryPerformanceFrequency(&large_int);
-    const double COUNTER_FREQUENCY = static_cast<double>(large_int.QuadPart);
-    if(0 == COUNTER_FREQUENCY)
-        throw PerformanceFrequencyError();
+    Stopwatch stopwatch;
+    PerformanceReporter render_performance_reporter("rendering");
+    PerformanceReporter total_performance_reporter("total");
+    double total_time = 0;
 
     int physics_frames = 0;
     for(int i = 0; i < forces_num; ++i)
@@ -351,6 +351,7 @@ void Application::run()
         }
         else
         {
+            total_time = 0;
             // physics
             if(emulation_enabled || emultate_one_step)
             {
@@ -363,19 +364,15 @@ void Application::run()
                     
                     if( NULL != physical_model )
                     {
-                        LARGE_INTEGER large_int_before;
-                        LARGE_INTEGER large_int_after;
-                        
-                        QueryPerformanceCounter(&large_int_before);
+                        stopwatch.start();
                         physical_model->compute_next_step(forces, forces_num);
-                        QueryPerformanceCounter(&large_int_after);
-                        
-                        double counts = static_cast<double>(large_int_after.QuadPart - large_int_before.QuadPart);
-                        double time = counts / COUNTER_FREQUENCY;
+                        double time = stopwatch.stop();
+
                         if( NULL != performance_reporter )
                         {
                             performance_reporter->add_measurement(time);
                         }
+                        total_time += time;
                         
                         Vertex *vertices = display_model->lock_vertex_buffer();
                         physical_model->update_vertices(vertices, display_model->get_vertices_count(), VERTEX_INFO);
@@ -388,17 +385,24 @@ void Application::run()
             emultate_one_step = false;
             
             // graphics
+            stopwatch.start();
             render();
+            double time = stopwatch.stop();
+            render_performance_reporter.add_measurement(time);
+            total_time += time;
+            total_performance_reporter.add_measurement(total_time);
         }
     }
 
-    // for each model entity
+    // -- report performance results --
+
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
         if( NULL != (*iter).performance_reporter )
             (*iter).performance_reporter->report_results();
     }
-
+    render_performance_reporter.report_results();
+    total_performance_reporter.report_results();
 }
 
 void Application::toggle_wireframe()

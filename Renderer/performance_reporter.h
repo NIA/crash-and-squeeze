@@ -12,6 +12,7 @@ private:
     double min_time;
     double avg_time;
 
+    void begin_report();
     void report_time(char *prefix, double time);
 
 public:

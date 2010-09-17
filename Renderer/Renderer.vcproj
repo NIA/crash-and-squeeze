@@ -212,6 +212,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Stopwatch.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\tessellate.cpp"
 				>
 			</File>
@@ -275,6 +279,10 @@
 			</File>
 			<File
 				RelativePath=".\Shader.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Stopwatch.h"
 				>
 			</File>
 			<File
