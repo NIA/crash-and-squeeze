@@ -10,6 +10,7 @@ namespace CrashAndSqueeze
     using Math::Matrix;
     using Math::Real;
     using Math::equal;
+    using Math::less_or_equal;
     using Math::sign;
     using Logging::logger;
     
@@ -17,6 +18,13 @@ namespace CrashAndSqueeze
     {
         namespace
         {
+            // -- useful constants --
+
+            const Real MAX_COORDINATE = 1.0e+100; // !!! hard-coded
+            const Vector MAX_COORDINATE_VECTOR(MAX_COORDINATE, MAX_COORDINATE, MAX_COORDINATE);
+            
+            // -- helpers --
+
             inline const void *add_to_pointer(const void *pointer, int offset)
             {
                 return reinterpret_cast<const void*>( reinterpret_cast<const char*>(pointer) + offset );
@@ -26,12 +34,36 @@ namespace CrashAndSqueeze
                 return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
             }
 
-            const Real MAX_COORDINATE = 1.0e+100; // !!! hard-coded
-            const Vector MAX_COORDINATE_VECTOR(MAX_COORDINATE, MAX_COORDINATE, MAX_COORDINATE);
-
             inline int compute_cluster_index(const int indices[VECTOR_SIZE], const int clusters_num[VECTOR_SIZE])
             {
                 return indices[0] + indices[1]*clusters_num[0] + indices[2]*clusters_num[0]*clusters_num[1];
+            }
+            
+            bool integrate_velocity(PhysicalVertex &v, const Force * const forces[], int forces_num, Math::Real dt)
+            {
+                Vector acceleration = Vector::ZERO;
+
+                if(0 != v.mass && NULL != forces)
+                {
+                    for(int j=0; j < forces_num; ++j)
+                    {
+                        if(NULL == forces[j])
+                        {
+                            logger.error("in Model::compute_next_step: null pointer item of `forces` array ", __FILE__, __LINE__);
+                            return false;
+                        }
+                        acceleration += forces[j]->get_value_at(v.pos, v.velocity)/v.mass;
+                    }
+                }
+
+                v.velocity += v.velocity_addition + acceleration*dt;
+                v.velocity_addition = Vector::ZERO;
+                return true;
+            }
+
+            void integrate_position(PhysicalVertex &v, Math::Real dt)
+            {
+                v.pos += v.velocity*dt;
             }
         }
 
@@ -42,31 +74,44 @@ namespace CrashAndSqueeze
                       Math::Real cluster_padding_coeff,
                       const MassFloat *masses,
                       const MassFloat constant_mass)
-            : vertices_num(vertices_num), clusters_num(0), vertices(NULL), clusters(NULL), total_mass(0),
-              min_pos(MAX_COORDINATE_VECTOR), max_pos(-MAX_COORDINATE_VECTOR), cluster_padding_coeff(cluster_padding_coeff),
-              center_of_mass_velocity(Vector::ZERO), angular_velocity(Vector::ZERO), center_of_mass(Vector::ZERO),
-              inertia_tensor(Matrix::ZERO)
+            : vertices(NULL),
+              vertices_num(vertices_num),
+              
+              clusters_num(0),
+              clusters(NULL),
+              
+              cluster_padding_coeff(cluster_padding_coeff),
 
+              min_pos(MAX_COORDINATE_VECTOR),
+              max_pos(-MAX_COORDINATE_VECTOR), 
+              
+              total_mass(0),
+              center_of_mass(Vector::ZERO),
+              inertia_tensor(Matrix::ZERO),
+              center_of_mass_velocity(Vector::ZERO),
+              angular_velocity(Vector::ZERO)
         {
-            init_vertices(source_vertices, vertex_info, masses, constant_mass);
-            
-            for(int i = 0; i < VECTOR_SIZE; ++i)
-                this->clusters_by_axes[i] = clusters_by_axes[i];
-
-            find_body_properties();
-            
-            init_clusters();
+            if( init_vertices(source_vertices, vertex_info, masses, constant_mass) )
+            {
+                if( find_body_properties() )
+                {
+                    for(int i = 0; i < VECTOR_SIZE; ++i)
+                        this->clusters_by_axes[i] = clusters_by_axes[i];
+                    
+                    init_clusters();
+                }
+            }
         }
 
-        void Model::init_vertices(const void *source_vertices,
+        bool Model::init_vertices(const void *source_vertices,
                                   VertexInfo const &vertex_info,
                                   const MassFloat *masses,
                                   const MassFloat constant_mass)
         {
-            if(this->vertices_num < 0)
+            if(this->vertices_num <= 0)
             {
-                logger.error("creating model with `vertices_count` < 0", __FILE__, __LINE__);
-                this->vertices_num = 0;
+                logger.error("creating model with `vertices_count` <= 0", __FILE__, __LINE__);
+                return false;
             }
             else
             {
@@ -74,8 +119,13 @@ namespace CrashAndSqueeze
 
 
                 const void *source_vertex = source_vertices;
-                if( equal(0, constant_mass) && NULL == masses )
-                    logger.warning("creating model with constant zero mass of vertices. Forces will not be applied to such model", __FILE__, __LINE__);
+                
+                if( less_or_equal(constant_mass, 0) && NULL == masses )
+                {
+                    logger.error("creating model with constant vertex mass <= 0. Vertex mass must be strictly positive.", __FILE__, __LINE__);
+                    return false;
+                }
+
                 for(int i = 0; i < this->vertices_num; ++i)
                 {
                     PhysicalVertex &vertex = this->vertices[i];
@@ -88,8 +138,11 @@ namespace CrashAndSqueeze
                     if( NULL != masses )
                     {
                         vertex.mass = static_cast<Real>(masses[i]);
-                        if( equal(0, vertex.mass) )
-                            logger.warning("creating model with vertex having zero mass. Forces will not be applied to such vertex", __FILE__, __LINE__);
+                        if( less_or_equal(vertex.mass, 0) )
+                        {
+                            logger.error("creating model with vertex having mass <= 0. Vertex mass must be strictly positive.", __FILE__, __LINE__);
+                            return false;
+                        }
                     }
                     else
                     {
@@ -108,14 +161,12 @@ namespace CrashAndSqueeze
                     
                     source_vertex = add_to_pointer(source_vertex, vertex_info.get_vertex_size());
                 }
+                return true;
             }
         }
         
-        void Model::init_clusters()
+        bool Model::init_clusters()
         {
-            if(0 == vertices_num)
-                return;
-
             clusters_num = 1;
             for(int i = 0; i < VECTOR_SIZE; ++i)
                 clusters_num *= clusters_by_axes[i];
@@ -126,14 +177,18 @@ namespace CrashAndSqueeze
             for(int i = 0; i < VECTOR_SIZE; ++i)
             {
                 if(0 == clusters_by_axes[i])
+                {
                     logger.error("creating model with zero clusters_by_axes component", __FILE__, __LINE__);
+                    return false;
+                }
                 cluster_sizes[i] = dimensions[i]/clusters_by_axes[i];
             }
             
             // -- For each vertex: assign --
             for(int i = 0; i < this->vertices_num; ++i)
             {
-                add_vertex_to_clusters(vertices[i]);
+                if ( false == add_vertex_to_clusters(vertices[i]) )
+                    return false;
             }
 
             // -- For each cluster: precompute --
@@ -141,9 +196,11 @@ namespace CrashAndSqueeze
             {
                 clusters[i].compute_initial_characteristics();
             }
+
+            return true;
         }
 
-        void Model::add_vertex_to_clusters(PhysicalVertex &vertex)
+        bool Model::add_vertex_to_clusters(PhysicalVertex &vertex)
         {
             const Vector padding = cluster_sizes*cluster_padding_coeff;
 
@@ -156,8 +213,11 @@ namespace CrashAndSqueeze
             int cluster_indices[VECTOR_SIZE];
             for(int j = 0; j < VECTOR_SIZE; ++j)
             {
-                if(0 == cluster_sizes[j])
+                if(equal(0, cluster_sizes[j]))
+                {
                     logger.error("creating model with zero dimension", __FILE__, __LINE__);
+                    return false;
+                }
                 cluster_indices[j] = static_cast<int>(position[j]/cluster_sizes[j]);
                 
                 if(cluster_indices[j] < 0)
@@ -195,41 +255,24 @@ namespace CrashAndSqueeze
                     --cluster_indices[j];
                 }
             }
+
+            return true;
         }
 
-        namespace
+        bool Model::check_total_mass()
         {
-            void integrate_velocity(PhysicalVertex &v, const Force * const forces[], int forces_num, Math::Real dt)
+            if(less_or_equal(total_mass, 0))
             {
-                Vector acceleration = Vector::ZERO;
-
-                if(0 != v.mass && NULL != forces)
-                {
-                    for(int j=0; j < forces_num; ++j)
-                    {
-                        if(NULL == forces[j])
-                        {
-                            logger.error("in Model::integrate_velocity: null pointer item of `forces` array ", __FILE__, __LINE__);
-                            return;
-                        }
-                        acceleration += forces[j]->get_value_at(v.pos, v.velocity)/v.mass;
-                    }
-                }
-
-                v.velocity += v.velocity_addition + acceleration*dt;
-                v.velocity_addition = Vector::ZERO;
+                logger.error("internal error: Model run-time check: total_mass is <= 0", __FILE__, __LINE__);
+                return false;
             }
-
-            void integrate_position(PhysicalVertex &v, Math::Real dt)
-            {
-                v.pos += v.velocity*dt;
-            }
+            return true;
         }
 
-        void Model::find_body_properties()
+        bool Model::find_body_properties()
         {
-            if(0 == total_mass)
-                return;
+            if( false == check_total_mass() )
+                return false;
             
             center_of_mass = Vector::ZERO;
             for(int i = 0; i < vertices_num; ++i)
@@ -247,22 +290,25 @@ namespace CrashAndSqueeze
                 
                 inertia_tensor += v.mass * ( (offset*offset)*Matrix::IDENTITY - Matrix(offset, offset) );
             }
+
+            return true;
         }
 
-        Vector Model::compute_angular_velocity(const Vector &angular_momentum)
+        bool Model::compute_angular_velocity(const Vector &angular_momentum, /*out*/ Vector & result)
         {
-            if( !inertia_tensor.is_invertible() )
+            if( ! inertia_tensor.is_invertible() )
             {
-                logger.error("in Model::compute_next_step: inertia_tensor is singular, cannot find angular velocity", __FILE__, __LINE__);
-                return Vector::ZERO;
+                logger.error("in Model::compute_angular_velocity: inertia_tensor is singular, cannot invert to find angular velocity", __FILE__, __LINE__);
+                return false;
             }
-            return inertia_tensor.inverted()*angular_momentum;
+            result = inertia_tensor.inverted()*angular_momentum;
+            return true;
         }
 
-        void Model::find_body_motion()
+        bool Model::find_body_motion()
         {
-            if(0 == total_mass)
-                return;
+            if( false == check_total_mass() )
+                return false;
 
             center_of_mass_velocity = Vector::ZERO;
             Vector angular_momentum = Vector::ZERO;
@@ -274,10 +320,13 @@ namespace CrashAndSqueeze
                 center_of_mass_velocity += v.mass*v.velocity/total_mass;
                 angular_momentum += v.mass * cross_product(v.pos - center_of_mass, v.velocity);
             }
-            angular_velocity = compute_angular_velocity(angular_momentum);
+            if( false == compute_angular_velocity(angular_momentum, angular_velocity) )
+                return false;
+
+            return true;
         }
 
-        void Model::correct_velocity_additions()
+        bool Model::correct_velocity_additions()
         {
             Vector linear_momentum_addition = Vector::ZERO;
             Vector angular_momentum_addition = Vector::ZERO;
@@ -289,7 +338,7 @@ namespace CrashAndSqueeze
                 if(0 == v.including_clusters_num)
                 {
                     logger.error("in Model::correct_velocity_additions: internal error: orphan vertex not belonging to any cluster", __FILE__, __LINE__);
-                    return;
+                    return false;
                 }
 
                 // we need average velocity addition, not sum
@@ -300,21 +349,24 @@ namespace CrashAndSqueeze
             }
 
             
-            if(0 != total_mass)
+            if( false == check_total_mass() )
+                return false;
+
+            Vector center_of_mass_velocity_addition = linear_momentum_addition / total_mass;
+            Vector angular_velocity_addition;
+            if( false == compute_angular_velocity(angular_momentum_addition, angular_velocity_addition) )
+                return false;
+
+            for(int i = 0; i < vertices_num; ++i)
             {
-                Vector center_of_mass_velocity_addition = linear_momentum_addition / total_mass;
-                Vector angular_velocity_addition = compute_angular_velocity(angular_momentum_addition);
+                PhysicalVertex &v = vertices[i];
 
-                for(int i = 0; i < vertices_num; ++i)
-                {
-                    PhysicalVertex &v = vertices[i];
+                Vector velocity_correction = - center_of_mass_velocity_addition
+                                             - cross_product(angular_velocity_addition, v.pos - center_of_mass);
 
-                    Vector velocity_correction = - center_of_mass_velocity_addition
-                                                 - cross_product(angular_velocity_addition, v.pos - center_of_mass);
-
-                    v.velocity_addition += velocity_correction;
-                }
+                v.velocity_addition += velocity_correction;
             }
+            return true;
         }
 
         void Model::damp_velocity(PhysicalVertex &v)
@@ -324,12 +376,12 @@ namespace CrashAndSqueeze
             v.velocity -= DEFAULT_DAMPING_CONSTANT*oscillation_velocity; // !!!
         }
 
-        void Model::compute_next_step(const Force * const forces[], int forces_num)
+        bool Model::compute_next_step(const Force * const forces[], int forces_num)
         {
             if(NULL == forces && 0 != forces_num)
             {
                 logger.error("in Model::compute_next_step: null pointer `forces`", __FILE__, __LINE__);
-                return;
+                return false;
             }
             
             // TODO: QueryPerformanceCounter
@@ -341,17 +393,21 @@ namespace CrashAndSqueeze
                 clusters[i].match_shape(dt);
             }
             
-            find_body_properties();
+            if( false == find_body_properties())
+                return false;
             
-            correct_velocity_additions();
+            if( false == correct_velocity_additions())
+                return false;
             
             // -- For each vertex of model: integrate velocities --
             for(int i = 0; i < vertices_num; ++i)
             {
-                integrate_velocity( vertices[i], forces, forces_num, dt );
+                if( false == integrate_velocity( vertices[i], forces, forces_num, dt ))
+                    return false;
             }
             
-            find_body_motion();
+            if( false == find_body_motion() )
+                return false;
 
             // -- For each vertex of model: damp velocities and integrate positions --
             for(int i = 0; i < vertices_num; ++i)
@@ -359,6 +415,8 @@ namespace CrashAndSqueeze
                 damp_velocity( vertices[i] );
                 integrate_position( vertices[i], dt );
             }
+
+            return true;
         }
 
         void Model::update_vertices(/*out*/ void *vertices, int vertices_num, VertexInfo const &vertex_info)

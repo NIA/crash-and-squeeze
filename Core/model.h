@@ -21,8 +21,6 @@ namespace CrashAndSqueeze
             PhysicalVertex *vertices;
             int vertices_num;
 
-            Math::Real total_mass;
-
             Cluster *clusters;
             int clusters_num;
 
@@ -37,34 +35,39 @@ namespace CrashAndSqueeze
             // dimensions of a cluster
             Math::Vector cluster_sizes;
 
-            // -- initialization steps --
-            void init_vertices(const void *source_vertices,
+            // -- initialization steps: all return false on failure --
+            
+            bool init_vertices(const void *source_vertices,
                                VertexInfo const &vertex_info,
                                const MassFloat *masses,
                                const MassFloat constant_mass);
             
-            void init_clusters();
+            bool init_clusters();
             
-            void add_vertex_to_clusters(PhysicalVertex &vertex);
+            bool add_vertex_to_clusters(PhysicalVertex &vertex);
 
             // -- fields used in step computation --
+
+            Math::Real total_mass;
             Math::Vector center_of_mass;
             Math::Matrix inertia_tensor;
             Math::Vector center_of_mass_velocity;
             Math::Vector angular_velocity;
             
             // -- step computation steps --
+            // self-control check
+            bool check_total_mass();
             // computes center of mass and inertia tensor
-            void find_body_properties();
+            bool find_body_properties();
             // computes velocity of center of mass and angular velocity
-            void find_body_motion();
+            bool find_body_motion();
             // corrects velocity additions from shape matching
-            void correct_velocity_additions();
+            bool correct_velocity_additions();
             // damps oscillation velocity
             void damp_velocity(PhysicalVertex &v);
             
             // helper for find_body_motion() and correct_velocity_additions()
-            Math::Vector compute_angular_velocity(const Math::Vector &angular_momentum);
+            bool compute_angular_velocity(const Math::Vector &angular_momentum, /*out*/ Math::Vector & result);
 
             // TODO: DisplayVertex display_vertices; int display_vertices_num;
         public:
@@ -83,12 +86,12 @@ namespace CrashAndSqueeze
             
             virtual ~Model();
 
-            void compute_next_step(const Force * const forces[], int forces_num);
+            bool compute_next_step(const Force * const forces[], int forces_num);
 
             void update_vertices(/*out*/ void *vertices, int vertices_num, VertexInfo const &vertex_info);
 
             int get_vertices_num() const { return vertices_num; }
-            int get_clusters_num() const { return vertices_num; }
+            int get_clusters_num() const { return clusters_num; }
             
             // TODO: function used for testing, is needed anyway?
             PhysicalVertex const *get_vertices() const { return vertices; }

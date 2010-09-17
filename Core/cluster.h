@@ -140,7 +140,7 @@ namespace CrashAndSqueeze
             // this must be called after last vertex is added
             void compute_initial_characteristics();
 
-            bool is_valid() { return valid; }
+            bool is_valid() const { return valid; }
 
             void match_shape(Math::Real dt);
 

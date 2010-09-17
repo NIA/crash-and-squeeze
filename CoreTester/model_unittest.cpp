@@ -1,10 +1,12 @@
 #include "core_tester.h"
 #include "Core/model.h"
+#include "Core/cluster.h"
 #include "Core/physical_vertex.h"
 
 namespace
 {
     const int  CLUSTERS_BY_AXES[VECTOR_SIZE] = {1, 1, 1};
+    const int  TOTAL_CLUSTERS_NUM = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
     const Real PADDING = 0.6;
 
     struct TestVertex1
@@ -12,9 +14,10 @@ namespace
         VertexFloat x, y, z;
     } vertices1[] =
         {
-            {1,2,3},
-            {-4,5.3f,8},
-            {4,-1,0.1f}
+            { 1,    2,    3},
+            {-4, 5.3f,    8},
+            { 0,    0,    0},
+            { 4,   -1, 0.1f}
 
         };
     const int VERTICES1_NUM = sizeof(vertices1)/sizeof(vertices1[0]);
@@ -26,7 +29,9 @@ namespace
     } vertices2[] = 
         {
             { 0xBADF00D, 6, 5, 4},
-            {0xDEADBEEF, 3, 2, 1}
+            {0xDEADBEEF, 7, 2, 1},
+            { 0xBADF00D, 0, 0, 0},
+            {0xDEADBEEF, 1, 1, 1},
         };
 
     template<class V> Vector get_pos(V vertex) { return Vector(); }
@@ -39,10 +44,13 @@ namespace
         Model m(vertices, SIZE, vi, CLUSTERS_BY_AXES, PADDING, masses, constant_mass);
         int vnum = m.get_vertices_num();
         const PhysicalVertex *vv = m.get_vertices();
-        /* int cnum = m.get_clusters_num();
-        const Cluster *cc = m.get_clusters(); */
+        
+        int cnum = m.get_clusters_num();
+        const Cluster *cc = m.get_clusters();
         
         ASSERT_EQ(SIZE, vnum);
+        ASSERT_EQ(TOTAL_CLUSTERS_NUM, cnum);
+        
         for(int i = 0; i < vnum; ++i)
         {
             ASSERT_EQ(get_pos(vertices[i]), vv[i].pos);
@@ -50,6 +58,11 @@ namespace
                 ASSERT_EQ(constant_mass, vv[i].mass);
             else
                 ASSERT_EQ(masses[i], vv[i].mass);
+        }
+
+        for(int i = 0; i < cnum; ++i)
+        {
+            ASSERT_TRUE(cc[i].is_valid());
         }
     }
 };
@@ -71,7 +84,7 @@ TEST(ModelTest, Creation2)
 
 TEST(ModelTest, Creation1WithMasses)
 {
-    MassFloat masses[VERTICES1_NUM] = { 26, 0.00004, 4 };
+    MassFloat masses[VERTICES1_NUM] = { 26, 0.00004, 4, 8 };
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
     test_creation(vertices1, vi1, masses);
 }

@@ -11,7 +11,7 @@ namespace CrashAndSqueeze
         // floating-point type of internal calculations
         typedef double Real;
         
-        const Real DEFAULT_REAL_PRECISION = 1e-12;
+        const Real DEFAULT_REAL_PRECISION = 1e-9;
 
         inline bool equal(Real a, Real b, Real epsilon = DEFAULT_REAL_PRECISION)
         {
