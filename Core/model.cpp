@@ -328,6 +328,9 @@ namespace CrashAndSqueeze
 
         bool Model::correct_velocity_additions()
         {
+            if( false == check_total_mass() )
+                return false;
+
             Vector linear_momentum_addition = Vector::ZERO;
             Vector angular_momentum_addition = Vector::ZERO;
 
@@ -335,24 +338,12 @@ namespace CrashAndSqueeze
             {
                 PhysicalVertex &v = vertices[i];
 
-                if(0 == v.including_clusters_num)
-                {
-                    logger.error("in Model::correct_velocity_additions: internal error: orphan vertex not belonging to any cluster", __FILE__, __LINE__);
-                    return false;
-                }
-
-                // we need average velocity addition, not sum
-                v.velocity_addition /= v.including_clusters_num;
-
                 linear_momentum_addition += v.mass*v.velocity_addition;
                 angular_momentum_addition += v.mass * cross_product(v.pos - center_of_mass, v.velocity_addition);
             }
 
-            
-            if( false == check_total_mass() )
-                return false;
-
             Vector center_of_mass_velocity_addition = linear_momentum_addition / total_mass;
+            
             Vector angular_velocity_addition;
             if( false == compute_angular_velocity(angular_momentum_addition, angular_velocity_addition) )
                 return false;

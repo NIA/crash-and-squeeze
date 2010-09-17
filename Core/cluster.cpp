@@ -206,10 +206,19 @@ namespace CrashAndSqueeze
                 Vector equilibrium_pos = get_equilibrium_position(i);
                 
                 Vector goal_position = total_deformation*equilibrium_pos + center_of_mass;
-                // TODO: thread-safe cluster addition: velocity_additions[]...
+                
                 Vector velocity_addition = goal_speed_constant*(goal_position - vertex.pos)/dt;
+
+                // we need average velocity addition, not sum, so divide by vertex.including_clusters_num
+                if(0 == vertex.including_clusters_num)
+                {
+                    logger.warning("internal error: in Cluster::apply_goal_positions: vertex with incorrect zero value of including_clusters_num", __FILE__, __LINE__);
+                    continue;
+                }
+                velocity_addition /= vertex.including_clusters_num;
+                
+                // TODO: thread-safe cluster addition: velocity_additions[]...
                 vertex.velocity_addition += velocity_addition;
-                // TODO: thread-safe cluster addition: velocity_addition_coeffs[]...
                 
                 linear_momentum_addition += vertex.mass*velocity_addition;
             }
