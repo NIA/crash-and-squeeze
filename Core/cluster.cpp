@@ -5,6 +5,8 @@ namespace CrashAndSqueeze
 {
     using Math::Real;
     using Math::equal;
+    using Math::less_or_equal;
+    using Math::greater_or_equal;
     using Math::sign;
     using Math::cube_root;
     using Math::Vector;
@@ -25,7 +27,7 @@ namespace CrashAndSqueeze
         // 1 means absolutely rigid
         const Real Cluster::DEFAULT_LINEAR_ELASTICITY_CONSTANT = 1;
         
-        // plasticity parameter: a treshold of strain, after
+        // plasticity parameter: a threshold of strain, after
         // which deformation becomes non-reversible
         const Real Cluster::DEFAULT_YIELD_CONSTANT = 0.3; //!!!
 
@@ -33,7 +35,7 @@ namespace CrashAndSqueeze
         // plasticity_state will be changed on large deformation
         const Real Cluster::DEFAULT_CREEP_CONSTANT = 40;
 
-        // plasticity paramter: a treshold of maximum allowed strain
+        // plasticity paramter: a threshold of maximum allowed strain
         const Real Cluster::DEFAULT_MAX_DEFORMATION_CONSTANT = 3;
 
         // An internal struct defining a membership of vertex in cluster
@@ -61,6 +63,12 @@ namespace CrashAndSqueeze
 
               total_mass(0),
               valid(false),
+
+              pos(Vector::ZERO),
+              size(Vector::ZERO),
+
+              deformation_callback(0),
+              deformation_callback_threshold(1),
 
               goal_speed_constant(DEFAULT_GOAL_SPEED_CONSTANT),
               linear_elasticity_constant(DEFAULT_LINEAR_ELASTICITY_CONSTANT),
@@ -265,6 +273,9 @@ namespace CrashAndSqueeze
         
         void Cluster::update_plasticity_state(Real dt)
         {
+            if(less_or_equal(max_deformation_constant, 0))
+                return;
+
             Matrix deformation = linear_transformation - Matrix::IDENTITY;
             Real deformation_measure = deformation.norm();
             if(deformation_measure > yield_constant)
@@ -284,6 +295,12 @@ namespace CrashAndSqueeze
                         plasticity_state = new_plasticity_state;
                         update_equilibrium_positions();
                         compute_symmetric_term();
+
+                        Real relative_deformation = plastic_deform_measure/max_deformation_constant;
+                        if( 0 != deformation_callback && greater_or_equal(relative_deformation, deformation_callback_threshold) )
+                        {
+                            deformation_callback(pos, size, relative_deformation);
+                        }
                     }
                 }
             }

@@ -20,6 +20,15 @@ namespace
     const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 12};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.6;
+    const Real        CALLBACK_THRESHOLD = 0.8;
+
+    void callback_func(const Vector &pos, const Vector &size, Real value)
+    {
+        const int BUF_SIZE = 128;
+        char buf[BUF_SIZE];
+        // TODO: format message
+        my_log("        [Renderer]", "ta-ada-am");
+    }
 
     //---------------- SHADER CONSTANTS ---------------------------
     //    c0-c3 is the view matrix
@@ -208,6 +217,8 @@ void Application::add_model(Model &model, bool physical)
                               CLUSTER_PADDING_COEFF,
                               NULL,
                               VERTEX_MASS);
+        
+        model_entity.physical_model->set_space_deformation_callback(callback_func, CALLBACK_THRESHOLD);
         model.unlock_vertex_buffer();
 
         static const int BUFFER_SIZE = 128;

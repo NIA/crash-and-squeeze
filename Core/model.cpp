@@ -38,9 +38,17 @@ namespace CrashAndSqueeze
                 return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
             }
 
-            inline int compute_cluster_index(const int indices[VECTOR_SIZE], const int clusters_num[VECTOR_SIZE])
+            // TODO: test this
+            int axis_indices_to_index(const int indices[VECTOR_SIZE], const int clusters_by_axes[VECTOR_SIZE])
             {
-                return indices[0] + indices[1]*clusters_num[0] + indices[2]*clusters_num[0]*clusters_num[1];
+                return indices[0] + indices[1]*clusters_by_axes[0] + indices[2]*clusters_by_axes[0]*clusters_by_axes[1];
+            }
+            void index_to_axis_indices(int index, const int clusters_by_axes[VECTOR_SIZE], /* out */ int indices[VECTOR_SIZE])
+            {
+                int horisontal_layer_size = clusters_by_axes[0]*clusters_by_axes[1];
+                indices[2] = index / horisontal_layer_size;
+                indices[1] = (index % horisontal_layer_size) / clusters_by_axes[1];
+                indices[0] = (index % horisontal_layer_size) % clusters_by_axes[1];
             }
             
             bool integrate_velocity(PhysicalVertex &v, const Force * const forces[], int forces_num, Math::Real dt)
@@ -196,6 +204,24 @@ namespace CrashAndSqueeze
                     return false;
             }
 
+            int axis_indices[VECTOR_SIZE];
+            // -- For each cluster: set its space --
+            for(int i = 0; i < clusters_num; ++i)
+            {
+                index_to_axis_indices(i, clusters_by_axes, axis_indices);
+                if( axis_indices_to_index(axis_indices, clusters_by_axes) != i )
+                {
+                    logger.error("in Model::init_clusters: internal assertion failed: i -> {i1, i2, i3} -> i', i' != i");
+                    return false;
+                }
+
+                Vector pos;
+                for(int j = 0; j < VECTOR_SIZE; ++j)
+                    pos[j] = axis_indices[j]*cluster_sizes[j];
+
+                clusters[i].set_space(pos, cluster_sizes);
+            }
+
             // -- For each cluster: precompute --
             for(int i = 0; i < clusters_num; ++i)
             {
@@ -232,7 +258,7 @@ namespace CrashAndSqueeze
             }
 
             // -- and assign to it --
-            int cluster_index = compute_cluster_index(cluster_indices, clusters_by_axes);
+            int cluster_index = axis_indices_to_index(cluster_indices, clusters_by_axes);
             clusters[cluster_index].add_vertex(vertex);
 
             // -- and, probably, to his neighbours --
@@ -244,7 +270,7 @@ namespace CrashAndSqueeze
                     abs(position[j] - cluster_indices[j]*cluster_sizes[j]) < padding[j] )
                 {
                     --cluster_indices[j];
-                    int cluster_index = compute_cluster_index(cluster_indices, clusters_by_axes);
+                    int cluster_index = axis_indices_to_index(cluster_indices, clusters_by_axes);
                     clusters[cluster_index].add_vertex(vertex);
                     ++cluster_indices[j];
                 }
@@ -255,13 +281,21 @@ namespace CrashAndSqueeze
                     abs((cluster_indices[j] + 1)*cluster_sizes[j] - position[j]) < padding[j] )
                 {
                     ++cluster_indices[j];
-                    int cluster_index = compute_cluster_index(cluster_indices, clusters_by_axes);
+                    int cluster_index = axis_indices_to_index(cluster_indices, clusters_by_axes);
                     clusters[cluster_index].add_vertex(vertex);
                     --cluster_indices[j];
                 }
             }
 
             return true;
+        }
+        
+        void  Model::set_space_deformation_callback(SpaceDeformationCallback callback, Math::Real threshold)
+        {
+            for(int i = 0; i < clusters_num; ++i)
+            {
+                clusters[i].set_deformation_callback(callback, threshold);
+            }
         }
 
         bool Model::check_total_mass()

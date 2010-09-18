@@ -1,8 +1,9 @@
 #pragma once
 #include "Core/core.h"
+#include "Core/physical_vertex.h"
+#include "Core/callbacks.h"
 #include "Math/vector.h"
 #include "Math/matrix.h"
-#include "Core/physical_vertex.h"
 
 namespace CrashAndSqueeze
 {
@@ -31,6 +32,16 @@ namespace CrashAndSqueeze
             bool initial_characteristics_computed;
             bool valid;
 
+            // pos and size define the space occupied by the cluster
+            Math::Vector pos;
+            Math::Vector size;
+            
+            // deformation_callback is called when relative deformation value
+            // (deformation value divided by max_deformation_constant)
+            // exceeds deformation_callback_threshold
+            SpaceDeformationCallback deformation_callback;
+            Math::Real deformation_callback_threshold;
+
             // a constant, determining how fast points are pulled to
             // their position, i.e. how rigid the body is:
             // 0 means no constraint at all, 1 means absolutely rigid
@@ -44,7 +55,7 @@ namespace CrashAndSqueeze
             // 1 means absolutely rigid
             Math::Real linear_elasticity_constant;
 
-            // plasticity parameter: a treshold of strain, after
+            // plasticity parameter: a threshold of strain, after
             // which deformation becomes non-reversible
             Math::Real yield_constant;
             
@@ -52,7 +63,7 @@ namespace CrashAndSqueeze
             // plasticity_state will be changed on large deformation
             Math::Real creep_constant;
 
-            // plasticity paramter: a treshold of maximum allowed strain
+            // plasticity paramter: a threshold of maximum allowed strain
             Math::Real max_deformation_constant;
 
             // -- variable (at run-time) fields --
@@ -147,6 +158,9 @@ namespace CrashAndSqueeze
             const Math::Matrix & get_rotation() const { return rotation; }
             const Math::Matrix & get_total_deformation() const { return total_deformation; }
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
+
+            void set_space(const Math::Vector &pos, const Math::Vector &size) { this->pos = pos; this->size = size; }
+            void set_deformation_callback(SpaceDeformationCallback callback, Math::Real threshold) { deformation_callback = callback; deformation_callback_threshold = threshold; }
 
             static const int INITIAL_ALLOCATED_VERTICES_NUM = 100;
 

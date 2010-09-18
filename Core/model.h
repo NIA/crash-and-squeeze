@@ -2,6 +2,7 @@
 #include "Core/core.h"
 #include "Core/vertex_info.h"
 #include "Core/force.h"
+#include "Core/callbacks.h"
 #include "Math/floating_point.h"
 #include "Math/Vector.h"
 #include "Math/Matrix.h"
@@ -89,8 +90,8 @@ namespace CrashAndSqueeze
                   Math::Real cluster_padding_coeff,
                   const MassFloat *masses,
                   const MassFloat constant_mass = 0);
-            
-            virtual ~Model();
+
+            void set_space_deformation_callback(SpaceDeformationCallback callback, Math::Real threshold);
 
             bool compute_next_step(const Force * const forces[], int forces_num);
 
@@ -103,6 +104,8 @@ namespace CrashAndSqueeze
             PhysicalVertex const *get_vertices() const { return vertices; }
             // TODO: function used for testing, is needed anyway?
             Cluster const *get_clusters() const { return clusters; }
+            
+            virtual ~Model();
 
             static const Math::Real DEFAULT_DAMPING_CONSTANT;
             
