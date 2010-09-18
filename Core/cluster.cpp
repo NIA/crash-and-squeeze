@@ -12,6 +12,31 @@ namespace CrashAndSqueeze
     
     namespace Core
     {
+        // a constant, determining how fast points are pulled to
+        // their position, i.e. how rigid the body is:
+        // 0 means no constraint at all, 1 means absolutely rigid
+        const Real Cluster::DEFAULT_GOAL_SPEED_CONSTANT = 1;
+        
+        // a constant, determining how rigid body is:
+        // if it equals `b`, then optimal deformation for goal positions
+        // is calculated as (1 - b)*A + b*R, where R is optimal rotation
+        // and A is optimal linear transformation.
+        // Thus 0 means freely (but only linearly) deformable body,
+        // 1 means absolutely rigid
+        const Real Cluster::DEFAULT_LINEAR_ELASTICITY_CONSTANT = 1;
+        
+        // plasticity parameter: a treshold of strain, after
+        // which deformation becomes non-reversible
+        const Real Cluster::DEFAULT_YIELD_CONSTANT = 0.3; //!!!
+
+        // plasticity paramter: a coefficient determining how fast
+        // plasticity_state will be changed on large deformation
+        const Real Cluster::DEFAULT_CREEP_CONSTANT = 40;
+
+        // plasticity paramter: a treshold of maximum allowed strain
+        const Real Cluster::DEFAULT_MAX_DEFORMATION_CONSTANT = 3;
+
+        // An internal struct defining a membership of vertex in cluster
         struct PhysicalVertexMappingInfo
         {
             // index in model's vertex array
@@ -25,6 +50,8 @@ namespace CrashAndSqueeze
             // position in deformed shape (plasticity_state*initial_offset_position)
             Math::Vector equilibrium_offset_position;
         };
+        
+        // -- Cluster methods --
 
         Cluster::Cluster()
             : vertices(NULL),
@@ -37,9 +64,9 @@ namespace CrashAndSqueeze
 
               goal_speed_constant(DEFAULT_GOAL_SPEED_CONSTANT),
               linear_elasticity_constant(DEFAULT_LINEAR_ELASTICITY_CONSTANT),
-              damping_constant(DEFAULT_DAMPING_CONSTANT),
               yield_constant(DEFAULT_YIELD_CONSTANT),
               creep_constant(DEFAULT_CREEP_CONSTANT),
+              max_deformation_constant(DEFAULT_MAX_DEFORMATION_CONSTANT),
 
               initial_center_of_mass(Vector::ZERO),
               center_of_mass(Vector::ZERO),
@@ -252,7 +279,7 @@ namespace CrashAndSqueeze
                     Matrix plastic_deformation = new_plasticity_state - Matrix::IDENTITY;
                     Real plastic_deform_measure = plastic_deformation.norm();
                     
-                    if( plastic_deform_measure < DEFAULT_MAX_DEFORMATION_CONSTANT ) // !!!
+                    if( plastic_deform_measure < max_deformation_constant )
                     {
                         plasticity_state = new_plasticity_state;
                         update_equilibrium_positions();

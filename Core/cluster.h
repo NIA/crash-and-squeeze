@@ -9,27 +9,6 @@ namespace CrashAndSqueeze
     namespace Core
     {
         struct PhysicalVertexMappingInfo;
-        
-        // a constant, determining how fast points are pulled to
-        // their position, i.e. how rigid the body is:
-        // 0 means no constraint at all, 1 means absolutely rigid
-        const Math::Real DEFAULT_GOAL_SPEED_CONSTANT = 1;
-        
-        // a constant, determining how rigid body is:
-        // if it equals `b`, then optimal deformation for goal positions
-        // is calculated as (1 - b)*A + b*R, where R is optimal rotation
-        // and A is optimal linear transformation.
-        // Thus 0 means freely (but only linearly) deformable body,
-        // 1 means absolutely rigid
-        const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT = 1;
-        
-        // a constant, determining how much deformation velocities are damped:
-        // 0 - no damping of vibrations, 1 - maximum damping, rigid body
-        const Math::Real DEFAULT_DAMPING_CONSTANT = 0.7;
-
-        const Math::Real DEFAULT_YIELD_CONSTANT = 0.1; //!!!
-        const Math::Real DEFAULT_CREEP_CONSTANT = 40;
-        const Math::Real DEFAULT_MAX_DEFORMATION_CONSTANT = 3;
 
         class Cluster
         {
@@ -65,10 +44,6 @@ namespace CrashAndSqueeze
             // 1 means absolutely rigid
             Math::Real linear_elasticity_constant;
 
-            // a constant, determining how much energy is lost:
-            // 0 - approx. no loss, 1 - maximum damping, no repulse
-            Math::Real damping_constant;
-
             // plasticity parameter: a treshold of strain, after
             // which deformation becomes non-reversible
             Math::Real yield_constant;
@@ -76,6 +51,9 @@ namespace CrashAndSqueeze
             // plasticity paramter: a coefficient determining how fast
             // plasticity_state will be changed on large deformation
             Math::Real creep_constant;
+
+            // plasticity paramter: a treshold of maximum allowed strain
+            Math::Real max_deformation_constant;
 
             // -- variable (at run-time) fields --
 
@@ -145,7 +123,7 @@ namespace CrashAndSqueeze
             void match_shape(Math::Real dt);
 
             // -- getters/setters --
-            
+
             int get_vertices_num() const { return vertices_num; }
 
             PhysicalVertex & get_vertex(int index);
@@ -157,21 +135,26 @@ namespace CrashAndSqueeze
             // (measured off the initial center of mass of the cluster)
             // taking into account plasticity_state
             const Math::Vector & get_equilibrium_position(int index) const;
-            
+
             Math::Real get_total_mass() const { return total_mass; }
-            
+
             Math::Real get_goal_speed_constant() const { return goal_speed_constant; }
             Math::Real get_linear_elasticity_constant() const { return linear_elasticity_constant; }
-            Math::Real get_damping_constant() const { return damping_constant; }
             Math::Real get_yield_constant() const { return yield_constant; }
             Math::Real get_creep_constant() const { return creep_constant; }
-            
+
             const Math::Vector & get_center_of_mass() const { return center_of_mass; }
             const Math::Matrix & get_rotation() const { return rotation; }
             const Math::Matrix & get_total_deformation() const { return total_deformation; }
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
-            
+
             static const int INITIAL_ALLOCATED_VERTICES_NUM = 100;
+
+            static const Math::Real DEFAULT_GOAL_SPEED_CONSTANT;
+            static const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT;
+            static const Math::Real DEFAULT_YIELD_CONSTANT;
+            static const Math::Real DEFAULT_CREEP_CONSTANT;
+            static const Math::Real DEFAULT_MAX_DEFORMATION_CONSTANT;
         private:
             // No copying!
             Cluster(const Cluster &);

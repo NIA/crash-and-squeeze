@@ -16,6 +16,10 @@ namespace CrashAndSqueeze
     
     namespace Core
     {
+        // a constant, determining how much deformation velocities are damped:
+        // 0 - no damping of vibrations, 1 - maximum damping, rigid body
+        const Real Model::DEFAULT_DAMPING_CONSTANT = 0.7;
+        
         namespace
         {
             // -- useful constants --
@@ -81,6 +85,7 @@ namespace CrashAndSqueeze
               clusters(NULL),
               
               cluster_padding_coeff(cluster_padding_coeff),
+              damping_constant(DEFAULT_DAMPING_CONSTANT),
 
               min_pos(MAX_COORDINATE_VECTOR),
               max_pos(-MAX_COORDINATE_VECTOR), 
@@ -364,7 +369,7 @@ namespace CrashAndSqueeze
         {
             Vector rigid_velocity = center_of_mass_velocity + cross_product(angular_velocity, v.pos - center_of_mass);
             Vector oscillation_velocity = v.velocity - rigid_velocity;
-            v.velocity -= DEFAULT_DAMPING_CONSTANT*oscillation_velocity; // !!!
+            v.velocity -= damping_constant*oscillation_velocity;
         }
 
         bool Model::compute_next_step(const Force * const forces[], int forces_num)
