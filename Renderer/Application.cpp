@@ -321,9 +321,9 @@ void Application::run()
     window.update();
     
     Stopwatch stopwatch;
+    Stopwatch total_stopwatch;
     PerformanceReporter render_performance_reporter("rendering");
     PerformanceReporter total_performance_reporter("total");
-    double total_time = 0;
 
     int physics_frames = 0;
     for(int i = 0; i < forces_num; ++i)
@@ -351,7 +351,7 @@ void Application::run()
         }
         else
         {
-            total_time = 0;
+            total_stopwatch.start();
             // physics
             if(emulation_enabled || emultate_one_step)
             {
@@ -372,7 +372,6 @@ void Application::run()
                         {
                             performance_reporter->add_measurement(time);
                         }
-                        total_time += time;
                         
                         Vertex *vertices = display_model->lock_vertex_buffer();
                         physical_model->update_vertices(vertices, display_model->get_vertices_count(), VERTEX_INFO);
@@ -387,10 +386,8 @@ void Application::run()
             // graphics
             stopwatch.start();
             render();
-            double time = stopwatch.stop();
-            render_performance_reporter.add_measurement(time);
-            total_time += time;
-            total_performance_reporter.add_measurement(total_time);
+            render_performance_reporter.add_measurement(stopwatch.stop());
+            total_performance_reporter.add_measurement(total_stopwatch.stop());
         }
     }
 
