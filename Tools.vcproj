@@ -185,6 +185,15 @@
 				>
 			</File>
 		</Filter>
+		<Filter
+			Name="Collections"
+			Filter="Collections\*.*"
+			>
+			<File
+				RelativePath=".\Collections\array.h"
+				>
+			</File>
+		</Filter>
 	</Files>
 	<Globals>
 	</Globals>

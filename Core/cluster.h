@@ -4,6 +4,7 @@
 #include "Core/callbacks.h"
 #include "Math/vector.h"
 #include "Math/matrix.h"
+#include "Collections/array.h"
 
 namespace CrashAndSqueeze
 {
@@ -17,12 +18,7 @@ namespace CrashAndSqueeze
             // -- constant (at run-time) fields --
             
             // array of vertices belonging to the cluster
-            PhysicalVertexMappingInfo *vertices;
-            
-            // number of vertices in vertex_indices
-            int vertices_num;
-            // allocated space for vertices
-            int allocated_vertices_num; 
+            Collections::Array<PhysicalVertexMappingInfo> vertex_infos;
 
             // initial center of mass of vertices
             Math::Vector initial_center_of_mass;
@@ -86,7 +82,6 @@ namespace CrashAndSqueeze
             Math::Matrix total_deformation;
             
             // -- access helpers --
-            bool check_vertex_index(int index, const char *error_message) const;
             bool check_initial_characteristics() const;
             
             // -- shape matching steps --
@@ -135,7 +130,7 @@ namespace CrashAndSqueeze
 
             // -- getters/setters --
 
-            int get_vertices_num() const { return vertices_num; }
+            int get_vertices_num() const { return vertex_infos.size(); }
 
             PhysicalVertex & get_vertex(int index);
             const PhysicalVertex & get_vertex(int index) const;

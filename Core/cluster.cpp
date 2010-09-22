@@ -56,9 +56,7 @@ namespace CrashAndSqueeze
         // -- Cluster methods --
 
         Cluster::Cluster()
-            : vertices(NULL),
-              vertices_num(0),
-              allocated_vertices_num(INITIAL_ALLOCATED_VERTICES_NUM),
+            : vertex_infos(INITIAL_ALLOCATED_VERTICES_NUM),
               initial_characteristics_computed(true),
 
               total_mass(0),
@@ -82,7 +80,6 @@ namespace CrashAndSqueeze
               total_deformation(Matrix::IDENTITY),
               plasticity_state(Matrix::IDENTITY)
         {
-            vertices = new PhysicalVertexMappingInfo[allocated_vertices_num];
         }
 
         void Cluster::add_vertex(PhysicalVertex &vertex)
@@ -90,19 +87,10 @@ namespace CrashAndSqueeze
             // update mass
             total_mass += vertex.mass;
 
-            // reallocate array if it is full
-            if( vertices_num == allocated_vertices_num )
-            {
-                allocated_vertices_num *= 2;
-                PhysicalVertexMappingInfo *new_vertices = new PhysicalVertexMappingInfo[allocated_vertices_num];
-                memcpy(new_vertices, vertices, vertices_num*sizeof(vertices[0]));
-                delete[] vertices;
-                vertices = new_vertices;
-            }
-            
             // add new vertex
-            vertices[vertices_num].vertex = &vertex;
-            ++vertices_num;
+            PhysicalVertexMappingInfo info;
+            info.vertex = &vertex;
+            vertex_infos.push_back(info);
 
             // increment vertex's cluster counter
             ++vertex.including_clusters_num;
@@ -116,12 +104,12 @@ namespace CrashAndSqueeze
             update_center_of_mass();
             initial_center_of_mass = center_of_mass;
 
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < get_vertices_num(); ++i)
             {
                 PhysicalVertex &v = get_vertex(i);
                 
-                vertices[i].initial_offset_position = v.pos - initial_center_of_mass;
-                vertices[i].equilibrium_offset_position = vertices[i].initial_offset_position;
+                vertex_infos[i].initial_offset_position = v.pos - initial_center_of_mass;
+                vertex_infos[i].equilibrium_offset_position = vertex_infos[i].initial_offset_position;
             }
             
             initial_characteristics_computed = true;
@@ -131,7 +119,7 @@ namespace CrashAndSqueeze
 
         void Cluster::match_shape(Real dt)
         {
-            if(0 == vertices_num)
+            if(0 == get_vertices_num())
                 return;
 
             update_center_of_mass();
@@ -146,7 +134,7 @@ namespace CrashAndSqueeze
             center_of_mass = Vector::ZERO;
             if( 0 != total_mass )
             {
-                for(int i = 0; i < vertices_num; ++i)
+                for(int i = 0; i < get_vertices_num(); ++i)
                 {
                     PhysicalVertex &v = get_vertex(i);
                     center_of_mass += v.mass*v.pos/total_mass;
@@ -155,16 +143,16 @@ namespace CrashAndSqueeze
         }
         void Cluster::update_equilibrium_positions()
         {
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < get_vertices_num(); ++i)
             {
-                vertices[i].equilibrium_offset_position = plasticity_state * vertices[i].initial_offset_position;
+                vertex_infos[i].equilibrium_offset_position = plasticity_state * vertex_infos[i].initial_offset_position;
             }
         }
 
         void Cluster::compute_asymmetric_term()
         {
             asymmetric_term = Matrix::ZERO;
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < get_vertices_num(); ++i)
             {
                 PhysicalVertex &v = get_vertex(i);
                 Vector equilibrium_pos = get_equilibrium_position(i);
@@ -176,7 +164,7 @@ namespace CrashAndSqueeze
         void Cluster::compute_symmetric_term()
         {
             symmetric_term = Matrix::ZERO;
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < get_vertices_num(); ++i)
             {
                 PhysicalVertex &v = get_vertex(i);
                 Vector equilibrium_pos = get_equilibrium_position(i);
@@ -235,7 +223,7 @@ namespace CrashAndSqueeze
             // -- find and apply velocity_addition --
 
             Vector linear_momentum_addition = Vector::ZERO;
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < get_vertices_num(); ++i)
             {
                 PhysicalVertex &vertex = get_vertex(i);
                 Vector equilibrium_pos = get_equilibrium_position(i);
@@ -263,7 +251,7 @@ namespace CrashAndSqueeze
             if( 0 != total_mass )
             {
                 Vector velocity_correction = - linear_momentum_addition / total_mass;
-                for(int i = 0; i < vertices_num; ++i)
+                for(int i = 0; i < get_vertices_num(); ++i)
                 {
                     PhysicalVertex &vertex = get_vertex(i);
                     vertex.velocity_addition += velocity_correction;
@@ -306,16 +294,6 @@ namespace CrashAndSqueeze
             }
         }
             
-        bool Cluster::check_vertex_index(int index, const char *error_message) const
-        {
-            if(index < 0 || index >= vertices_num)
-            {
-                logger.error(error_message, __FILE__, __LINE__);
-                return false;
-            }
-            return true;
-        }
-
         bool Cluster::check_initial_characteristics() const
         {
             if( ! initial_characteristics_computed )
@@ -328,18 +306,12 @@ namespace CrashAndSqueeze
 
         const PhysicalVertex & Cluster::get_vertex(int index) const
         {
-            if( check_vertex_index(index, "Cluster::get_vertex: index out of range") )
-                return *vertices[index].vertex;
-            else
-                return *vertices[0].vertex;
+            return *vertex_infos[index].vertex;
         }
 
         PhysicalVertex & Cluster::get_vertex(int index)
         {
-            if( check_vertex_index(index, "Cluster::get_vertex: index out of range") )
-                return *vertices[index].vertex;
-            else
-                return *vertices[0].vertex;
+            return *vertex_infos[index].vertex;
         }
 
         const Math::Vector & Cluster::get_initial_center_of_mass() const
@@ -354,16 +326,11 @@ namespace CrashAndSqueeze
         const Vector & Cluster::get_equilibrium_position(int index) const
         {
             check_initial_characteristics();
-            
-            if( check_vertex_index(index, "Cluster::get_equilibrium_position: index out of range") )
-                return vertices[index].equilibrium_offset_position;
-            else
-                return Vector::ZERO;
+            return vertex_infos[index].equilibrium_offset_position;
         }
 
         Cluster::~Cluster()
         {
-            if(NULL != vertices) delete[] vertices;
         }
     }
 }
