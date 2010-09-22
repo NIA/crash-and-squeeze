@@ -88,9 +88,7 @@ namespace CrashAndSqueeze
             total_mass += vertex.mass;
 
             // add new vertex
-            PhysicalVertexMappingInfo info;
-            info.vertex = &vertex;
-            vertex_infos.push_back(info);
+            vertex_infos.create_item().vertex = &vertex;
 
             // increment vertex's cluster counter
             ++vertex.including_clusters_num;

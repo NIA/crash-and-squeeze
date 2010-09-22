@@ -59,6 +59,16 @@ TEST(ArrayTest, AddOne)
     EXPECT_TRUE( item == const_a[0] );
 }
 
+TEST(ArrayTest, CreateOne)
+{
+    Array a;
+    Item item = {2, '3', 0};
+
+    a.create_item() = item;
+    EXPECT_EQ(1, a.size());
+    EXPECT_TRUE( item == a[0] );
+}
+
 TEST(ArrayTest, AddOneToLazy)
 {
     Array a(0);

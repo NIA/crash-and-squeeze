@@ -44,7 +44,8 @@ namespace CrashAndSqueeze
                 return items_num;
             }
 
-            void push_back(T const & item)
+            // adds a new item to array and returns it
+            T & create_item()
             {
                 if( items_num == allocated_items_num )
                 {
@@ -65,8 +66,15 @@ namespace CrashAndSqueeze
                     items = new_items;
                 }
 
-                items[items_num] = item;
                 ++items_num;
+                return items[items_num - 1];
+            }
+
+            // requires operator= to be defined for T;
+            // if none, use create_new() instead of push_back()
+            void push_back(T const & item)
+            {
+                create_item() = item;
             }
             
             static const int ITEM_NOT_FOUND_INDEX = -1;
