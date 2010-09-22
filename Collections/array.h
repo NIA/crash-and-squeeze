@@ -28,7 +28,15 @@ namespace CrashAndSqueeze
             Array(int initial_allocated = INITIAL_ALLOCATED)
                 : items(NULL), items_num(0), allocated_items_num(initial_allocated)
             {
-                items = new T[allocated_items_num];
+                if( initial_allocated < 0 )
+                {
+                    logger.error("creating Collections::Array with initial_allocated < 0");
+                }
+                else
+                {
+                    if( initial_allocated > 0 )
+                        items = new T[allocated_items_num];
+                }
             }
 
             int size() const
@@ -40,15 +48,56 @@ namespace CrashAndSqueeze
             {
                 if( items_num == allocated_items_num )
                 {
-                    allocated_items_num *= 2;
+                    if(0 == allocated_items_num)
+                        allocated_items_num = INITIAL_ALLOCATED;
+                    else
+                        allocated_items_num *= 2;
+                    
                     T *new_items = new T[allocated_items_num];
-                    memcpy(new_items, items, items_num*sizeof(items[0]));
-                    delete[] items;
+                    
+                    // this can be only if allocated_items_num was 0
+                    if(0 != items)
+                    {
+                        memcpy(new_items, items, items_num*sizeof(items[0]));
+                        delete[] items;
+                    }
+                    
                     items = new_items;
                 }
 
                 items[items_num] = item;
                 ++items_num;
+            }
+            
+            static const int ITEM_NOT_FOUND_INDEX = -1;
+            
+            typedef bool (* CompareFunc)(T const &a, T const &b);
+
+            // returns index of first item in array, equal to `item`
+            // according to given comparing function;
+            // returns -1 if there is none
+            int index_of(T const & item, CompareFunc compare) const
+            {
+                for(int i = 0; i < items_num; ++i)
+                {
+                    if(compare(item, items[i]))
+                        return i;
+                }
+                return ITEM_NOT_FOUND_INDEX;
+            }
+
+            // returns index of first item in array, equal to `item`
+            // according to given comparing function;
+            // adds it to array and returns its index, if there is none
+            int find_or_add(T const & item, CompareFunc compare)
+            {
+                int index = index_of(item, compare);
+                if(ITEM_NOT_FOUND_INDEX == index)
+                {
+                    index = items_num;
+                    push_back(item);
+                }
+                return index;
             }
 
             T & operator[](int index)
@@ -71,6 +120,10 @@ namespace CrashAndSqueeze
             {
                 delete[] items;
             }
+        private:
+            // No copying!
+            Array(const Array<T> &);
+            Array<T> & operator=(const Array<T> &);
         };
     }
 }
