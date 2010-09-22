@@ -58,6 +58,9 @@ namespace
                 ASSERT_EQ(constant_mass, vv[i].mass);
             else
                 ASSERT_EQ(masses[i], vv[i].mass);
+
+            ASSERT_GE( vv[i].nearest_cluster_index, 0 );
+            ASSERT_LT( vv[i].nearest_cluster_index, cnum );
         }
 
         for(int i = 0; i < cnum; ++i)

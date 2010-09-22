@@ -24,6 +24,8 @@ TEST(ClusterTest, AddOne)
     v.mass = 12;
     v.pos = Vector(1,2,3);
     c.add_vertex(v);
+    EXPECT_EQ( 1, v.including_clusters_num );
+    
     c.compute_initial_characteristics();
 
     EXPECT_EQ( 1, c.get_vertices_num() );
@@ -44,6 +46,10 @@ TEST(ClusterTest, AddTwo)
     v.pos = Vector(4,7,10);
     c.add_vertex(u);
     c.add_vertex(v);
+
+    EXPECT_EQ( 1, u.including_clusters_num );
+    EXPECT_EQ( 1, v.including_clusters_num );
+
     c.compute_initial_characteristics();
 
     EXPECT_EQ( 2, c.get_vertices_num() );
@@ -83,6 +89,18 @@ TEST(ClusterTest, AddSeveral)
     EXPECT_EQ( Vector(-1, 1,0), c.get_equilibrium_position(1) );
     EXPECT_EQ( Vector( 1,-1,0), c.get_equilibrium_position(2) );
     EXPECT_EQ( Vector( 1, 1,0), c.get_equilibrium_position(3) );
+}
+
+TEST(ClusterTest, AddToMoreThanOne)
+{
+    Cluster c1;
+    Cluster c2;
+    PhysicalVertex v;
+
+    c1.add_vertex(v);
+    c2.add_vertex(v);
+
+    EXPECT_EQ(2, v.including_clusters_num);
 }
 
 TEST(ClusterTest, AddMany)

@@ -231,22 +231,13 @@ namespace CrashAndSqueeze
             return true;
         }
 
-        bool Model::add_vertex_to_clusters(PhysicalVertex &vertex)
+        bool Model::get_nearest_cluster_indices(const Math::Vector position, /*out*/ int cluster_indices[VECTOR_SIZE])
         {
-            const Vector padding = cluster_sizes*cluster_padding_coeff;
-
-            // -- find position, measured off the min_pos --
-            const Vector position = vertex.pos - min_pos;
-
-            // -- choose a cluster --
-
-            // "coordinates" of a cluster: axis indices
-            int cluster_indices[VECTOR_SIZE];
             for(int j = 0; j < VECTOR_SIZE; ++j)
             {
                 if(equal(0, cluster_sizes[j]))
                 {
-                    logger.error("creating model with zero dimension", __FILE__, __LINE__);
+                    logger.error("in Model::get_nearest_cluster_indices: cluster with a zero dimension, probably creating model with a zero or too little dimension", __FILE__, __LINE__);
                     return false;
                 }
                 cluster_indices[j] = static_cast<int>(position[j]/cluster_sizes[j]);
@@ -257,8 +248,25 @@ namespace CrashAndSqueeze
                     cluster_indices[j] = clusters_by_axes[j] - 1;
             }
 
-            // -- and assign to it --
+            return true;
+        }
+
+        bool Model::add_vertex_to_clusters(PhysicalVertex &vertex)
+        {
+            const Vector padding = cluster_sizes*cluster_padding_coeff;
+
+            // -- find position, measured off the min_pos --
+            const Vector position = vertex.pos - min_pos;
+
+            // -- choose a cluster --
+
+            int cluster_indices[VECTOR_SIZE];
+            if( false == get_nearest_cluster_indices(position, cluster_indices) )
+                return false;
             int cluster_index = axis_indices_to_index(cluster_indices, clusters_by_axes);
+
+            // -- and assign to it --
+            vertex.nearest_cluster_index = cluster_index;
             clusters[cluster_index].add_vertex(vertex);
 
             // -- and, probably, to his neighbours --

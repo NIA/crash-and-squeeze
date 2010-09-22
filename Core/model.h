@@ -9,8 +9,6 @@
 
 namespace CrashAndSqueeze
 {
-    class Cluster;
-
     namespace Core
     {
         struct PhysicalVertex;
@@ -51,6 +49,7 @@ namespace CrashAndSqueeze
             
             bool init_clusters();
             
+            bool get_nearest_cluster_indices(const Math::Vector position, /*out*/ int cluster_indices[Math::VECTOR_SIZE]);
             bool add_vertex_to_clusters(PhysicalVertex &vertex);
 
             // -- fields used in step computation --
