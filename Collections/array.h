@@ -1,5 +1,6 @@
 #pragma once
 #include "Logging/logger.h"
+#include <string.h>
 
 namespace CrashAndSqueeze
 {
@@ -36,10 +37,10 @@ namespace CrashAndSqueeze
             // returns -1 if there is none
             int index_of(T const & item, CompareFunc compare) const;
 
-            // returns index of first item in array, equal to `item`
+            // returns first item in array, equal to `item`
             // according to given comparing function;
-            // adds it to array and returns its index, if there is none
-            int find_or_add(T const & item, CompareFunc compare);
+            // adds it to array and returns it, if there is none
+            T & find_or_add(T const & item, CompareFunc compare);
 
             T & operator[](int index);
             const T & operator[](int index) const;
@@ -60,7 +61,7 @@ namespace CrashAndSqueeze
         {
             if(index < 0 || index >= items_num)
             {
-                logger.error("Collections::Array index out of range");
+                Logging::logger.error("Collections::Array index out of range");
                 return false;
             }
             return true;
@@ -72,7 +73,7 @@ namespace CrashAndSqueeze
         {
             if( initial_allocated < 0 )
             {
-                logger.error("creating Collections::Array with initial_allocated < 0");
+                Logging::logger.error("creating Collections::Array with initial_allocated < 0");
             }
             else
             {
@@ -125,7 +126,7 @@ namespace CrashAndSqueeze
         }
 
         template<class T>
-        int Array<T>::find_or_add(T const & item, CompareFunc compare)
+        T & Array<T>::find_or_add(T const & item, CompareFunc compare)
         {
             int index = index_of(item, compare);
             if(ITEM_NOT_FOUND_INDEX == index)
@@ -133,7 +134,7 @@ namespace CrashAndSqueeze
                 index = items_num;
                 push_back(item);
             }
-            return index;
+            return items[index];
         }
 
         template<class T>

@@ -191,7 +191,7 @@ TEST(ArrayTest, FindOrAdd_Find)
     a.push_back(some_boring_item);
     int size = a.size();
 
-    EXPECT_EQ(2, a.find_or_add(item, compare_items));
+    EXPECT_TRUE(a[2] == a.find_or_add(item, compare_items));
     // nothing added
     EXPECT_EQ(size, a.size());
 }
@@ -207,7 +207,8 @@ TEST(ArrayTest, FindOrAdd_Add)
 
     int size = a.size();
 
-    EXPECT_EQ(size, a.find_or_add(item, compare_items));
+    EXPECT_TRUE(a[size] == a.find_or_add(item, compare_items));
+    EXPECT_TRUE(item == a[size]);
     // nothing added
     EXPECT_EQ(size + 1, a.size());
 }
