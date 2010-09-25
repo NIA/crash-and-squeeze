@@ -25,18 +25,18 @@ namespace CrashAndSqueeze
         // and A is optimal linear transformation.
         // Thus 0 means freely (but only linearly) deformable body,
         // 1 means absolutely rigid
-        const Real Cluster::DEFAULT_LINEAR_ELASTICITY_CONSTANT = 1;
+        const Real Cluster::DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.7;
         
         // plasticity parameter: a threshold of strain, after
         // which deformation becomes non-reversible
-        const Real Cluster::DEFAULT_YIELD_CONSTANT = 0.3; //!!!
+        const Real Cluster::DEFAULT_YIELD_CONSTANT = 0.3;
 
         // plasticity paramter: a coefficient determining how fast
         // plasticity_state will be changed on large deformation
-        const Real Cluster::DEFAULT_CREEP_CONSTANT = 10;
+        const Real Cluster::DEFAULT_CREEP_CONSTANT = 30;
 
         // plasticity paramter: a threshold of maximum allowed strain
-        const Real Cluster::DEFAULT_MAX_DEFORMATION_CONSTANT = 3;
+        const Real Cluster::DEFAULT_MAX_DEFORMATION_CONSTANT = 2.6;
         
         // -- Cluster methods --
 

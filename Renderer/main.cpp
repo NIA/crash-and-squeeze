@@ -27,7 +27,7 @@ namespace
     const D3DXCOLOR NO_DEFORM_COLOR = CYLINDER_COLOR;//D3DCOLOR_XRGB(0, 255, 0);
     const D3DXCOLOR MAX_DEFORM_COLOR = D3DCOLOR_XRGB(255, 0, 0);
 
-    const Real     CALLBACK_THRESHOLD = 0.6;
+    const Real     CALLBACK_THRESHOLD = 0.8;
 
     std::ofstream log_file("renderer.log", std::ios::app);
 
@@ -165,17 +165,20 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         // -- shapes and shape callbacks definition --
 
         const int SHAPE_SIZE = CYLINDER_EDGES_PER_BASE;
-        const int SHAPES_COUNT = 11;
+        const int SHAPE_LINES_OFFSET = 3;
+        const int SHAPES_COUNT = 8;
         const int SHAPE_STEP = (SHAPES_COUNT > 1) ?
-                               (CYLINDER_EDGES_PER_HEIGHT/(SHAPES_COUNT-1))*CYLINDER_EDGES_PER_BASE :
+                               ((CYLINDER_EDGES_PER_HEIGHT - 2*SHAPE_LINES_OFFSET)/(SHAPES_COUNT - 1))*CYLINDER_EDGES_PER_BASE :
                                0;
+        const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*CYLINDER_EDGES_PER_BASE;
 
         // let's have some static array of dynamic arrays... :)
         IndexArray vertex_indices[SHAPES_COUNT];
         // ...and fill it
         for(int i = 0; i < SHAPES_COUNT; ++i)
         {
-            add_range(vertex_indices[i], i*SHAPE_STEP, i*SHAPE_STEP+SHAPE_SIZE - 1);
+            add_range(vertex_indices[i], SHAPE_OFFSET + i*SHAPE_STEP,
+                                         SHAPE_OFFSET + i*SHAPE_STEP + SHAPE_SIZE - 1);
             phys_mod->add_shape_deformation_callback(callback_func, vertex_indices[i], CALLBACK_THRESHOLD, &cylinder_model);
             // do initial repaint
             callback_func(vertex_indices[i], CALLBACK_THRESHOLD, &cylinder_model);

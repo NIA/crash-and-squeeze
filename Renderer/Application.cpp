@@ -17,9 +17,9 @@ namespace
     const D3DCOLOR    BLACK = D3DCOLOR_XRGB( 0, 0, 0 );
     const float       ROTATE_STEP = D3DX_PI/30.0f;
     const float       VERTEX_MASS = 1;
-    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 12};
+    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 8};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
-    const Real        CLUSTER_PADDING_COEFF = 0.6;
+    const Real        CLUSTER_PADDING_COEFF = 0.2;
 
     //---------------- SHADER CONSTANTS ---------------------------
     //    c0-c3 is the view matrix
