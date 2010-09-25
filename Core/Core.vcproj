@@ -175,6 +175,10 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\callback_info.h"
+				>
+			</File>
+			<File
 				RelativePath=".\callbacks.h"
 				>
 			</File>

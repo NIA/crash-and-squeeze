@@ -10,7 +10,20 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
-        struct PhysicalVertexMappingInfo;
+        // An internal struct defining a membership of vertex in cluster
+        struct PhysicalVertexMappingInfo
+        {
+            // index in model's vertex array
+            PhysicalVertex *vertex;
+
+            // TODO: thread-safe cluster addition: Math::Vector velocity_additions[MAX_CLUSTERS_FOR_VERTEX]
+            
+            // initial position of vertex measured off
+            // the cluster's center of mass
+            Math::Vector initial_offset_position;
+            // position in deformed shape (plasticity_state*initial_offset_position)
+            Math::Vector equilibrium_offset_position;
+        };
 
         class Cluster
         {
@@ -35,7 +48,7 @@ namespace CrashAndSqueeze
             // deformation_callback is called when relative deformation value
             // (deformation value divided by max_deformation_constant)
             // exceeds deformation_callback_threshold
-            SpaceDeformationCallback deformation_callback;
+            ClusterDeformationCallback deformation_callback;
             Math::Real deformation_callback_threshold;
 
             // a constant, determining how fast points are pulled to
@@ -153,9 +166,10 @@ namespace CrashAndSqueeze
             const Math::Matrix & get_rotation() const { return rotation; }
             const Math::Matrix & get_total_deformation() const { return total_deformation; }
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
+            Math::Real get_relative_plastic_deformation() const;
 
             void set_space(const Math::Vector &pos, const Math::Vector &size) { this->pos = pos; this->size = size; }
-            void set_deformation_callback(SpaceDeformationCallback callback, Math::Real threshold) { deformation_callback = callback; deformation_callback_threshold = threshold; }
+            void set_deformation_callback(ClusterDeformationCallback callback, Math::Real threshold) { deformation_callback = callback; deformation_callback_threshold = threshold; }
 
             static const int INITIAL_ALLOCATED_VERTICES_NUM = 100;
 

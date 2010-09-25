@@ -26,6 +26,7 @@ namespace CrashAndSqueeze
 
             const Real MAX_COORDINATE = 1.0e+100; // !!! hard-coded
             const Vector MAX_COORDINATE_VECTOR(MAX_COORDINATE, MAX_COORDINATE, MAX_COORDINATE);
+            const int INITIAL_ALLOCATED_CALLBACK_INFOS = 10;
             
             // -- helpers --
 
@@ -102,7 +103,9 @@ namespace CrashAndSqueeze
               center_of_mass(Vector::ZERO),
               inertia_tensor(Matrix::ZERO),
               center_of_mass_velocity(Vector::ZERO),
-              angular_velocity(Vector::ZERO)
+              angular_velocity(Vector::ZERO),
+
+              callback_infos(INITIAL_ALLOCATED_CALLBACK_INFOS)
         {
             if( init_vertices(source_vertices, vertex_info, masses, constant_mass) )
             {
@@ -298,11 +301,45 @@ namespace CrashAndSqueeze
             return true;
         }
         
-        void  Model::set_space_deformation_callback(SpaceDeformationCallback callback, Math::Real threshold)
+        void  Model::set_cluster_deformation_callback(ClusterDeformationCallback callback, Math::Real threshold)
         {
             for(int i = 0; i < clusters_num; ++i)
             {
                 clusters[i].set_deformation_callback(callback, threshold);
+            }
+        }
+
+        namespace
+        {
+            bool compare_by_index(const IndexWithWeight &a, const IndexWithWeight &b)
+            {
+                return a.index == b.index;
+            }
+        }
+
+        void Model::add_shape_deformation_callback(ShapeDeformationCallback callback,
+                                                   const IndexArray &vertex_indices,
+                                                   Math::Real threshold,
+                                                   void * extra_data)
+        {
+            CallbackInfo & info = callback_infos.create_item();
+            info.callback = callback;
+            info.vertex_indices = &vertex_indices;
+            info.threshold = threshold;
+            info.extra_data = extra_data;
+
+            int vertices_num = vertex_indices.size();
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                int vertex_index = vertex_indices[i];
+                int cluster_index = vertices[vertex_index].nearest_cluster_index;
+                
+                // if there is a record for the cluster, increment its weight; otherwise add a new record
+                // TODO: make this look less frightful :)
+                IndexWithWeight &cww =
+                    info.clusters_with_weights.find_or_add( IndexWithWeight(cluster_index, 0),
+                                                            compare_by_index );
+                cww.weight += 1.0/vertices_num;
             }
         }
 
@@ -452,6 +489,25 @@ namespace CrashAndSqueeze
             {
                 damp_velocity( vertices[i] );
                 integrate_position( vertices[i], dt );
+            }
+
+            // -- For each callback: check state and invoke if needed
+            for(int i = 0; i < callback_infos.size(); ++i)
+            {
+                const CallbackInfo & cbi = callback_infos[i];
+
+                Real weighted_relative_deformation = 0;
+                for(int j = 0; j < cbi.clusters_with_weights.size(); ++j)
+                {
+                    const IndexWithWeight cww = cbi.clusters_with_weights[j];
+                    Real relative_deformation = clusters[ cww.index ].get_relative_plastic_deformation();
+                    weighted_relative_deformation += relative_deformation * cww.weight;
+                }
+
+                if(weighted_relative_deformation > cbi.threshold)
+                {
+                    cbi.callback(*cbi.vertex_indices, weighted_relative_deformation, cbi.extra_data);
+                }
             }
 
             return true;

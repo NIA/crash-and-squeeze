@@ -3,6 +3,7 @@
 #include "Core/vertex_info.h"
 #include "Core/force.h"
 #include "Core/callbacks.h"
+#include "Core/callback_info.h"
 #include "Math/floating_point.h"
 #include "Math/Vector.h"
 #include "Math/Matrix.h"
@@ -24,6 +25,8 @@ namespace CrashAndSqueeze
 
             Cluster *clusters;
             int clusters_num;
+
+            CallbackInfoArray callback_infos;
 
             // a constant, determining how much deformation velocities are damped:
             // 0 - no damping of vibrations, 1 - maximum damping, rigid body
@@ -90,7 +93,11 @@ namespace CrashAndSqueeze
                   const MassFloat *masses,
                   const MassFloat constant_mass = 0);
 
-            void set_space_deformation_callback(SpaceDeformationCallback callback, Math::Real threshold);
+            void set_cluster_deformation_callback(ClusterDeformationCallback callback, Math::Real threshold);
+            void add_shape_deformation_callback(ShapeDeformationCallback callback,
+                                                const IndexArray &vertex_indices,
+                                                Math::Real threshold,
+                                                void * extra_data);
 
             bool compute_next_step(const Force * const forces[], int forces_num);
 

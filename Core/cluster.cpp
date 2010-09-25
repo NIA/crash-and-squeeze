@@ -33,25 +33,10 @@ namespace CrashAndSqueeze
 
         // plasticity paramter: a coefficient determining how fast
         // plasticity_state will be changed on large deformation
-        const Real Cluster::DEFAULT_CREEP_CONSTANT = 40;
+        const Real Cluster::DEFAULT_CREEP_CONSTANT = 10;
 
         // plasticity paramter: a threshold of maximum allowed strain
         const Real Cluster::DEFAULT_MAX_DEFORMATION_CONSTANT = 3;
-
-        // An internal struct defining a membership of vertex in cluster
-        struct PhysicalVertexMappingInfo
-        {
-            // index in model's vertex array
-            PhysicalVertex *vertex;
-
-            // TODO: thread-safe cluster addition: Math::Vector velocity_additions[MAX_CLUSTERS_FOR_VERTEX]
-            
-            // initial position of vertex measured off
-            // the cluster's center of mass
-            Math::Vector initial_offset_position;
-            // position in deformed shape (plasticity_state*initial_offset_position)
-            Math::Vector equilibrium_offset_position;
-        };
         
         // -- Cluster methods --
 
@@ -256,6 +241,12 @@ namespace CrashAndSqueeze
                 }
             }
         }
+
+        Math::Real Cluster::get_relative_plastic_deformation() const
+        {
+            // TODO: store it
+            return (plasticity_state - Matrix::IDENTITY).norm()/max_deformation_constant;
+        }
         
         void Cluster::update_plasticity_state(Real dt)
         {
@@ -282,7 +273,7 @@ namespace CrashAndSqueeze
                         update_equilibrium_positions();
                         compute_symmetric_term();
 
-                        Real relative_deformation = plastic_deform_measure/max_deformation_constant;
+                        Real relative_deformation = get_relative_plastic_deformation();
                         if( 0 != deformation_callback && greater_or_equal(relative_deformation, deformation_callback_threshold) )
                         {
                             deformation_callback(pos, size, relative_deformation);
