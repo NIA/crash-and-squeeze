@@ -172,16 +172,26 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                0;
         const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*CYLINDER_EDGES_PER_BASE;
 
+        const int SUBSHAPES_COUNT = 4;
+        const int SUBSHAPE_SIZE = SHAPE_SIZE/SUBSHAPES_COUNT;
+
         // let's have some static array of dynamic arrays... :)
-        IndexArray vertex_indices[SHAPES_COUNT];
+        IndexArray vertex_indices[SHAPES_COUNT*SUBSHAPES_COUNT];
         // ...and fill it
+        int subshape_index = 0;
         for(int i = 0; i < SHAPES_COUNT; ++i)
         {
-            add_range(vertex_indices[i], SHAPE_OFFSET + i*SHAPE_STEP,
-                                         SHAPE_OFFSET + i*SHAPE_STEP + SHAPE_SIZE - 1);
-            phys_mod->add_shape_deformation_callback(callback_func, vertex_indices[i], CALLBACK_THRESHOLD, &cylinder_model);
-            // do initial repaint
-            callback_func(vertex_indices[i], CALLBACK_THRESHOLD, &cylinder_model);
+            for(int j = 0; j < SUBSHAPES_COUNT; ++j)
+            {
+                int subshape_start = SHAPE_OFFSET + i*SHAPE_STEP + j*SUBSHAPE_SIZE;
+                add_range(vertex_indices[subshape_index], subshape_start, subshape_start + SUBSHAPE_SIZE - 1);
+                // register callback
+                phys_mod->add_shape_deformation_callback(callback_func, vertex_indices[subshape_index], CALLBACK_THRESHOLD, &cylinder_model);
+                // do initial repaint
+                callback_func(vertex_indices[subshape_index], CALLBACK_THRESHOLD, &cylinder_model);
+                
+                ++subshape_index;
+            }
         }
 
         // -------------------------- F o r c e s -----------------------
