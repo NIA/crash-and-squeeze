@@ -2,6 +2,7 @@
 #include "main.h"
 #include "Vertex.h"
 #include "Shader.h"
+#include "Collections/array.h"
 
 class Model
 {
@@ -15,7 +16,6 @@ private:
     D3DPRIMITIVETYPE        primitive_type;
     IDirect3DVertexBuffer9  *vertex_buffer;
     IDirect3DIndexBuffer9   *index_buffer;
-    unsigned vertex_size;
 
     D3DXVECTOR3 position;
     D3DXVECTOR3 rotation;
@@ -29,7 +29,6 @@ public:
     Model(  IDirect3DDevice9 *device,
             D3DPRIMITIVETYPE primitive_type,
             VertexShader &shader,
-            unsigned vertex_size,
             const Vertex *vertices,
             unsigned vertices_count,
             const Index *indices,
@@ -43,12 +42,11 @@ public:
     const D3DXMATRIX &get_rotation_and_position() const;
     void rotate(float phi);
 
-    unsigned get_vertices_count()
-    {
-        return vertices_count;
-    }
+    unsigned get_vertices_count() { return vertices_count; }
     Vertex * lock_vertex_buffer();
     void unlock_vertex_buffer();
+
+    void repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color);
     
     virtual void draw() const;
 
