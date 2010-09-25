@@ -103,6 +103,45 @@ TEST(ArrayTest, AddManyAndIndexOf)
     }
 }
 
+class CheckLifeCycle
+{
+    static bool anything_destructed;
+    static bool anything_constructed;
+
+public:
+    static void reset() { anything_destructed = anything_constructed = false; }
+    static bool is_anything_destructed() { return anything_destructed; }
+    static bool is_anything_constructed() { return anything_constructed; }
+    
+    CheckLifeCycle() { anything_constructed = true; }
+    ~CheckLifeCycle() { anything_destructed = true; }
+};
+bool CheckLifeCycle::anything_destructed = true;
+bool CheckLifeCycle::anything_constructed = true;
+
+typedef CrashAndSqueeze::Collections::Array<CheckLifeCycle> CheckLifeCycleArray;
+
+TEST(ArrayTest, ShouldNotBreakLifeCycle)
+{
+    const int NOT_MANY = 1;
+    const int MANY = 2;
+
+    CheckLifeCycleArray * a = new CheckLifeCycleArray(NOT_MANY);
+    
+    CheckLifeCycle::reset();
+    
+    for(int i = 0; i < MANY; ++i)
+    {
+        a->create_item();
+    }
+
+    EXPECT_TRUE( CheckLifeCycle::is_anything_constructed() );
+    EXPECT_FALSE( CheckLifeCycle::is_anything_destructed() );
+
+    delete a;
+    EXPECT_TRUE( CheckLifeCycle::is_anything_destructed() );
+}
+
 TEST(ArrayTest, OutOfRange)
 {
     Array a;

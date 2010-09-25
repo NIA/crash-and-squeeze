@@ -1,6 +1,7 @@
 #pragma once
 #include "Logging/logger.h"
-#include <string.h>
+#include <new>
+#include <cstdlib>
 
 namespace CrashAndSqueeze
 {
@@ -45,16 +46,14 @@ namespace CrashAndSqueeze
             T & operator[](int index);
             const T & operator[](int index) const;
 
-            virtual ~Array() { delete[] items; }
+            virtual ~Array();
         private:
             // No copying!
             Array(const Array<T> &);
             Array<T> & operator=(const Array<T> &);
         };
 
-        
         // -- I M P L E M E N T A T I O N --
-
 
         template<class T>
         bool Array<T>::check_index(int index) const
@@ -78,7 +77,14 @@ namespace CrashAndSqueeze
             else
             {
                 if( initial_allocated > 0 )
-                    items = new T[allocated_items_num];
+                {
+                    items = reinterpret_cast<T*>( malloc( sizeof(items[0])*allocated_items_num ) );
+                    
+                    if(NULL == items)
+                    {
+                        Logging::logger.error("creating Collections::Array: not enough memory!");
+                    }
+                }
             }
         }
 
@@ -92,20 +98,23 @@ namespace CrashAndSqueeze
                 else
                     allocated_items_num *= 2;
                 
-                T *new_items = new T[allocated_items_num];
+                T *new_items = reinterpret_cast<T*>( realloc(items, sizeof(items[0])*allocated_items_num) );
                 
-                // this can be only if allocated_items_num was 0
-                if(0 != items)
+                // if realloc failed
+                if(NULL == new_items)
                 {
-                    memcpy(new_items, items, items_num*sizeof(items[0]));
-                    delete[] items;
+                    Logging::logger.error("in Collections::Array::create_item: not enough memory to re-allocate!");
+                    return items[items_num - 1];
                 }
                 
                 items = new_items;
             }
 
             ++items_num;
-            return items[items_num - 1];
+            T &new_item = items[items_num - 1];
+            // construct it in its place
+            new (&new_item) T;
+            return new_item;
         }
 
         template<class T>
@@ -153,6 +162,16 @@ namespace CrashAndSqueeze
                 return items[index];
             else
                 return items[0];
+        }
+
+        template<class T>
+        Array<T>::~Array()
+        {
+            for(int i = 0; i < items_num; ++i)
+            {
+                items[i].~T();
+            }
+            free(items);
         }
     }
 }
