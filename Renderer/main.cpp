@@ -14,13 +14,20 @@ using CrashAndSqueeze::Core::HalfSpaceSpringForce;
 using CrashAndSqueeze::Core::EverywhereForce;
 using CrashAndSqueeze::Core::CylinderSpringForce;
 using CrashAndSqueeze::Math::Vector;
+using CrashAndSqueeze::Math::Real;
+using CrashAndSqueeze::Core::IndexArray;
 
 namespace
 {
     const char *SIMPLE_SHADER_FILENAME = "simple.vsh";
 
-    const D3DCOLOR CYLINDER_COLOR = D3DCOLOR_XRGB(150, 200, 255);
+    const D3DCOLOR CYLINDER_COLOR = D3DCOLOR_XRGB(100, 150, 255);
     const D3DCOLOR OBSTACLE_COLOR = D3DCOLOR_XRGB(100, 100, 100);
+
+    const D3DXCOLOR NO_DEFORM_COLOR = CYLINDER_COLOR;//D3DCOLOR_XRGB(0, 255, 0);
+    const D3DXCOLOR MAX_DEFORM_COLOR = D3DCOLOR_XRGB(255, 0, 0);
+
+    const Real     CALLBACK_THRESHOLD = 0.6;
 
     std::ofstream log_file("renderer.log", std::ios::app);
 
@@ -46,6 +53,26 @@ namespace
     {
         my_log("ERROR!! [Crash-And-Squeeze]", message, file, line);
         throw PhysicsError();
+    }
+
+    void add_range(IndexArray &arr, int from, int to)
+    {
+        for(int i = from; i <= to; ++i)
+        {
+            arr.push_back(i);
+        }
+    }
+
+    // extra data is used to pass a pointer to display model
+    void callback_func(const IndexArray &vertex_indices, Real value, void * extra_data)
+    {
+        Model *model = reinterpret_cast<Model *>(extra_data);
+        D3DXCOLOR result_color;
+
+        // TODO: assert CALLBACK_THRESHOLD != 1
+        float alpha = static_cast<float>((value - CALLBACK_THRESHOLD)/(1 - CALLBACK_THRESHOLD));
+        D3DXColorLerp(&result_color, &NO_DEFORM_COLOR, &MAX_DEFORM_COLOR, alpha);
+        model->repaint_vertices(vertex_indices, result_color);
     }
 }
 
@@ -131,9 +158,29 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                              CYLINDER_INDICES_COUNT - 2,
                              D3DXVECTOR3(0, 0, 0),
                              D3DXVECTOR3(0, 0, 0));
-        app.add_model(cylinder_model, true);
+        PhysicalModel * phys_mod = app.add_model(cylinder_model, true);
+        if(NULL == phys_mod)
+            throw NullPointerError();
 
-        
+        // -- shapes and shape callbacks definition --
+
+        const int SHAPE_SIZE = CYLINDER_EDGES_PER_BASE;
+        const int SHAPES_COUNT = 11;
+        const int SHAPE_STEP = (SHAPES_COUNT > 1) ?
+                               (CYLINDER_EDGES_PER_HEIGHT/(SHAPES_COUNT-1))*CYLINDER_EDGES_PER_BASE :
+                               0;
+
+        // let's have some static array of dynamic arrays... :)
+        IndexArray vertex_indices[SHAPES_COUNT];
+        // ...and fill it
+        for(int i = 0; i < SHAPES_COUNT; ++i)
+        {
+            add_range(vertex_indices[i], i*SHAPE_STEP, i*SHAPE_STEP+SHAPE_SIZE - 1);
+            phys_mod->add_shape_deformation_callback(callback_func, vertex_indices[i], CALLBACK_THRESHOLD, &cylinder_model);
+            // do initial repaint
+            callback_func(vertex_indices[i], CALLBACK_THRESHOLD, &cylinder_model);
+        }
+
         // -------------------------- F o r c e s -----------------------
         const int FORCES_NUM = 4;
         const int SPRINGS_NUM = FORCES_NUM - 2;

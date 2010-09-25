@@ -86,6 +86,11 @@ class PerformanceFrequencyError : public RuntimeError
 public:
     PerformanceFrequencyError() : RuntimeError( _T("Frequency of Performance Counter is 0 (unsuppoted)") ) {}
 };
+class NullPointerError : public RuntimeError
+{
+public:
+    NullPointerError() : RuntimeError( _T("Unexpected NULL pointer") ) {}
+};
 inline void check_render( HRESULT res )
 {
     if( FAILED(res) )
