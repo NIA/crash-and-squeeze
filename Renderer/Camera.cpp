@@ -13,7 +13,7 @@ namespace
                                        0,         0,       1,       0 );
 
     const float RHO_STEP = 0.1f;
-    const float THETA_STEP = D3DX_PI/80.0f;
+    const float THETA_STEP = D3DX_PI/200.0f;
     const float PHI_STEP = D3DX_PI/100.0f;
 
     const float RHO_MIN = 0.5f + NEAR_CLIP; // // Suppose models are inside the cube 1x1x1 => in sphere with radius sqrt(3) (approx. 1,74).

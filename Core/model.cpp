@@ -18,7 +18,7 @@ namespace CrashAndSqueeze
     {
         // a constant, determining how much deformation velocities are damped:
         // 0 - no damping of vibrations, 1 - maximum damping, rigid body
-        const Real Model::DEFAULT_DAMPING_CONSTANT = 0.75;
+        const Real Model::DEFAULT_DAMPING_CONSTANT = 0.7;
         
         namespace
         {

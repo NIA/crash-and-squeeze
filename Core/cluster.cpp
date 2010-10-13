@@ -29,14 +29,14 @@ namespace CrashAndSqueeze
         
         // plasticity parameter: a threshold of strain, after
         // which deformation becomes non-reversible
-        const Real Cluster::DEFAULT_YIELD_CONSTANT = 0.3;
+        const Real Cluster::DEFAULT_YIELD_CONSTANT = 0.4;
 
         // plasticity paramter: a coefficient determining how fast
         // plasticity_state will be changed on large deformation
-        const Real Cluster::DEFAULT_CREEP_CONSTANT = 30;
+        const Real Cluster::DEFAULT_CREEP_CONSTANT = 60;
 
         // plasticity paramter: a threshold of maximum allowed strain
-        const Real Cluster::DEFAULT_MAX_DEFORMATION_CONSTANT = 2.6;
+        const Real Cluster::DEFAULT_MAX_DEFORMATION_CONSTANT = 1.5;
         
         // -- Cluster methods --
 
@@ -191,7 +191,9 @@ namespace CrashAndSqueeze
             if( ! equal(0, det) )
             {
                 if( det < 0 )
+                {
                     logger.warning("in Cluster::compute_linear_transformation: linear_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
+                }
                 linear_transformation /= cube_root(det);
             }
             else

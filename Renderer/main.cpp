@@ -27,7 +27,7 @@ namespace
     const D3DXCOLOR NO_DEFORM_COLOR = CYLINDER_COLOR;//D3DCOLOR_XRGB(0, 255, 0);
     const D3DXCOLOR MAX_DEFORM_COLOR = D3DCOLOR_XRGB(255, 0, 0);
 
-    const Real     CALLBACK_THRESHOLD = 0.8;
+    const Real     CALLBACK_THRESHOLD = 0.0;
 
     std::ofstream log_file("renderer.log", std::ios::app);
 
