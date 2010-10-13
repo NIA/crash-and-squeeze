@@ -170,7 +170,7 @@ namespace CrashAndSqueeze
         {
             compute_linear_transformation();
 
-            asymmetric_term.do_polar_decomposition(rotation, scale);
+            linear_transformation.do_polar_decomposition(rotation, scale);
             
             total_deformation = linear_elasticity_constant*rotation + (1 - linear_elasticity_constant)*linear_transformation;
         }
@@ -253,7 +253,7 @@ namespace CrashAndSqueeze
             if(less_or_equal(max_deformation_constant, 0))
                 return;
 
-            Matrix deformation = linear_transformation - Matrix::IDENTITY;
+            Matrix deformation = scale - Matrix::IDENTITY;
             Real deformation_measure = deformation.norm();
             if(deformation_measure > yield_constant)
             {
