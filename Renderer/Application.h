@@ -25,6 +25,8 @@ typedef std::vector<ModelEntity> ModelEntities;
 class Application
 {
 private:
+    Logger &logger;
+
     IDirect3D9                  *d3d;           // used to create the D3DDevice
     IDirect3DDevice9            *device;        // our rendering device
 
@@ -88,7 +90,7 @@ private:
     void release_interfaces();
 
 public:
-    Application();
+    Application(Logger &logger);
     IDirect3DDevice9 * get_device();
 
     // Adds given model to Application's list of models;
@@ -102,4 +104,8 @@ public:
 
     ~Application();
 
+private:
+    // No copying!
+    Application(const Application&);
+    Application &operator=(const Application&);
 };

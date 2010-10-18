@@ -4,11 +4,11 @@
 #include "cubic.h"
 #include "plane.h"
 #include "cylinder.h"
-#include <fstream>
 #include <ctime>
+
 #include "Logging/logger.h"
 
-using ::CrashAndSqueeze::Logging::logger;
+typedef ::CrashAndSqueeze::Logging::Logger PhysicsLogger;
 using CrashAndSqueeze::Core::Force;
 using CrashAndSqueeze::Core::HalfSpaceSpringForce;
 using CrashAndSqueeze::Core::EverywhereForce;
@@ -29,8 +29,6 @@ namespace
 
     const Real     CALLBACK_THRESHOLD = 0.0;
 
-    std::ofstream log_file("renderer.log", std::ios::app);
-
     inline D3DXVECTOR3 math_vector_to_d3dxvector(const Vector &v)
     {
         return D3DXVECTOR3(static_cast<float>(v[0]),
@@ -38,22 +36,47 @@ namespace
                            static_cast<float>(v[2]));
     }
 
-    void my_log_callback(const char * message, const char * file, int line)
+#pragma warning( disable : 4512 )
+    class PhysicsLoggerAction : public ::CrashAndSqueeze::Logging::Action
     {
-        my_log("        [Crash-And-Squeeze]", message, file, line);
-    }
+    protected:
+        Logger &logger;
+    public:
+        PhysicsLoggerAction(Logger & logger) : logger(logger) {}
+    };
 
-    void my_warning_callback(const char * message, const char * file, int line)
+    class PhysLogAction : public PhysicsLoggerAction
     {
-        my_log("WARNING [Crash-And-Squeeze]", message, file, line);
-        MessageBox(NULL, _T("Physical subsystem warning! See log"), _T("Crash-And-Squeeze warning!"), MB_OK | MB_ICONEXCLAMATION);
-    }
+    public:
+        PhysLogAction(Logger & logger) : PhysicsLoggerAction(logger) {}
+        void invoke(const char * message, const char * file, int line)
+        {
+            logger.log("        [Crash-And-Squeeze]", message, file, line);
+        }
+    };
 
-    void my_error_callback(const char * message, const char * file, int line)
+    class PhysWarningAction : public PhysicsLoggerAction
     {
-        my_log("ERROR!! [Crash-And-Squeeze]", message, file, line);
-        throw PhysicsError();
-    }
+    public:
+        PhysWarningAction(Logger & logger) : PhysicsLoggerAction(logger) {}
+        void invoke(const char * message, const char * file, int line)
+        {
+            logger.log("WARNING [Crash-And-Squeeze]", message, file, line);
+            MessageBox(NULL, _T("Physical subsystem warning! See log"), _T("Crash-And-Squeeze warning!"), MB_OK | MB_ICONEXCLAMATION);
+        }
+    };
+
+    class PhysErrorAction : public PhysicsLoggerAction
+    {
+    public:
+        PhysErrorAction(Logger & logger) : PhysicsLoggerAction(logger) {}
+        void invoke(const char * message, const char * file, int line)
+        {
+            logger.log("ERROR!! [Crash-And-Squeeze]", message, file, line);
+            throw PhysicsError();
+        }
+    };
+#pragma warning( default : 4512 ) 
 
     void add_range(IndexArray &arr, int from, int to)
     {
@@ -76,8 +99,11 @@ namespace
     }
 }
 
-void my_log(const char *prefix, const char * message, const char * file, int line)
+void Logger::log(const char *prefix, const char * message, const char * file, int line)
 {
+    if(!log_file.is_open())
+        return;
+
     static const int DATETIME_BUF_SIZE = 80;
     char datetime_buffer[DATETIME_BUF_SIZE];
     time_t rawtime;
@@ -101,10 +127,18 @@ void my_log(const char *prefix, const char * message, const char * file, int lin
 
 INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 {
-    my_log("        [Renderer]", "application startup");
-    logger.log_callback = my_log_callback;
-    logger.warning_callback = my_warning_callback;
-    logger.error_callback = my_error_callback;
+    Logger logger("renderer.log");
+    logger.log("        [Renderer]", "application startup");
+    
+    PhysicsLogger & phys_logger = ::CrashAndSqueeze::Logging::logger;
+    
+    PhysLogAction phys_log_action(logger);
+    PhysWarningAction phys_warn_action(logger);
+    PhysErrorAction phys_err_action(logger);
+    
+    phys_logger.set_action(PhysicsLogger::LOG, &phys_log_action);
+    phys_logger.set_action(PhysicsLogger::WARNING, &phys_warn_action);
+    phys_logger.set_action(PhysicsLogger::ERROR, &phys_err_action);
 
     srand( static_cast<unsigned>( time(NULL) ) );
     
@@ -118,7 +152,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     Index * cylinder_model_indices = NULL;
     try
     {
-        Application app;
+        Application app(logger);
 
         VertexShader simple_shader(app.get_device(), VERTEX_DECL_ARRAY, SIMPLE_SHADER_FILENAME);
         
@@ -266,11 +300,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         delete_array(&cylinder_model_indices);
         delete_array(&cylinder_model_vertices);
         
-        if(log_file.is_open())
-        {
-            my_log("        [Renderer]", "application shutdown\n");
-            log_file.close();
-        }
+        logger.log("        [Renderer]", "application shutdown\n");
     }
     catch(RuntimeError &e)
     {
@@ -282,11 +312,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         delete_array(&cylinder_vertices);
         delete_array(&cylinder_model_indices);
         delete_array(&cylinder_model_vertices);
-        if(log_file.is_open())
-        {
-            my_log("ERROR!! [Renderer]", "application crash\n");
-            log_file.close();
-        }
+        logger.log("ERROR!! [Renderer]", "application crash\n");
         const TCHAR *MESSAGE_BOX_TITLE = _T("Renderer error!");
         MessageBox(NULL, e.message(), MESSAGE_BOX_TITLE, MB_OK | MB_ICONERROR);
         return -1;

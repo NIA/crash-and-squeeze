@@ -73,11 +73,11 @@ namespace
     const unsigned    SHADER_REG_POS_AND_ROT_MX = 27;
 }
 
-Application::Application() :
+Application::Application(Logger &logger) :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(3.3f, 1.0f, 0.97f), // Constants selected for better view of cylinder
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
-    forces(NULL), forces_num(0)
+    forces(NULL), forces_num(0), logger(logger)
 {
 
     try
@@ -216,7 +216,7 @@ PhysicalModel * Application::add_model(Model &model, bool physical)
         sprintf_s(description, BUFFER_SIZE, "%6i vertices in %4i=%ix%ix%i clusters",
                                             model.get_vertices_count(), TOTAL_CLUSTERS_COUNT,
                                             CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2]);
-        model_entity.performance_reporter = new PerformanceReporter(description);
+        model_entity.performance_reporter = new PerformanceReporter(logger, description);
     }
     else
     {
@@ -324,8 +324,8 @@ void Application::run()
     
     Stopwatch stopwatch;
     Stopwatch total_stopwatch;
-    PerformanceReporter render_performance_reporter("rendering");
-    PerformanceReporter total_performance_reporter("total");
+    PerformanceReporter render_performance_reporter(logger, "rendering");
+    PerformanceReporter total_performance_reporter(logger, "total");
 
     int physics_frames = 0;
     for(int i = 0; i < forces_num; ++i)

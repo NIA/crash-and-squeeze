@@ -12,28 +12,28 @@ inline std::ostream &operator<<(std::ostream &stream, const Vector &vector)
 
 class ToolsTesterException {};
 
-extern void tools_tester_err_callback(const char * message, const char * file, int line);
-extern Logger::Callback old_err_callback;
-extern Logger::Callback old_warn_callback;
+extern CallbackAction tools_tester_err_action;
+extern Action *old_err_action;
+extern Action *old_warn_action;
 
 inline void set_tester_err_callback()
 {
-    old_err_callback = logger.error_callback;
-    logger.error_callback = tools_tester_err_callback;
+    old_err_action = logger.get_action(Logger::ERROR);
+    logger.set_action(Logger::ERROR, &tools_tester_err_action);
 }
 
 inline void unset_tester_err_callback()
 {
-    logger.error_callback = old_err_callback;
+    logger.set_action(Logger::ERROR, old_err_action);
 }
 
 inline void suppress_warnings()
 {
-    old_warn_callback = logger.warning_callback;
-    logger.warning_callback = 0;
+    old_warn_action = logger.get_action(Logger::WARNING);
+    logger.ignore(Logger::WARNING);
 }
 
 inline void unsuppress_warnings()
 {
-    logger.warning_callback = old_warn_callback;
+    logger.set_action(Logger::WARNING, old_warn_action);
 }

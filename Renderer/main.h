@@ -2,10 +2,12 @@
 
 #include <d3d9.h>
 #include <d3dx9.h>
+#undef ERROR // because WinGDI.h defines this and it's awful!
 #include <cstdlib>
 #include <ctime>
 #include <crtdbg.h>
 #include "Error.h"
+#include <fstream>
 
 #define BONES_COUNT 2
 
@@ -34,4 +36,27 @@ template<size_t SIZE, class T> inline size_t array_size(T (&array)[SIZE])
     return SIZE;
 }
 
-void my_log(const char *prefix, const char * message, const char * file = "", int line = 0);
+class Logger
+{
+private:
+    std::ofstream log_file;
+
+public:
+    Logger(const char * log_filename)
+    {
+        log_file.open(log_filename, std::ios::app);
+    }
+
+    void log(const char *prefix, const char * message, const char * file = "", int line = 0);
+
+    ~Logger()
+    {
+        if(log_file.is_open())
+            log_file.close();
+    }
+
+private:
+    // No copying!
+    Logger(const Logger &logger);
+    Logger & operator=(const Logger &logger);
+};

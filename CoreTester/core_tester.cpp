@@ -9,5 +9,6 @@ void core_tester_err_callback(const char * message, const char * file, int line)
     throw CoreTesterException();
 }
 
-extern Logger::Callback old_err_callback = logger.error_callback;
-extern Logger::Callback old_warn_callback = logger.warning_callback;
+CallbackAction core_tester_err_action(core_tester_err_callback);
+Action *old_err_action;
+Action *old_warn_action;

@@ -16,62 +16,105 @@ namespace CrashAndSqueeze
             }
         };
         
+        typedef void (*Callback)(const char * message, const char * file, int line);
+
+        // An abstract logger action. Inherit your own action class from this
+        // and implement `invoke' method, then provide an instance of it to
+        // Logger::set_action. If you do not need any context, you can simply specify
+        // a callback function using Logger::set_callback and avoid defining your own action.
+        class Action
+        {
+        public:
+            virtual void invoke(const char * message, const char * file, int line) = 0;
+        };
+
+        // An action to use when you don't need any context, just callback
+        class CallbackAction : public Action
+        {
+        private:
+            Callback callback;
+            
+        public:
+            CallbackAction(Callback callback) { this->callback = callback; }
+
+            virtual void invoke(const char * message, const char * file, int line)
+            {
+                if( 0 != callback )
+                    callback(message, file, line);
+            }
+        };
+
         // This class is used for logging and error reporting all over the library.
         //
-        // You can override default log, warning and error behavior, by substituting 
-        // log_callback, warning_callback and error_callback members of logger object
-        // with your own functions.
+        // By default it writes messages to std::clog and on error throws an exception
+        // of class ::CrashAndSqueeze::Logging::Error.
         //
-        // You may set log_callback or/and warning_callback to NULL
-        // in order to disable logging or/and warnings.
+        // You can override default log, warning and error behavior, by providing  your own
+        // implementation of Action to Logger::set_action. If you don't need any context
+        // and don't want to define a new class, consider using pre-defined CallbackAction.
         //
-        // Default error_callback throws an exception of class ::CrashAndSqueeze::Logging::Error,
-        // so if it is not desired, override such behavior with your own error_callback.
-        // Note that you CANNOT disable error handling by setting error_callback to NULL,
-        // and that if your error_callback doesn't interrupt execution, furhter behaviour of library
-        // is unpredictable.
+        // Note that after an error all functions return abnormally, so you are supposed to
+        // either throw an exception in error action or check after each call that no error has occured.
+        //
+        // Once overridden, default behaviour can be restored with Logger::set_default_action.
+        //
+        // Use Logger::ingnore to ignore any level of messages except errors.
         class Logger
         {
         public:
-            typedef void (*Callback)(const char * message, const char * file, int line);
-            
+            enum Level
+            {
+                LOG,
+                WARNING,
+                ERROR,
+                // not to be used as a level, just shows number of levels
+                _LEVELS_NUMBER
+            };
+
         private:
-            static void default_log_callback(const char * message, const char * file, int line);
-            static void default_warning_callback(const char * message, const char * file, int line);
-            static void default_error_callback(const char * message, const char * file, int line);
+            Action * actions[_LEVELS_NUMBER];
+            
+            // A class for default action used internally
+            class DefaultAction : public Action
+            {
+            private:
+                static const char * const prefixes[Logger::_LEVELS_NUMBER];
+                Level level;
+
+            public:
+                DefaultAction();
+                void set_level(int level);
+
+                virtual void invoke(const char * message, const char * file, int line);
+            } default_actions[_LEVELS_NUMBER];
 
         public:
-            Callback log_callback;
-            Callback warning_callback;
-            Callback error_callback;
+            // -- construction --
 
-            Logger() : log_callback(default_log_callback),
-                       warning_callback(default_warning_callback),
-                       error_callback(default_error_callback) {}
+            Logger();
 
+            // -- setup --
+
+            void set_action(Level level, Action * action);
+            Action * get_action(Level level);
+            void set_default_action(Level level);
+            void ignore(Level level);
+
+            // -- invocation --
+            
             void log(const char * message, const char * file = "", int line = 0)
             {
-                if( 0 != log_callback )
-                    log_callback(message, file, line);
+                actions[LOG]->invoke(message, file, line);
             }
 
             void warning(const char * message, const char * file = "", int line = 0)
             {
-                if( 0 != warning_callback )
-                    warning_callback(message, file, line);
+                actions[WARNING]->invoke(message, file, line);
             }
 
             void error(const char * message, const char * file = "", int line = 0)
             {
-                if( 0 != error_callback )
-                {
-                    error_callback(message, file, line);
-                }
-                else
-                {
-                    // error handling cannot be disabled!
-                    default_error_callback(message, file, line);
-                }
+                actions[ERROR]->invoke(message, file, line);
             }
         };
 

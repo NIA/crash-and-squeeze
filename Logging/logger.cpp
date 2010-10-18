@@ -12,36 +12,89 @@ namespace CrashAndSqueeze
                 return '\0' == string[0];
             }
 
-            inline void default_report(const char * message, const char * file, int line)
+            inline Logger::Level valid_level(int i)
             {
-                std::clog << message;
-                if(0 != file && !is_empty(file))
-                {
-                    std::clog << "; " << file;
-                    if(0 != line)
-                        std::clog << "(" << line << ")";
-                }
-                std::clog << std::endl;
+                if(i < 0)
+                    i = 0;
+                
+                if(i >= Logger::_LEVELS_NUMBER)
+                    i = Logger::_LEVELS_NUMBER - 1;
+
+                return static_cast<Logger::Level>(i);
             }
         }
 
-        void Logger::default_log_callback(const char * message, const char * file, int line)
+        Logger::DefaultAction::DefaultAction()
         {
-            std::clog << "[Crash-And-Squeeze]: ";
-            default_report(message, file, line);
+            set_level(0);
         }
 
-        void Logger::default_warning_callback(const char * message, const char * file, int line)
+        void Logger::DefaultAction::set_level(int level)
         {
-            std::clog << "WARNING [Crash-And-Squeeze]: ";
-            default_report(message, file, line);
+            this->level = valid_level(level);
         }
 
-        void Logger::default_error_callback(const char * message, const char * file, int line)
+        void Logger::DefaultAction::invoke(const char * message, const char * file, int line)
         {
-            std::clog << "ERROR! [Crash-And-Squeeze]: ";
-            default_report(message, file, line);
-            throw ::CrashAndSqueeze::Logging::Error();
+            std::clog << "[Crash-And-Squeeze]: " << prefixes[level] << ": " << message;
+            if(0 != file && !is_empty(file))
+            {
+                std::clog << "; " << file;
+                if(0 != line)
+                    std::clog << "(" << line << ")";
+            }
+            std::clog << std::endl;
+
+            if(Logger::ERROR == level)
+                throw ::CrashAndSqueeze::Logging::Error();
+        }
+
+        const char * const Logger::DefaultAction::prefixes[Logger::_LEVELS_NUMBER] = {
+            "Log",
+            "Warning!",
+            "Error!!!"
+        };
+
+        class NoAction : public Action
+        {
+        public:
+            virtual void invoke(const char * message, const char * file, int line)
+            {
+                message; file; line; // avoid unreferenced parameter warning
+            }
+        } _no_action;
+
+        Logger::Logger()
+        {
+            for(int i = 0; i < Logger::_LEVELS_NUMBER; ++i)
+            {
+                default_actions[i].set_level(i);
+                set_default_action(valid_level(i));
+            }
+        }
+
+        Action * Logger::get_action(Level level)
+        {
+            return actions[valid_level(level)];
+        }
+
+        void Logger::set_action(Level level, Action * action)
+        {
+            if(0 != action)
+                actions[valid_level(level)] = action;
+            else
+                set_default_action(level);
+        }
+
+        void Logger::set_default_action(Level level)
+        {
+            level = valid_level(level);
+            actions[level] = & default_actions[level];
+        }
+        
+        void Logger::ignore(Level level)
+        {
+            actions[valid_level(level)] = & _no_action;
         }
 
         Logger logger;

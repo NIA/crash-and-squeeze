@@ -4,6 +4,7 @@
 class PerformanceReporter
 {
 private:
+    Logger &logger;
     char *description;
 
     int measurements_count;
@@ -16,11 +17,16 @@ private:
     void report_time(char *prefix, double time);
 
 public:
-    PerformanceReporter(const char *description);
+    PerformanceReporter(Logger &logger, const char *description);
     
     void add_measurement(double time);
 
     void report_results();
     
     ~PerformanceReporter();
+
+private:
+    // No copying!
+    PerformanceReporter(const PerformanceReporter&);
+    PerformanceReporter &operator=(const PerformanceReporter&);
 };

@@ -12,7 +12,8 @@ namespace
         ;
 }
 
-PerformanceReporter::PerformanceReporter(const char *description) : measurements_count(0)
+PerformanceReporter::PerformanceReporter(Logger &logger, const char *description)
+    : measurements_count(0), logger(logger)
 {
     if(NULL == description)
     {
@@ -29,7 +30,7 @@ void PerformanceReporter::begin_report()
     static const int BUF_SIZE = 512;
     static char buf[BUF_SIZE];
     sprintf_s(buf, BUF_SIZE, "Performance for %s in %s:", description, RELEASE_OR_DEBUG);
-    my_log("        [Renderer]", buf);
+    logger.log("        [Renderer]", buf);
 }
 
 void PerformanceReporter::report_time(char *prefix, double time)
@@ -42,7 +43,7 @@ void PerformanceReporter::report_time(char *prefix, double time)
     sprintf_s(buf, BUF_SIZE,
               "%3s:%7.2f ms/frame (%6.1f fps)",
               prefix, time*1000, 1/time, description, RELEASE_OR_DEBUG);
-    my_log("        [Renderer]", buf);
+    logger.log("        [Renderer]", buf);
 }
 
 void PerformanceReporter::add_measurement(double time)
