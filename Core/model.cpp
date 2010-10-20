@@ -97,9 +97,7 @@ namespace CrashAndSqueeze
               center_of_mass(Vector::ZERO),
               inertia_tensor(Matrix::ZERO),
               center_of_mass_velocity(Vector::ZERO),
-              angular_velocity(Vector::ZERO),
-
-              callback_infos(INITIAL_ALLOCATED_CALLBACK_INFOS)
+              angular_velocity(Vector::ZERO)
         {
             vertices.create_items(vertices_num);
 
@@ -193,24 +191,6 @@ namespace CrashAndSqueeze
                     return false;
             }
 
-            int axis_indices[VECTOR_SIZE];
-            // -- For each cluster: set its space --
-            for(int i = 0; i < clusters_num; ++i)
-            {
-                index_to_axis_indices(i, clusters_by_axes, axis_indices);
-                if( axis_indices_to_index(axis_indices, clusters_by_axes) != i )
-                {
-                    logger.error("in Model::init_clusters: internal assertion failed: i -> {i1, i2, i3} -> i', i' != i");
-                    return false;
-                }
-
-                Vector pos;
-                for(int j = 0; j < VECTOR_SIZE; ++j)
-                    pos[j] = axis_indices[j]*cluster_sizes[j];
-
-                clusters[i].set_space(pos, cluster_sizes);
-            }
-
             // -- For each cluster: precompute --
             for(int i = 0; i < clusters.size(); ++i)
             {
@@ -287,46 +267,10 @@ namespace CrashAndSqueeze
             return true;
         }
         
-        void  Model::set_cluster_deformation_callback(ClusterDeformationCallback callback, Math::Real threshold)
+        void Model::add_shape_deformation_reaction(ShapeDeformationReaction & reaction)
         {
-            for(int i = 0; i < clusters.size(); ++i)
-            {
-                clusters[i].set_deformation_callback(callback, threshold);
-            }
-        }
-
-        namespace
-        {
-            bool compare_by_index(const IndexWithWeight &a, const IndexWithWeight &b)
-            {
-                return a.index == b.index;
-            }
-        }
-
-        void Model::add_shape_deformation_callback(ShapeDeformationCallback callback,
-                                                   const IndexArray &vertex_indices,
-                                                   Math::Real threshold,
-                                                   void * extra_data)
-        {
-            CallbackInfo & info = callback_infos.create_item();
-            info.callback = callback;
-            info.vertex_indices = &vertex_indices;
-            info.threshold = threshold;
-            info.extra_data = extra_data;
-
-            int vertices_num = vertex_indices.size();
-            for(int i = 0; i < vertices_num; ++i)
-            {
-                int vertex_index = vertex_indices[i];
-                int cluster_index = vertices[vertex_index].nearest_cluster_index;
-                
-                // if there is a record for the cluster, increment its weight; otherwise add a new record
-                // TODO: make this look less frightful :)
-                IndexWithWeight &cww =
-                    info.clusters_with_weights.find_or_add( IndexWithWeight(cluster_index, 0),
-                                                            compare_by_index );
-                cww.weight += 1.0/vertices_num;
-            }
+            reaction.link_with_model(*this);
+            shape_deform_reactions.push_back( & reaction );
         }
 
         bool Model::check_total_mass()
@@ -477,23 +421,10 @@ namespace CrashAndSqueeze
                 integrate_position( vertices[i], dt );
             }
 
-            // -- For each callback: check state and invoke if needed
-            for(int i = 0; i < callback_infos.size(); ++i)
+            // -- For each reaction: check state and invoke if needed
+            for(int i = 0; i < shape_deform_reactions.size(); ++i)
             {
-                const CallbackInfo & cbi = callback_infos[i];
-
-                Real weighted_relative_deformation = 0;
-                for(int j = 0; j < cbi.clusters_with_weights.size(); ++j)
-                {
-                    const IndexWithWeight cww = cbi.clusters_with_weights[j];
-                    Real relative_deformation = clusters[ cww.index ].get_relative_plastic_deformation();
-                    weighted_relative_deformation += relative_deformation * cww.weight;
-                }
-
-                if(weighted_relative_deformation > cbi.threshold)
-                {
-                    cbi.callback(*cbi.vertex_indices, weighted_relative_deformation, cbi.extra_data);
-                }
+                shape_deform_reactions[i]->invoke_if_needed();
             }
 
             return true;

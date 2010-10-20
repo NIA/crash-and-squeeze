@@ -1,7 +1,6 @@
 #pragma once
 #include "Core/core.h"
 #include "Core/physical_vertex.h"
-#include "Core/callbacks.h"
 #include "Math/vector.h"
 #include "Math/matrix.h"
 #include "Collections/array.h"
@@ -45,12 +44,6 @@ namespace CrashAndSqueeze
             Math::Vector pos;
             Math::Vector size;
             
-            // deformation_callback is called when relative deformation value
-            // (deformation value divided by max_deformation_constant)
-            // exceeds deformation_callback_threshold
-            ClusterDeformationCallback deformation_callback;
-            Math::Real deformation_callback_threshold;
-
             // a constant, determining how fast points are pulled to
             // their position, i.e. how rigid the body is:
             // 0 means no constraint at all, 1 means absolutely rigid
@@ -167,9 +160,6 @@ namespace CrashAndSqueeze
             const Math::Matrix & get_total_deformation() const { return total_deformation; }
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
             Math::Real get_relative_plastic_deformation() const;
-
-            void set_space(const Math::Vector &pos, const Math::Vector &size) { this->pos = pos; this->size = size; }
-            void set_deformation_callback(ClusterDeformationCallback callback, Math::Real threshold) { deformation_callback = callback; deformation_callback_threshold = threshold; }
 
             static const int INITIAL_ALLOCATED_VERTICES_NUM = 100;
 

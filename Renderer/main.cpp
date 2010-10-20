@@ -13,9 +13,11 @@ using CrashAndSqueeze::Core::Force;
 using CrashAndSqueeze::Core::HalfSpaceSpringForce;
 using CrashAndSqueeze::Core::EverywhereForce;
 using CrashAndSqueeze::Core::CylinderSpringForce;
+using CrashAndSqueeze::Core::ShapeDeformationReaction;
 using CrashAndSqueeze::Math::Vector;
 using CrashAndSqueeze::Math::Real;
 using CrashAndSqueeze::Core::IndexArray;
+using CrashAndSqueeze::Collections::Array;
 
 namespace
 {
@@ -86,17 +88,26 @@ namespace
         }
     }
 
-    // extra data is used to pass a pointer to display model
-    void callback_func(const IndexArray &vertex_indices, Real value, void * extra_data)
+    class RepaintReaction : public ShapeDeformationReaction
     {
-        Model *model = reinterpret_cast<Model *>(extra_data);
-        D3DXCOLOR result_color;
+    private:
+        Model &model;
 
-        // TODO: assert CALLBACK_THRESHOLD != 1
-        float alpha = static_cast<float>((value - CALLBACK_THRESHOLD)/(1 - CALLBACK_THRESHOLD));
-        D3DXColorLerp(&result_color, &NO_DEFORM_COLOR, &MAX_DEFORM_COLOR, alpha);
-        model->repaint_vertices(vertex_indices, result_color);
-    }
+    public:
+        RepaintReaction(IndexArray &shape_vertex_indices, Real threshold, Model &model)
+            : ShapeDeformationReaction(shape_vertex_indices, threshold), model(model)
+        {}
+
+        virtual void invoke(Real value)
+        {
+            D3DXCOLOR result_color;
+
+            // TODO: assert CALLBACK_THRESHOLD != 1
+            float alpha = static_cast<float>((value - threshold)/(1 - threshold));
+            D3DXColorLerp(&result_color, &NO_DEFORM_COLOR, &MAX_DEFORM_COLOR, alpha);
+            model.repaint_vertices(shape_vertex_indices, result_color);
+        }
+    };
 }
 
 void Logger::log(const char *prefix, const char * message, const char * file, int line)
@@ -150,6 +161,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     Index * cylinder_indices = NULL;
     Vertex * cylinder_model_vertices = NULL;
     Index * cylinder_model_indices = NULL;
+    
+    Array<RepaintReaction*> reactions;
     try
     {
         Application app(logger);
@@ -219,10 +232,14 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
             {
                 int subshape_start = SHAPE_OFFSET + i*SHAPE_STEP + j*SUBSHAPE_SIZE;
                 add_range(vertex_indices[subshape_index], subshape_start, subshape_start + SUBSHAPE_SIZE - 1);
-                // register callback
-                phys_mod->add_shape_deformation_callback(callback_func, vertex_indices[subshape_index], CALLBACK_THRESHOLD, &cylinder_model);
+                // register reaction
+                RepaintReaction & reaction = * new RepaintReaction( vertex_indices[subshape_index],
+                                                                    CALLBACK_THRESHOLD,
+                                                                    cylinder_model );
+                reactions.push_back(&reaction);
+                phys_mod->add_shape_deformation_reaction(reaction);
                 // do initial repaint
-                callback_func(vertex_indices[subshape_index], CALLBACK_THRESHOLD, &cylinder_model);
+                reaction.invoke(CALLBACK_THRESHOLD);
                 
                 ++subshape_index;
             }
@@ -299,6 +316,9 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         delete_array(&cylinder_vertices);
         delete_array(&cylinder_model_indices);
         delete_array(&cylinder_model_vertices);
+
+        for(int i = 0; i < reactions.size(); ++i)
+            delete reactions[i];
         
         logger.log("        [Renderer]", "application shutdown\n");
     }
@@ -312,6 +332,9 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         delete_array(&cylinder_vertices);
         delete_array(&cylinder_model_indices);
         delete_array(&cylinder_model_vertices);
+        for(int i = 0; i < reactions.size(); ++i)
+            delete reactions[i];
+        
         logger.log("ERROR!! [Renderer]", "application crash\n");
         const TCHAR *MESSAGE_BOX_TITLE = _T("Renderer error!");
         MessageBox(NULL, e.message(), MESSAGE_BOX_TITLE, MB_OK | MB_ICONERROR);

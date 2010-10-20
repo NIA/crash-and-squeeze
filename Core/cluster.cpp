@@ -50,9 +50,6 @@ namespace CrashAndSqueeze
               pos(Vector::ZERO),
               size(Vector::ZERO),
 
-              deformation_callback(0),
-              deformation_callback_threshold(1),
-
               goal_speed_constant(DEFAULT_GOAL_SPEED_CONSTANT),
               linear_elasticity_constant(DEFAULT_LINEAR_ELASTICITY_CONSTANT),
               yield_constant(DEFAULT_YIELD_CONSTANT),
@@ -274,12 +271,6 @@ namespace CrashAndSqueeze
                         plasticity_state = new_plasticity_state;
                         update_equilibrium_positions();
                         compute_symmetric_term();
-
-                        Real relative_deformation = get_relative_plastic_deformation();
-                        if( 0 != deformation_callback && greater_or_equal(relative_deformation, deformation_callback_threshold) )
-                        {
-                            deformation_callback(pos, size, relative_deformation);
-                        }
                     }
                 }
             }

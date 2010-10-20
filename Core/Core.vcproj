@@ -165,6 +165,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\reactions.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\vertex_info.cpp"
 				>
 			</File>
@@ -174,14 +178,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath=".\callback_info.h"
-				>
-			</File>
-			<File
-				RelativePath=".\callbacks.h"
-				>
-			</File>
 			<File
 				RelativePath=".\cluster.h"
 				>
@@ -200,6 +196,10 @@
 			</File>
 			<File
 				RelativePath=".\physical_vertex.h"
+				>
+			</File>
+			<File
+				RelativePath=".\reactions.h"
 				>
 			</File>
 			<File
