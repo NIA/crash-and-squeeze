@@ -103,21 +103,47 @@ TEST(ArrayTest, AddManyAndIndexOf)
     }
 }
 
+
+TEST(ArrayTest, CreateItems)
+{
+    Array a;
+    Item item = {2, '3', 0};
+    a.push_back(item);
+
+    a.create_items(10);
+    EXPECT_TRUE( item == a[0] );
+    EXPECT_EQ( 11, a.size() );
+}
+
+TEST(ArrayTest, CreateManyItems)
+{
+    const int NOT_MANY = 10;
+    const int MANY = 100;
+    Array a(NOT_MANY);
+    Item item = {2, '3', 0};
+    a.push_back(item);
+
+    a.create_items(MANY - 1);
+
+    EXPECT_EQ(MANY, a.size());
+    EXPECT_TRUE( item == a[0] );
+}
+
 class CheckLifeCycle
 {
-    static bool anything_destructed;
-    static bool anything_constructed;
+    static int destructed;
+    static int constructed;
 
 public:
-    static void reset() { anything_destructed = anything_constructed = false; }
-    static bool is_anything_destructed() { return anything_destructed; }
-    static bool is_anything_constructed() { return anything_constructed; }
+    static void reset() { destructed = constructed = 0; }
+    static int get_destructed() { return destructed; }
+    static int get_constructed() { return constructed; }
     
-    CheckLifeCycle() { anything_constructed = true; }
-    ~CheckLifeCycle() { anything_destructed = true; }
+    CheckLifeCycle() { ++constructed; }
+    ~CheckLifeCycle() { ++destructed; }
 };
-bool CheckLifeCycle::anything_destructed = true;
-bool CheckLifeCycle::anything_constructed = true;
+int CheckLifeCycle::destructed = 0;
+int CheckLifeCycle::constructed = 0;
 
 typedef CrashAndSqueeze::Collections::Array<CheckLifeCycle> CheckLifeCycleArray;
 
@@ -126,7 +152,9 @@ TEST(ArrayTest, ShouldNotBreakLifeCycle)
     const int NOT_MANY = 1;
     const int MANY = 2;
 
+    CheckLifeCycle::reset();
     CheckLifeCycleArray * a = new CheckLifeCycleArray(NOT_MANY);
+    EXPECT_EQ( 0, CheckLifeCycle::get_constructed() );
     
     CheckLifeCycle::reset();
     
@@ -135,11 +163,35 @@ TEST(ArrayTest, ShouldNotBreakLifeCycle)
         a->create_item();
     }
 
-    EXPECT_TRUE( CheckLifeCycle::is_anything_constructed() );
-    EXPECT_FALSE( CheckLifeCycle::is_anything_destructed() );
+    EXPECT_EQ( MANY, CheckLifeCycle::get_constructed() );
+    EXPECT_EQ( 0, CheckLifeCycle::get_destructed() );
 
     delete a;
-    EXPECT_TRUE( CheckLifeCycle::is_anything_destructed() );
+    EXPECT_EQ( MANY, CheckLifeCycle::get_destructed() );
+}
+
+TEST(ArrayTest, ShouldNotBreakLifeCycleWithBulkCreate)
+{
+    const int NOT_MANY = 10;
+    const int MANY = 20;
+
+    CheckLifeCycleArray * a = new CheckLifeCycleArray(NOT_MANY);
+    CheckLifeCycle::reset();
+    
+    a->create_items(NOT_MANY);
+    EXPECT_EQ( NOT_MANY, CheckLifeCycle::get_constructed() );
+
+    CheckLifeCycle::reset();
+    
+    a->create_items(MANY - NOT_MANY);
+
+    EXPECT_EQ( MANY - NOT_MANY, CheckLifeCycle::get_constructed() );
+    EXPECT_EQ( 0, CheckLifeCycle::get_destructed() );
+
+    CheckLifeCycle::reset();
+
+    delete a;
+    EXPECT_EQ( MANY, CheckLifeCycle::get_destructed() );
 }
 
 TEST(ArrayTest, OutOfRange)

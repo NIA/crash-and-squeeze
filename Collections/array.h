@@ -15,6 +15,7 @@ namespace CrashAndSqueeze
             int allocated_items_num;
             
             bool check_index(int index) const;
+            bool reallocate(int new_allocated_num);
 
         public:
             static const int INITIAL_ALLOCATED = 100;
@@ -26,8 +27,11 @@ namespace CrashAndSqueeze
             // adds a new item to array and returns it
             T & create_item();
 
+            // adds new_items_num new items to array
+            void create_items(int new_items_num);
+
             // requires operator= to be defined for T;
-            // if none, use create_new() instead of push_back()
+            // if none, use create_item() instead of push_back()
             void push_back(T const & item);
             
             static const int ITEM_NOT_FOUND_INDEX = -1;
@@ -87,27 +91,35 @@ namespace CrashAndSqueeze
                 }
             }
         }
+        
+        template<class T>
+        bool Array<T>::reallocate(int new_allocated_num)
+        {
+            if( new_allocated_num <= allocated_items_num )
+                return true;
+
+            T *new_items = reinterpret_cast<T*>( realloc(items, sizeof(items[0])*new_allocated_num) );
+            
+            // if realloc failed
+            if(NULL == new_items)
+            {
+                Logging::logger.error("in Collections::Array::reallocate: not enough memory!");
+                return false;
+            }
+
+            items = new_items;
+            allocated_items_num = new_allocated_num;
+            return true;
+        }
 
         template<class T>
         T & Array<T>::create_item()
         {
             if( items_num == allocated_items_num )
             {
-                if(0 == allocated_items_num)
-                    allocated_items_num = INITIAL_ALLOCATED;
-                else
-                    allocated_items_num *= 2;
-                
-                T *new_items = reinterpret_cast<T*>( realloc(items, sizeof(items[0])*allocated_items_num) );
-                
-                // if realloc failed
-                if(NULL == new_items)
-                {
-                    Logging::logger.error("in Collections::Array::create_item: not enough memory to re-allocate!");
-                    return items[items_num - 1];
-                }
-                
-                items = new_items;
+                int new_allocated_num = (0 == allocated_items_num) ? INITIAL_ALLOCATED : allocated_items_num*2;
+                if( false == reallocate(new_allocated_num) )
+                    return items[items_num - 1]; 
             }
 
             ++items_num;
@@ -115,6 +127,26 @@ namespace CrashAndSqueeze
             // construct it in its place
             new (&new_item) T;
             return new_item;
+        }
+
+        template<class T>
+        void Array<T>::create_items(int new_items_num)
+        {
+            if(new_items_num <= 0)
+                return;
+            
+            int new_size = items_num + new_items_num;
+            
+            if( new_size > allocated_items_num )
+            {
+                if( false == reallocate(new_size) )
+                    return;
+            }
+            
+            // construct new items
+            for(int i = items_num; i < new_size; ++i)
+                new (&items[i]) T;
+            items_num = new_size;
         }
 
         template<class T>
