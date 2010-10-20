@@ -43,29 +43,28 @@ namespace
     {
         Model m(vertices, SIZE, vi, CLUSTERS_BY_AXES, PADDING, masses, constant_mass);
         int vnum = m.get_vertices_num();
-        const PhysicalVertex *vv = m.get_vertices();
         
         int cnum = m.get_clusters_num();
-        const Cluster *cc = m.get_clusters();
         
         ASSERT_EQ(SIZE, vnum);
         ASSERT_EQ(TOTAL_CLUSTERS_NUM, cnum);
         
         for(int i = 0; i < vnum; ++i)
         {
-            ASSERT_EQ(get_pos(vertices[i]), vv[i].pos);
+            const PhysicalVertex & v = m.get_vertex(i);
+            ASSERT_EQ(get_pos(vertices[i]), v.pos);
             if( NULL == masses )
-                ASSERT_EQ(constant_mass, vv[i].mass);
+                ASSERT_EQ(constant_mass, v.mass);
             else
-                ASSERT_EQ(masses[i], vv[i].mass);
+                ASSERT_EQ(masses[i], v.mass);
 
-            ASSERT_GE( vv[i].nearest_cluster_index, 0 );
-            ASSERT_LT( vv[i].nearest_cluster_index, cnum );
+            ASSERT_GE( v.nearest_cluster_index, 0 );
+            ASSERT_LT( v.nearest_cluster_index, cnum );
         }
 
         for(int i = 0; i < cnum; ++i)
         {
-            ASSERT_TRUE(cc[i].is_valid());
+            ASSERT_TRUE(m.get_cluster(i).is_valid());
         }
     }
 };

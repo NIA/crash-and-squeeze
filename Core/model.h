@@ -1,6 +1,8 @@
 #pragma once
 #include "Core/core.h"
 #include "Core/vertex_info.h"
+#include "Core/physical_vertex.h"
+#include "Core/cluster.h"
 #include "Core/force.h"
 #include "Core/callbacks.h"
 #include "Core/callback_info.h"
@@ -12,19 +14,13 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
-        struct PhysicalVertex;
-        class Cluster;
-
         class Model
         {
         private:
             // -- constant (at run-time) properties
             
-            PhysicalVertex *vertices;
-            int vertices_num;
-
-            Cluster *clusters;
-            int clusters_num;
+            Collections::Array<PhysicalVertex> vertices;
+            Collections::Array<Cluster> clusters;
 
             CallbackInfoArray callback_infos;
 
@@ -103,13 +99,11 @@ namespace CrashAndSqueeze
 
             void update_vertices(/*out*/ void *vertices, int vertices_num, VertexInfo const &vertex_info);
 
-            int get_vertices_num() const { return vertices_num; }
-            int get_clusters_num() const { return clusters_num; }
+            int get_vertices_num() const { return vertices.size(); }
+            int get_clusters_num() const { return clusters.size(); }
             
-            // TODO: function used for testing, is needed anyway?
-            PhysicalVertex const *get_vertices() const { return vertices; }
-            // TODO: function used for testing, is needed anyway?
-            Cluster const *get_clusters() const { return clusters; }
+            const PhysicalVertex & get_vertex(int index) const { return vertices[index]; }
+            const Cluster & get_cluster(int index) const { return clusters[index]; }
             
             virtual ~Model();
 

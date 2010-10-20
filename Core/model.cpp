@@ -1,6 +1,4 @@
 #include "Core/model.h"
-#include "Core/physical_vertex.h"
-#include "Core/cluster.h"
 #include <cstdlib>
 
 namespace CrashAndSqueeze
@@ -87,11 +85,7 @@ namespace CrashAndSqueeze
                       Math::Real cluster_padding_coeff,
                       const MassFloat *masses,
                       const MassFloat constant_mass)
-            : vertices(NULL),
-              vertices_num(vertices_num),
-              
-              clusters_num(0),
-              clusters(NULL),
+            : vertices(vertices_num),
               
               cluster_padding_coeff(cluster_padding_coeff),
               damping_constant(DEFAULT_DAMPING_CONSTANT),
@@ -107,6 +101,8 @@ namespace CrashAndSqueeze
 
               callback_infos(INITIAL_ALLOCATED_CALLBACK_INFOS)
         {
+            vertices.create_items(vertices_num);
+
             if( init_vertices(source_vertices, vertex_info, masses, constant_mass) )
             {
                 if( find_body_properties() )
@@ -124,69 +120,59 @@ namespace CrashAndSqueeze
                                   const MassFloat *masses,
                                   const MassFloat constant_mass)
         {
-            if(this->vertices_num <= 0)
+            const void *source_vertex = source_vertices;
+            
+            if( less_or_equal(constant_mass, 0) && NULL == masses )
             {
-                logger.error("creating model with `vertices_count` <= 0", __FILE__, __LINE__);
+                logger.error("creating model with constant vertex mass <= 0. Vertex mass must be strictly positive.", __FILE__, __LINE__);
                 return false;
             }
-            else
+
+            for(int i = 0; i < vertices.size(); ++i)
             {
-                this->vertices = new PhysicalVertex[this->vertices_num];
-
-
-                const void *source_vertex = source_vertices;
+                PhysicalVertex &vertex = vertices[i];
                 
-                if( less_or_equal(constant_mass, 0) && NULL == masses )
+                const VertexFloat *position = reinterpret_cast<const VertexFloat*>( add_to_pointer(source_vertex, vertex_info.get_point_offset(0)));
+                vertex.pos = Vector( static_cast<Real>(position[0]),
+                                     static_cast<Real>(position[1]),
+                                     static_cast<Real>(position[2]) );
+                
+                if( NULL != masses )
                 {
-                    logger.error("creating model with constant vertex mass <= 0. Vertex mass must be strictly positive.", __FILE__, __LINE__);
-                    return false;
+                    vertex.mass = static_cast<Real>(masses[i]);
+                    if( less_or_equal(vertex.mass, 0) )
+                    {
+                        logger.error("creating model with vertex having mass <= 0. Vertex mass must be strictly positive.", __FILE__, __LINE__);
+                        return false;
+                    }
                 }
-
-                for(int i = 0; i < this->vertices_num; ++i)
+                else
                 {
-                    PhysicalVertex &vertex = this->vertices[i];
-                    
-                    const VertexFloat *position = reinterpret_cast<const VertexFloat*>( add_to_pointer(source_vertex, vertex_info.get_point_offset(0)));
-                    vertex.pos = Vector( static_cast<Real>(position[0]),
-                                         static_cast<Real>(position[1]),
-                                         static_cast<Real>(position[2]) );
-                    
-                    if( NULL != masses )
-                    {
-                        vertex.mass = static_cast<Real>(masses[i]);
-                        if( less_or_equal(vertex.mass, 0) )
-                        {
-                            logger.error("creating model with vertex having mass <= 0. Vertex mass must be strictly positive.", __FILE__, __LINE__);
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        vertex.mass = constant_mass;
-                    }
-                    total_mass += vertex.mass;
-
-                    for(int j = 0; j < VECTOR_SIZE; ++j)
-                    {
-                        if(vertex.pos[j] < min_pos[j])
-                            min_pos[j] = vertex.pos[j];
-
-                        if(vertex.pos[j] > max_pos[j])
-                            max_pos[j] = vertex.pos[j];
-                    }
-                    
-                    source_vertex = add_to_pointer(source_vertex, vertex_info.get_vertex_size());
+                    vertex.mass = static_cast<Real>(constant_mass);
                 }
-                return true;
+                total_mass += vertex.mass;
+
+                for(int j = 0; j < VECTOR_SIZE; ++j)
+                {
+                    if(vertex.pos[j] < min_pos[j])
+                        min_pos[j] = vertex.pos[j];
+
+                    if(vertex.pos[j] > max_pos[j])
+                        max_pos[j] = vertex.pos[j];
+                }
+                
+                source_vertex = add_to_pointer(source_vertex, vertex_info.get_vertex_size());
             }
+            return true;
         }
         
         bool Model::init_clusters()
         {
-            clusters_num = 1;
+            int clusters_num = 1;
             for(int i = 0; i < VECTOR_SIZE; ++i)
                 clusters_num *= clusters_by_axes[i];
-            clusters = new Cluster[clusters_num];
+
+            clusters.create_items(clusters_num);
 
             const Vector dimensions = max_pos - min_pos;
             
@@ -201,7 +187,7 @@ namespace CrashAndSqueeze
             }
             
             // -- For each vertex: assign --
-            for(int i = 0; i < this->vertices_num; ++i)
+            for(int i = 0; i < vertices.size(); ++i)
             {
                 if ( false == add_vertex_to_clusters(vertices[i]) )
                     return false;
@@ -226,7 +212,7 @@ namespace CrashAndSqueeze
             }
 
             // -- For each cluster: precompute --
-            for(int i = 0; i < clusters_num; ++i)
+            for(int i = 0; i < clusters.size(); ++i)
             {
                 clusters[i].compute_initial_characteristics();
             }
@@ -303,7 +289,7 @@ namespace CrashAndSqueeze
         
         void  Model::set_cluster_deformation_callback(ClusterDeformationCallback callback, Math::Real threshold)
         {
-            for(int i = 0; i < clusters_num; ++i)
+            for(int i = 0; i < clusters.size(); ++i)
             {
                 clusters[i].set_deformation_callback(callback, threshold);
             }
@@ -359,7 +345,7 @@ namespace CrashAndSqueeze
                 return false;
             
             center_of_mass = Vector::ZERO;
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < vertices.size(); ++i)
             {
                 PhysicalVertex &v = vertices[i];
                 
@@ -367,7 +353,7 @@ namespace CrashAndSqueeze
             }
 
             inertia_tensor = Matrix::ZERO;
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < vertices.size(); ++i)
             {
                 PhysicalVertex &v = vertices[i];
                 Vector offset = v.pos - center_of_mass;
@@ -397,7 +383,7 @@ namespace CrashAndSqueeze
             center_of_mass_velocity = Vector::ZERO;
             Vector angular_momentum = Vector::ZERO;
             
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < vertices.size(); ++i)
             {
                 PhysicalVertex &v = vertices[i];
                 
@@ -418,7 +404,7 @@ namespace CrashAndSqueeze
             Vector linear_momentum_addition = Vector::ZERO;
             Vector angular_momentum_addition = Vector::ZERO;
 
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < vertices.size(); ++i)
             {
                 PhysicalVertex &v = vertices[i];
 
@@ -432,7 +418,7 @@ namespace CrashAndSqueeze
             if( false == compute_angular_velocity(angular_momentum_addition, angular_velocity_addition) )
                 return false;
 
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < vertices.size(); ++i)
             {
                 PhysicalVertex &v = vertices[i];
 
@@ -463,7 +449,7 @@ namespace CrashAndSqueeze
             Real dt = 0.01;
 
             // -- For each cluster of model: do shape matching --
-            for(int i = 0; i < clusters_num; ++i)
+            for(int i = 0; i < clusters.size(); ++i)
             {
                 clusters[i].match_shape(dt);
             }
@@ -475,7 +461,7 @@ namespace CrashAndSqueeze
                 return false;
             
             // -- For each vertex of model: integrate velocities --
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < vertices.size(); ++i)
             {
                 if( false == integrate_velocity( vertices[i], forces, forces_num, dt ))
                     return false;
@@ -485,7 +471,7 @@ namespace CrashAndSqueeze
                 return false;
 
             // -- For each vertex of model: damp velocities and integrate positions --
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < vertices.size(); ++i)
             {
                 damp_velocity( vertices[i] );
                 integrate_position( vertices[i], dt );
@@ -515,21 +501,16 @@ namespace CrashAndSqueeze
 
         void Model::update_vertices(/*out*/ void *vertices, int vertices_num, VertexInfo const &vertex_info)
         {
-            if(vertices_num > this->vertices_num)
+            if(vertices_num > this->vertices.size())
             {
                 logger.warning("in Model::update_vertices: requested to update too many vertices, probably wrong vertices given?");
-                vertices_num = this->vertices_num;
+                vertices_num = this->vertices.size();
             }
 
             void *out_vertex = vertices;
             for(int i = 0; i < vertices_num; ++i)
             {
                 const PhysicalVertex &vertex = this->vertices[i];
-                
-                /* // !!! one-cluster hack
-                const Cluster &cluster = clusters[0];
-                Vector pos = cluster.get_total_deformation() * cluster.get_initial_vertex_offset_position(i)
-                           + cluster.get_center_of_mass(); */
                 
                 // TODO: many points and vectors, only position so far
                 VertexFloat *position = reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(0)));
@@ -542,8 +523,6 @@ namespace CrashAndSqueeze
 
         Model::~Model()
         {
-            delete[] vertices;
-            delete[] clusters;
         }
 
     }
