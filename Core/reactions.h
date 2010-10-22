@@ -29,16 +29,19 @@ namespace CrashAndSqueeze
         class ShapeDeformationReaction
         {
         private:
-            ClusterWithWeightArray clusters_with_weights;
-        
-        protected:
-            IndexArray &shape_vertex_indices;
+            const IndexArray &shape_vertex_indices;
             Math::Real threshold;
+
+            ClusterWithWeightArray clusters_with_weights;
+
+        protected:
+            const IndexArray &get_shape_vertex_indices() { return shape_vertex_indices; }
+            Math::Real get_threshold() { return threshold; }
 
         public:
             // When creating an instance of the reaction, the shape have to be defined by indices of
             // vertices that form the shape, and the threshold of relative deformation have to be specified
-            ShapeDeformationReaction(IndexArray &shape_vertex_indices, Math::Real threshold)
+            ShapeDeformationReaction(const IndexArray &shape_vertex_indices, Math::Real threshold)
                 : shape_vertex_indices(shape_vertex_indices), threshold(threshold)
             {}
             

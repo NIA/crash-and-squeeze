@@ -94,18 +94,20 @@ namespace
         Model &model;
 
     public:
-        RepaintReaction(IndexArray &shape_vertex_indices, Real threshold, Model &model)
+        RepaintReaction(const IndexArray &shape_vertex_indices, Real threshold, Model &model)
             : ShapeDeformationReaction(shape_vertex_indices, threshold), model(model)
         {}
 
         virtual void invoke(Real value)
         {
-            D3DXCOLOR result_color;
+            if( 1 != get_threshold() )
+            {
+                D3DXCOLOR result_color;
 
-            // TODO: assert CALLBACK_THRESHOLD != 1
-            float alpha = static_cast<float>((value - threshold)/(1 - threshold));
-            D3DXColorLerp(&result_color, &NO_DEFORM_COLOR, &MAX_DEFORM_COLOR, alpha);
-            model.repaint_vertices(shape_vertex_indices, result_color);
+                float alpha = static_cast<float>((value - get_threshold())/(1 - get_threshold()));
+                D3DXColorLerp(&result_color, &NO_DEFORM_COLOR, &MAX_DEFORM_COLOR, alpha);
+                model.repaint_vertices(get_shape_vertex_indices(), result_color);
+            }
         }
     };
 }
