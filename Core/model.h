@@ -1,8 +1,7 @@
 #pragma once
 #include "Core/core.h"
 #include "Core/vertex_info.h"
-#include "Core/physical_vertex.h"
-#include "Core/cluster.h"
+#include "Core/imodel.h"
 #include "Core/force.h"
 #include "Core/reactions.h"
 #include "Math/floating_point.h"
@@ -13,7 +12,7 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
-        class Model
+        class Model : public IModel
         {
         private:
             // -- constant (at run-time) properties
@@ -94,11 +93,11 @@ namespace CrashAndSqueeze
 
             void update_vertices(/*out*/ void *vertices, int vertices_num, VertexInfo const &vertex_info);
 
-            int get_vertices_num() const { return vertices.size(); }
-            int get_clusters_num() const { return clusters.size(); }
+            virtual int get_vertices_num() const { return vertices.size(); }
+            virtual int get_clusters_num() const { return clusters.size(); }
             
-            const PhysicalVertex & get_vertex(int index) const { return vertices[index]; }
-            const Cluster & get_cluster(int index) const { return clusters[index]; }
+            virtual const PhysicalVertex & get_vertex(int index) const { return vertices[index]; }
+            virtual const Cluster & get_cluster(int index) const { return clusters[index]; }
             
             virtual ~Model();
 

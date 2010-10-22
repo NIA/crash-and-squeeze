@@ -1,16 +1,13 @@
 #pragma once
 #include "Math/floating_point.h"
 #include "Collections/array.h"
-#include "Core/physical_vertex.h"
+#include "Core/imodel.h"
 
 namespace CrashAndSqueeze
 {
     namespace Core
     {
         typedef Collections::Array<int> IndexArray;
-
-        class Model;
-        class Cluster;
 
         // An internal structure for linking shape of ShapeDeformationAction to clusters
         struct ClusterWithWeight
@@ -46,8 +43,7 @@ namespace CrashAndSqueeze
             {}
             
             // A function called internally when the action is registered in Model
-            // TODO: cyclic dependencies, whooooa...
-            void link_with_model(const Model &model);
+            void link_with_model(const IModel &model);
             void invoke_if_needed();
             
             virtual void invoke(Math::Real value) = 0;

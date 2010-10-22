@@ -1,6 +1,4 @@
 #include "Core/reactions.h"
-#include "Core/model.h"
-#include "Core/cluster.h"
 
 namespace CrashAndSqueeze
 {
@@ -16,7 +14,7 @@ namespace CrashAndSqueeze
             }
         }
 
-        void ShapeDeformationReaction::link_with_model(const Model &model)
+        void ShapeDeformationReaction::link_with_model(const IModel &model)
         {
             int vertices_num = shape_vertex_indices.size();
             for(int i = 0; i < vertices_num; ++i)
