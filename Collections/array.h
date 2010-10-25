@@ -13,8 +13,10 @@ namespace CrashAndSqueeze
             T *items;
             int items_num;
             int allocated_items_num;
+            bool frozen;
             
             bool check_index(int index) const;
+            bool check_not_frozen() const;
             bool reallocate(int new_allocated_num);
 
         public:
@@ -50,6 +52,10 @@ namespace CrashAndSqueeze
             T & operator[](int index);
             const T & operator[](int index) const;
 
+            // after call to this function array cannot grow anymore
+            void freeze() { frozen = true; }
+            bool is_frozen() { return frozen; }
+
             virtual ~Array();
         private:
             // No copying!
@@ -71,8 +77,19 @@ namespace CrashAndSqueeze
         }
 
         template<class T>
+        bool Array<T>::check_not_frozen() const
+        {
+            if(frozen)
+            {
+                Logging::logger.error("Collections::Array is frozen, cannot add new item(s)");
+                return false;
+            }
+            return true;
+        }
+
+        template<class T>
         Array<T>::Array(int initial_allocated = INITIAL_ALLOCATED)
-            : items(NULL), items_num(0), allocated_items_num(initial_allocated)
+            : items(NULL), items_num(0), frozen(false), allocated_items_num(initial_allocated)
         {
             if( initial_allocated < 0 )
             {
@@ -115,11 +132,14 @@ namespace CrashAndSqueeze
         template<class T>
         T & Array<T>::create_item()
         {
+            if( false == check_not_frozen() )
+                return items[items_num - 1];
+
             if( items_num == allocated_items_num )
             {
                 int new_allocated_num = (0 == allocated_items_num) ? INITIAL_ALLOCATED : allocated_items_num*2;
                 if( false == reallocate(new_allocated_num) )
-                    return items[items_num - 1]; 
+                    return items[items_num - 1];
             }
 
             ++items_num;
@@ -132,6 +152,9 @@ namespace CrashAndSqueeze
         template<class T>
         void Array<T>::create_items(int new_items_num)
         {
+            if( false == check_not_frozen() )
+                return;
+
             if(new_items_num <= 0)
                 return;
             

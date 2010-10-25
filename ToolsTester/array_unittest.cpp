@@ -46,6 +46,21 @@ TEST(ArrayTest, BadCreate)
     unset_tester_err_callback();
 }
 
+TEST(ArrayTest, BoundaryCheck)
+{
+    set_tester_err_callback();
+
+    const int SIZE = 3;
+    Array a(SIZE);
+    a.create_items(SIZE);
+    
+    EXPECT_THROW( a[-1], ToolsTesterException );
+    EXPECT_NO_THROW( a[SIZE/2] );
+    EXPECT_THROW( a[SIZE], ToolsTesterException );
+
+    unset_tester_err_callback();
+}
+
 TEST(ArrayTest, AddOne)
 {
     Array a;
@@ -302,4 +317,37 @@ TEST(ArrayTest, FindOrAdd_Add)
     EXPECT_TRUE(item == a[size]);
     // nothing added
     EXPECT_EQ(size + 1, a.size());
+}
+
+TEST(ArrayTest, Freeze)
+{
+    set_tester_err_callback();
+    Array a;
+    Item some_boring_item = {0};
+    a.push_back(some_boring_item);
+    a.push_back(some_boring_item);
+
+    a.freeze();
+    
+    EXPECT_TRUE( a.is_frozen() );
+    EXPECT_THROW( a.push_back(some_boring_item), ToolsTesterException );
+    EXPECT_THROW( a.create_item(), ToolsTesterException );
+    unset_tester_err_callback();
+}
+
+TEST(ArrayTest, FindOrAddToFrozen)
+{
+    set_tester_err_callback();
+    Array a;
+    Item some_boring_item = {0};
+    a.push_back(some_boring_item);
+    a.push_back(some_boring_item);
+    a.push_back(some_boring_item);
+    Item item = {1};
+
+    a.freeze();
+
+    EXPECT_NO_THROW( a.find_or_add(some_boring_item, compare_items) );
+    EXPECT_THROW( a.find_or_add(item, compare_items), ToolsTesterException );
+    set_tester_err_callback();
 }

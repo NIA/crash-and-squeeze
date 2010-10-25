@@ -100,6 +100,7 @@ namespace CrashAndSqueeze
               angular_velocity(Vector::ZERO)
         {
             vertices.create_items(vertices_num);
+            vertices.freeze();
 
             if( init_vertices(source_vertices, vertex_info, masses, constant_mass) )
             {
@@ -171,6 +172,7 @@ namespace CrashAndSqueeze
                 clusters_num *= clusters_by_axes[i];
 
             clusters.create_items(clusters_num);
+            clusters.freeze();
 
             const Vector dimensions = max_pos - min_pos;
             
@@ -269,7 +271,9 @@ namespace CrashAndSqueeze
         
         void Model::add_shape_deformation_reaction(ShapeDeformationReaction & reaction)
         {
-            reaction.link_with_model(*this);
+            if( false == reaction.link_with_model(*this) )
+                return;
+
             shape_deform_reactions.push_back( & reaction );
         }
 
@@ -388,6 +392,8 @@ namespace CrashAndSqueeze
                 logger.error("in Model::compute_next_step: null pointer `forces`", __FILE__, __LINE__);
                 return false;
             }
+
+            shape_deform_reactions.freeze();
             
             // TODO: QueryPerformanceCounter
             Real dt = 0.01;

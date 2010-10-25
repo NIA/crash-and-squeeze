@@ -29,6 +29,7 @@ namespace CrashAndSqueeze
             const IndexArray &shape_vertex_indices;
             Math::Real threshold;
 
+            bool linked;
             ClusterWithWeightArray clusters_with_weights;
 
         protected:
@@ -39,11 +40,11 @@ namespace CrashAndSqueeze
             // When creating an instance of the reaction, the shape have to be defined by indices of
             // vertices that form the shape, and the threshold of relative deformation have to be specified
             ShapeDeformationReaction(const IndexArray &shape_vertex_indices, Math::Real threshold)
-                : shape_vertex_indices(shape_vertex_indices), threshold(threshold)
+                : shape_vertex_indices(shape_vertex_indices), threshold(threshold), linked(false)
             {}
             
             // A function called internally when the action is registered in Model
-            void link_with_model(const IModel &model);
+            bool link_with_model(const IModel &model);
             void invoke_if_needed();
             
             virtual void invoke(Math::Real value) = 0;

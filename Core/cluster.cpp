@@ -81,6 +81,8 @@ namespace CrashAndSqueeze
 
         void Cluster::compute_initial_characteristics()
         {
+            vertex_infos.freeze();
+
             update_center_of_mass();
             initial_center_of_mass = center_of_mass;
 

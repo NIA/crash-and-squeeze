@@ -14,8 +14,14 @@ namespace CrashAndSqueeze
             }
         }
 
-        void ShapeDeformationReaction::link_with_model(const IModel &model)
+        bool ShapeDeformationReaction::link_with_model(const IModel &model)
         {
+            if(linked)
+            {
+                logger.error("in ShapeDeformationReaction::link_with_model: already linked");
+                return false;
+            }
+
             int vertices_num = shape_vertex_indices.size();
             for(int i = 0; i < vertices_num; ++i)
             {
@@ -28,6 +34,10 @@ namespace CrashAndSqueeze
                                                                             compare_by_cluster_pointer );
                 cww.weight += 1.0/vertices_num;
             }
+
+            clusters_with_weights.freeze();
+            linked = true;
+            return true;
         }
 
         void ShapeDeformationReaction::invoke_if_needed()
