@@ -46,6 +46,12 @@ namespace CrashAndSqueeze
 
         // This class is used for logging and error reporting all over the library.
         //
+        // It's a singleton, so use Logger::get_instance() to get the instance.
+        // Shortcuts can be used for invoking callbacks, e.g. instead of
+        //   Logger.get_instance().invoke(LOG, "message", __FILE__, __LINE__);
+        // you can write
+        //   Logger::log("message", __FILE__, __LINE__);
+        //
         // By default it writes messages to std::clog and on error throws an exception
         // of class ::CrashAndSqueeze::Logging::Error.
         //
@@ -88,10 +94,11 @@ namespace CrashAndSqueeze
                 virtual void invoke(const char * message, const char * file, int line);
             } default_actions[_LEVELS_NUMBER];
 
-        public:
-            // -- construction --
-
+            // singleton: private constructor
             Logger();
+        public:
+
+            static Logger & get_instance();
 
             // -- setup --
 
@@ -101,23 +108,23 @@ namespace CrashAndSqueeze
             void ignore(Level level);
 
             // -- invocation --
+
+            void invoke(Level level, const char * message, const char * file = "", int line = 0);
             
-            void log(const char * message, const char * file = "", int line = 0)
+            static void log(const char * message, const char * file = "", int line = 0)
             {
-                actions[LOG]->invoke(message, file, line);
+                get_instance().invoke(LOG, message, file, line);
             }
 
-            void warning(const char * message, const char * file = "", int line = 0)
+            static void warning(const char * message, const char * file = "", int line = 0)
             {
-                actions[WARNING]->invoke(message, file, line);
+                get_instance().invoke(WARNING, message, file, line);
             }
 
-            void error(const char * message, const char * file = "", int line = 0)
+            static void error(const char * message, const char * file = "", int line = 0)
             {
-                actions[ERROR]->invoke(message, file, line);
+                get_instance().invoke(ERROR, message, file, line);
             }
         };
-
-        extern Logger logger;
     }
 }

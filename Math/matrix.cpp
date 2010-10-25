@@ -3,6 +3,8 @@
 
 namespace CrashAndSqueeze
 {
+    using Logging::Logger;
+
     namespace Math
     {
         // -- constructors --
@@ -31,7 +33,7 @@ namespace CrashAndSqueeze
         {
             if(NULL == operation)
             {
-                logger.error("internal error: null pointer `operation` in matrix-matrix assigment operation", __FILE__, __LINE__);
+                Logger::error("internal error: null pointer `operation` in matrix-matrix assigment operation", __FILE__, __LINE__);
                 return *this;
             }
             
@@ -53,7 +55,7 @@ namespace CrashAndSqueeze
         {
             if(NULL == operation)
             {
-                logger.error("internal error: null pointer `operation` in matrix-scalar assigment operation", __FILE__, __LINE__);
+                Logger::error("internal error: null pointer `operation` in matrix-scalar assigment operation", __FILE__, __LINE__);
                 return *this;
             }
 
@@ -159,7 +161,7 @@ namespace CrashAndSqueeze
             Real det = determinant();
             if(equal(0, det))
             {
-                logger.error("inverting singular matrix (determinant == 0)", __FILE__, __LINE__);
+                Logger::error("inverting singular matrix (determinant == 0)", __FILE__, __LINE__);
                 return Matrix::ZERO;
             }
 
@@ -200,7 +202,7 @@ namespace CrashAndSqueeze
             // check for invalid rotation
             if(p == q)
             {
-                logger.warning("incorrect jacobi rotation: `p` and `q` must be different indices", __FILE__, __LINE__);
+                Logger::warning("incorrect jacobi rotation: `p` and `q` must be different indices", __FILE__, __LINE__);
                 return;
             }
             
@@ -257,7 +259,7 @@ namespace CrashAndSqueeze
         {
             if(NULL == function)
             {
-                logger.error("null pointer `function` in Matrix::compute_function", __FILE__, __LINE__);
+                Logger::error("null pointer `function` in Matrix::compute_function", __FILE__, __LINE__);
                 return Matrix::ZERO;
             }
             
@@ -289,7 +291,7 @@ namespace CrashAndSqueeze
             symmetric_part = (this->transposed()*(*this)).compute_function(cautious_sqrt, diagonalization_rotations_count);
             // FIXME: what if symmetric_part.determinant() == 0?
             if( ! symmetric_part.is_invertible() )
-                logger.error("in Matrix::do_polar_decomposition: symmetric_part is singular, cannot invert", __FILE__, __LINE__);
+                Logger::error("in Matrix::do_polar_decomposition: symmetric_part is singular, cannot invert", __FILE__, __LINE__);
 
             orthogonal_part = (*this)*symmetric_part.inverted();
         }

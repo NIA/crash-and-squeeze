@@ -3,6 +3,7 @@
 
 namespace CrashAndSqueeze
 {
+    using Logging::Logger;
     using Math::Real;
     using Math::equal;
     using Math::less_or_equal;
@@ -191,13 +192,13 @@ namespace CrashAndSqueeze
             {
                 if( det < 0 )
                 {
-                    logger.warning("in Cluster::compute_linear_transformation: linear_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
+                    Logger::warning("in Cluster::compute_linear_transformation: linear_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
                 }
                 linear_transformation /= cube_root(det);
             }
             else
             {
-                logger.warning("in Cluster::compute_linear_transformation: linear_transformation is singular, so volume-preserving constraint cannot be enforced", __FILE__, __LINE__);
+                Logger::warning("in Cluster::compute_linear_transformation: linear_transformation is singular, so volume-preserving constraint cannot be enforced", __FILE__, __LINE__);
                 // but now, while polar decomposition is only for invertible matrix - it's very, very bad...
             }
         }
@@ -219,7 +220,7 @@ namespace CrashAndSqueeze
                 // we need average velocity addition, not sum, so divide by vertex.including_clusters_num
                 if(0 == vertex.including_clusters_num)
                 {
-                    logger.warning("internal error: in Cluster::apply_goal_positions: vertex with incorrect zero value of including_clusters_num", __FILE__, __LINE__);
+                    Logger::warning("internal error: in Cluster::apply_goal_positions: vertex with incorrect zero value of including_clusters_num", __FILE__, __LINE__);
                     continue;
                 }
                 velocity_addition /= vertex.including_clusters_num;
@@ -282,7 +283,7 @@ namespace CrashAndSqueeze
         {
             if( ! initial_characteristics_computed )
             {
-                logger.error("missed precomputing: Cluster::compute_initial_characteristics must be called after last vertex is added", __FILE__, __LINE__);
+                Logger::error("missed precomputing: Cluster::compute_initial_characteristics must be called after last vertex is added", __FILE__, __LINE__);
                 return false;
             }
             return true;

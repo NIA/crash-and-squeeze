@@ -70,7 +70,7 @@ namespace CrashAndSqueeze
         {
             if(index < 0 || index >= items_num)
             {
-                Logging::logger.error("Collections::Array index out of range");
+                Logging::Logger::error("Collections::Array index out of range");
                 return false;
             }
             return true;
@@ -81,7 +81,7 @@ namespace CrashAndSqueeze
         {
             if(frozen)
             {
-                Logging::logger.error("Collections::Array is frozen, cannot add new item(s)");
+                Logging::Logger::error("Collections::Array is frozen, cannot add new item(s)");
                 return false;
             }
             return true;
@@ -93,7 +93,7 @@ namespace CrashAndSqueeze
         {
             if( initial_allocated < 0 )
             {
-                Logging::logger.error("creating Collections::Array with initial_allocated < 0");
+                Logging::Logger::error("creating Collections::Array with initial_allocated < 0");
             }
             else
             {
@@ -103,7 +103,7 @@ namespace CrashAndSqueeze
                     
                     if(NULL == items)
                     {
-                        Logging::logger.error("creating Collections::Array: not enough memory!");
+                        Logging::Logger::error("creating Collections::Array: not enough memory!");
                     }
                 }
             }
@@ -120,7 +120,7 @@ namespace CrashAndSqueeze
             // if realloc failed
             if(NULL == new_items)
             {
-                Logging::logger.error("in Collections::Array::reallocate: not enough memory!");
+                Logging::Logger::error("in Collections::Array::reallocate: not enough memory!");
                 return false;
             }
 

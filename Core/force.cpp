@@ -5,7 +5,7 @@ namespace CrashAndSqueeze
     using Math::Vector;
     using Math::Real;
     using Math::less_or_equal;
-    using Logging::logger;
+    using Logging::Logger;
 
     namespace Core
     {
@@ -69,7 +69,7 @@ namespace CrashAndSqueeze
         {
             if( radius < 0 )
             {
-                logger.warning("given radius for a subclass of ForceWidthRadius is less than 0, corrected to 0", __FILE__, __LINE__);
+                Logger::warning("given radius for a subclass of ForceWidthRadius is less than 0, corrected to 0", __FILE__, __LINE__);
                 this->radius = 0;
             }
             else
@@ -118,7 +118,7 @@ namespace CrashAndSqueeze
             if(max_distance < 0)
             {
                 max_distance = 0;
-                logger.warning("given max distance for PlaneForce is less than 0, corrected to 0", __FILE__, __LINE__);
+                Logger::warning("given max distance for PlaneForce is less than 0, corrected to 0", __FILE__, __LINE__);
             }
         }
 
@@ -147,7 +147,7 @@ namespace CrashAndSqueeze
             if(spring_constant < 0)
             {
                 spring_constant = 0;
-                logger.warning("given spring constant for Spring is less than 0, corrected to 0", __FILE__, __LINE__);
+                Logger::warning("given spring constant for Spring is less than 0, corrected to 0", __FILE__, __LINE__);
             }
         }
 
@@ -157,7 +157,7 @@ namespace CrashAndSqueeze
             if(damping_constant < 0)
             {
                 damping_constant = 0;
-                logger.warning("given damping constant for Spring is less than 0, corrected to 0", __FILE__, __LINE__);
+                Logger::warning("given damping constant for Spring is less than 0, corrected to 0", __FILE__, __LINE__);
             }
         }
 
@@ -214,7 +214,7 @@ namespace CrashAndSqueeze
         {
             if(p1 == p2)
             {
-                logger.error("given points for CylinderSpringForce are equal", __FILE__, __LINE__);
+                Logger::error("given points for CylinderSpringForce are equal", __FILE__, __LINE__);
             }
             else
             {

@@ -5,8 +5,6 @@
 
 namespace CrashAndSqueeze
 {
-    using Logging::logger;
-
     namespace Math
     {
         const int VECTOR_SIZE = 3;
@@ -20,7 +18,7 @@ namespace CrashAndSqueeze
             {
                 if(index < 0 || index >= VECTOR_SIZE)
                 {
-                    logger.error("Vector index out of range", __FILE__, __LINE__);
+                    Logging::Logger::error("Vector index out of range", __FILE__, __LINE__);
                     return false;
                 }
                 return true;
@@ -149,7 +147,7 @@ namespace CrashAndSqueeze
                 if( norm() != 0 )
                     (*this) /= norm();
                 else
-                    logger.warning("attempting to normalize zero Vector, the Vector left unchanged", __FILE__, __LINE__);
+                    Logging::Logger::warning("attempting to normalize zero Vector, the Vector left unchanged", __FILE__, __LINE__);
                 return *this;
             }
             // returns normalized point/vector

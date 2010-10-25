@@ -27,7 +27,7 @@ namespace CrashAndSqueeze
             {
                 if(index < 0 || index >= VECTOR_SIZE)
                 {
-                    logger.error("Matrix index out of range", __FILE__, __LINE__);
+                    Logging::Logger::error("Matrix index out of range", __FILE__, __LINE__);
                     return false;
                 }
                 return true;

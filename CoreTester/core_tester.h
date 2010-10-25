@@ -20,22 +20,22 @@ extern Action *old_warn_action;
 
 inline void set_tester_err_callback()
 {
-    old_err_action = logger.get_action(Logger::ERROR);
-    logger.set_action(Logger::ERROR, &core_tester_err_action);
+    old_err_action = Logger::get_instance().get_action(Logger::ERROR);
+    Logger::get_instance().set_action(Logger::ERROR, &core_tester_err_action);
 }
 
 inline void unset_tester_err_callback()
 {
-    logger.set_action(Logger::ERROR, old_err_action);
+    Logger::get_instance().set_action(Logger::ERROR, old_err_action);
 }
 
 inline void suppress_warnings()
 {
-    old_warn_action = logger.get_action(Logger::WARNING);
-    logger.ignore(Logger::WARNING);
+    old_warn_action = Logger::get_instance().get_action(Logger::WARNING);
+    Logger::get_instance().ignore(Logger::WARNING);
 }
 
 inline void unsuppress_warnings()
 {
-    logger.set_action(Logger::WARNING, old_warn_action);
+    Logger::get_instance().set_action(Logger::WARNING, old_warn_action);
 }

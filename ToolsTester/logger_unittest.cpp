@@ -23,7 +23,7 @@ public:
 protected:    
     CallbackAction some_action;
 
-    Logger test_logger;
+    Logger & test_logger;
 
     virtual void SetUp()
     {
@@ -64,7 +64,7 @@ protected:
     }
 
 public:
-    LoggerTest() : some_action(some_callback) { SetUp(); }
+    LoggerTest() : some_action(some_callback), test_logger(Logger::get_instance()) { SetUp(); }
 };
 
 bool LoggerTest::was_some_callback_invoked = false;

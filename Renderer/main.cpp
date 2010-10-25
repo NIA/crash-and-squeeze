@@ -143,7 +143,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     Logger logger("renderer.log");
     logger.log("        [Renderer]", "application startup");
     
-    PhysicsLogger & phys_logger = ::CrashAndSqueeze::Logging::logger;
+    PhysicsLogger & phys_logger = PhysicsLogger::get_instance();
     
     PhysLogAction phys_log_action(logger);
     PhysWarningAction phys_warn_action(logger);

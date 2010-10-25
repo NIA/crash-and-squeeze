@@ -4,7 +4,7 @@
 namespace CrashAndSqueeze
 {
     using Math::Vector;
-    using Logging::logger;
+    using Logging::Logger;
     
     namespace Core
     {
@@ -17,13 +17,13 @@ namespace CrashAndSqueeze
             {
                 if( max_item_number == items_number )
                 {
-                    Logging::logger.error(too_much_error_message, __FILE__, __LINE__);
+                    Logger::error(too_much_error_message, __FILE__, __LINE__);
                 }
                 else
                 {
                     if( item < min_item || item > max_item  )
                     {
-                        Logging::logger.error(invalid_item_error_message, __FILE__, __LINE__);
+                        Logger::error(invalid_item_error_message, __FILE__, __LINE__);
                     }
                     else
                     {
@@ -36,7 +36,7 @@ namespace CrashAndSqueeze
             {
                 if( index > items_number - 1 )
                 {
-                    Logging::logger.error(error_message, __FILE__, __LINE__);
+                    Logger::error(error_message, __FILE__, __LINE__);
                     return 0;
                 }
                 else
@@ -50,7 +50,7 @@ namespace CrashAndSqueeze
         {
             if( size <= 0 )
             {
-                Logging::logger.error("vertex_size given for VertexInfo is less than or equal to zero", __FILE__, __LINE__);
+                Logger::error("vertex_size given for VertexInfo is less than or equal to zero", __FILE__, __LINE__);
                 vertex_size = 0;
             }
             else

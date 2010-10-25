@@ -23,7 +23,7 @@ namespace CrashAndSqueeze
             {
                 this->normal = normal;
                 if(Math::equal(0, this->normal.squared_norm()))
-                    Logging::logger.error("Plane::set_normal: zero vector given, cannot normalize", __FILE__, __LINE__);
+                    Logging::Logger::error("Plane::set_normal: zero vector given, cannot normalize", __FILE__, __LINE__);
                 else
                     this->normal.normalize();
             }

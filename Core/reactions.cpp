@@ -2,6 +2,7 @@
 
 namespace CrashAndSqueeze
 {
+    using Logging::Logger;
     using Math::Real;
 
     namespace Core
@@ -18,7 +19,7 @@ namespace CrashAndSqueeze
         {
             if(linked)
             {
-                logger.error("in ShapeDeformationReaction::link_with_model: already linked");
+                Logger::error("in ShapeDeformationReaction::link_with_model: already linked");
                 return false;
             }
 

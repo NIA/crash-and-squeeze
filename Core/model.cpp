@@ -10,7 +10,7 @@ namespace CrashAndSqueeze
     using Math::equal;
     using Math::less_or_equal;
     using Math::sign;
-    using Logging::logger;
+    using Logging::Logger;
     
     namespace Core
     {
@@ -60,7 +60,7 @@ namespace CrashAndSqueeze
                     {
                         if(NULL == forces[j])
                         {
-                            logger.error("in Model::compute_next_step: null pointer item of `forces` array ", __FILE__, __LINE__);
+                            Logger::error("in Model::compute_next_step: null pointer item of `forces` array ", __FILE__, __LINE__);
                             return false;
                         }
                         acceleration += forces[j]->get_value_at(v.pos, v.velocity)/v.mass;
@@ -123,7 +123,7 @@ namespace CrashAndSqueeze
             
             if( less_or_equal(constant_mass, 0) && NULL == masses )
             {
-                logger.error("creating model with constant vertex mass <= 0. Vertex mass must be strictly positive.", __FILE__, __LINE__);
+                Logger::error("creating model with constant vertex mass <= 0. Vertex mass must be strictly positive.", __FILE__, __LINE__);
                 return false;
             }
 
@@ -141,7 +141,7 @@ namespace CrashAndSqueeze
                     vertex.mass = static_cast<Real>(masses[i]);
                     if( less_or_equal(vertex.mass, 0) )
                     {
-                        logger.error("creating model with vertex having mass <= 0. Vertex mass must be strictly positive.", __FILE__, __LINE__);
+                        Logger::error("creating model with vertex having mass <= 0. Vertex mass must be strictly positive.", __FILE__, __LINE__);
                         return false;
                     }
                 }
@@ -180,7 +180,7 @@ namespace CrashAndSqueeze
             {
                 if(0 == clusters_by_axes[i])
                 {
-                    logger.error("creating model with zero clusters_by_axes component", __FILE__, __LINE__);
+                    Logger::error("creating model with zero clusters_by_axes component", __FILE__, __LINE__);
                     return false;
                 }
                 cluster_sizes[i] = dimensions[i]/clusters_by_axes[i];
@@ -208,7 +208,7 @@ namespace CrashAndSqueeze
             {
                 if(equal(0, cluster_sizes[j]))
                 {
-                    logger.error("in Model::get_nearest_cluster_indices: cluster with a zero dimension, probably creating model with a zero or too little dimension", __FILE__, __LINE__);
+                    Logger::error("in Model::get_nearest_cluster_indices: cluster with a zero dimension, probably creating model with a zero or too little dimension", __FILE__, __LINE__);
                     return false;
                 }
                 cluster_indices[j] = static_cast<int>(position[j]/cluster_sizes[j]);
@@ -281,7 +281,7 @@ namespace CrashAndSqueeze
         {
             if(less_or_equal(total_mass, 0))
             {
-                logger.error("internal error: Model run-time check: total_mass is <= 0", __FILE__, __LINE__);
+                Logger::error("internal error: Model run-time check: total_mass is <= 0", __FILE__, __LINE__);
                 return false;
             }
             return true;
@@ -316,7 +316,7 @@ namespace CrashAndSqueeze
         {
             if( ! inertia_tensor.is_invertible() )
             {
-                logger.error("in Model::compute_angular_velocity: inertia_tensor is singular, cannot invert to find angular velocity", __FILE__, __LINE__);
+                Logger::error("in Model::compute_angular_velocity: inertia_tensor is singular, cannot invert to find angular velocity", __FILE__, __LINE__);
                 return false;
             }
             result = inertia_tensor.inverted()*angular_momentum;
@@ -389,7 +389,7 @@ namespace CrashAndSqueeze
         {
             if(NULL == forces && 0 != forces_num)
             {
-                logger.error("in Model::compute_next_step: null pointer `forces`", __FILE__, __LINE__);
+                Logger::error("in Model::compute_next_step: null pointer `forces`", __FILE__, __LINE__);
                 return false;
             }
 
@@ -440,7 +440,7 @@ namespace CrashAndSqueeze
         {
             if(vertices_num > this->vertices.size())
             {
-                logger.warning("in Model::update_vertices: requested to update too many vertices, probably wrong vertices given?");
+                Logger::warning("in Model::update_vertices: requested to update too many vertices, probably wrong vertices given?");
                 vertices_num = this->vertices.size();
             }
 

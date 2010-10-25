@@ -73,6 +73,17 @@ namespace CrashAndSqueeze
             }
         }
 
+        Logger & Logger::get_instance()
+        {
+            static Logger instance;
+            return instance;
+        }
+
+        void Logger::invoke(Level level, const char * message, const char * file, int line)
+        {
+            actions[valid_level(level)]->invoke(message, file, line);
+        }
+
         Action * Logger::get_action(Level level)
         {
             return actions[valid_level(level)];
@@ -96,7 +107,5 @@ namespace CrashAndSqueeze
         {
             actions[valid_level(level)] = & _no_action;
         }
-
-        Logger logger;
     }
 }
