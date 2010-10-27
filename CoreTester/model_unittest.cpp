@@ -39,7 +39,7 @@ namespace
     template<> Vector get_pos<TestVertex2>(TestVertex2 v) { return Vector(v.x, v.y, v.z); }
 
     template<int SIZE,class V>
-    void test_creation(V (&vertices)[SIZE], VertexInfo vi, const MassFloat *masses, MassFloat constant_mass = 0)
+    void test_creation(V (&vertices)[SIZE], const VertexInfo &vi, const MassFloat *masses, MassFloat constant_mass = 0)
     {
         Model m(vertices, SIZE, vi, CLUSTERS_BY_AXES, PADDING, masses, constant_mass);
         int vnum = m.get_vertices_num();

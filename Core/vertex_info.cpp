@@ -3,59 +3,20 @@
 
 namespace CrashAndSqueeze
 {
-    using Math::Vector;
     using Logging::Logger;
     
     namespace Core
     {
-        namespace
+        void VertexInfo::set_vertex_size(int vertex_size)
         {
-            // -- helpers for accessing variable-length array --
-
-            void add_item(int array[], int item, int & items_number, int max_item_number, int min_item, int max_item,
-                          const char *too_much_error_message, const char *invalid_item_error_message)
-            {
-                if( max_item_number == items_number )
-                {
-                    Logger::error(too_much_error_message, __FILE__, __LINE__);
-                }
-                else
-                {
-                    if( item < min_item || item > max_item  )
-                    {
-                        Logger::error(invalid_item_error_message, __FILE__, __LINE__);
-                    }
-                    else
-                    {
-                        array[items_number++] = item;
-                    }
-                }
-            }
-
-            int get_item(const int array[], int index, int items_number, const char *error_message)
-            {
-                if( index > items_number - 1 )
-                {
-                    Logger::error(error_message, __FILE__, __LINE__);
-                    return 0;
-                }
-                else
-                {
-                    return array[index];
-                }
-            }
-        }
-
-        void VertexInfo::set_vertex_size(int size)
-        {
-            if( size <= 0 )
+            if( vertex_size <= 0 )
             {
                 Logger::error("vertex_size given for VertexInfo is less than or equal to zero", __FILE__, __LINE__);
-                vertex_size = 0;
+                this->vertex_size = 0;
             }
             else
             {
-                vertex_size = size;
+                this->vertex_size = vertex_size;
             }
         }
 
@@ -64,30 +25,43 @@ namespace CrashAndSqueeze
             return vertex_size - Math::VECTOR_SIZE*sizeof(VertexFloat);
         }
 
+        void VertexInfo::add_offset(Collections::Array<int> & arr, int offset)
+        {
+            if( MAX_COMPONENT_NUM == arr.size() )
+            {
+                Logger::error("in VertexInfo::add_offset: too much point/vector offsets to VertexInfo, maximum is VertexInfo::MAX_COMPONENT_NUM", __FILE__, __LINE__);
+            }
+            else
+            {
+                if( offset < 0 || offset > get_max_valid_offset()  )
+                {
+                    Logger::error("in VertexInfo::add_offset: invalid offset: it should be >= 0 and leave enough space for three VertexFloat structures", __FILE__, __LINE__);
+                }
+                else
+                {
+                    arr.push_back(offset);
+                }
+            }
+        }
+
         void VertexInfo::add_point(int offset)
         {
-            add_item(points_offsets, offset, points_num, MAX_COMPONENT_NUM, 0, get_max_valid_offset(),
-                     "trying to add too much points to VertexInfo, maximum is VertexInfo::MAX_COMPONENT_NUM",
-                     "invalid point offset given to VertexInfo::add_point: it should be >= 0 and leave enough space for three `VertexFloat`s");
+            add_offset(points_offsets, offset);
         }
 
         void VertexInfo::add_vector(int offset)
         {
-            add_item(vectors_offsets, offset, vectors_num, MAX_COMPONENT_NUM, 0, get_max_valid_offset(),
-                     "trying to add too much vectors to VertexInfo, maximum is VertexInfo::MAX_COMPONENT_NUM",
-                     "invalid vector offset given to VertexInfo::add_vector: it should be >= 0 and leave enough space for three `VertexFloat`s");
+            add_offset(vectors_offsets, offset);
         }
 
         int VertexInfo::get_point_offset(int index) const
         {
-            return get_item(points_offsets, index, points_num,
-                            "index out of range in VertexInfo::get_point_offset");
+            return points_offsets[index];
         }
 
         int VertexInfo::get_vector_offset(int index) const
         {
-            return get_item(vectors_offsets, index, vectors_num,
-                            "index out of range in VertexInfo::get_vector_offset");
+            return vectors_offsets[index];
         }
     }
 }
