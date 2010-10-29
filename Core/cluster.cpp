@@ -138,7 +138,6 @@ namespace CrashAndSqueeze
             for(int i = 0; i < get_vertices_num(); ++i)
             {
                 PhysicalVertex &v = get_vertex(i);
-                Vector equilibrium_pos = get_equilibrium_position(i);
 
                 asymmetric_term += v.mass*Matrix( v.pos - center_of_mass, get_equilibrium_position(i) );
             }
