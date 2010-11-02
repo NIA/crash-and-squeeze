@@ -2,7 +2,7 @@
 #include "Stopwatch.h"
 #include <time.h>
 
-using CrashAndSqueeze::Core::Force;
+using CrashAndSqueeze::Core::ForcesArray;
 using CrashAndSqueeze::Math::Vector;
 using CrashAndSqueeze::Math::VECTOR_SIZE;
 using CrashAndSqueeze::Math::Real;
@@ -77,7 +77,7 @@ Application::Application(Logger &logger) :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(3.3f, 1.0f, 0.97f), // Constants selected for better view of cylinder
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
-    forces(NULL), forces_num(0), logger(logger)
+    forces(NULL), logger(logger)
 {
 
     try
@@ -228,15 +228,9 @@ PhysicalModel * Application::add_model(Model &model, bool physical)
     return model_entity.physical_model;
 }
 
-void Application::set_forces(Force ** forces, int forces_num)
+void Application::set_forces(ForcesArray & forces)
 {
-    if(forces_num < 0)
-        throw ForcesError();
-    if(NULL == forces && 0 != forces_num)
-        throw ForcesError();
-    
-    this->forces_num = forces_num;
-    this->forces = forces;
+    this->forces = & forces;
 }
 
 void Application::rotate_models(float phi)
@@ -299,13 +293,13 @@ void Application::process_key(unsigned code)
         break;
     case 'F':
         forces_enabled = !forces_enabled;
-        for(int i = 0; i < forces_num; ++i)
-            forces[i]->toggle();
+        for(int i = 0; i < forces->size(); ++i)
+            (*forces)[i]->toggle();
         break;
     case 'C':
         // toggle last
-        if(0 != forces_num)
-            forces[forces_num - 1]->toggle();
+        if(0 != forces->size())
+            (*forces)[forces->size() - 1]->toggle();
         break;
     case 'S':
         emultate_one_step = true;
@@ -328,12 +322,17 @@ void Application::run()
     PerformanceReporter total_performance_reporter(logger, "total");
 
     int physics_frames = 0;
-    for(int i = 0; i < forces_num; ++i)
+    
+    if(NULL == forces)
+    {
+        throw ForcesError();
+    }
+    for(int i = 0; i < forces->size(); ++i)
     {
         if(forces_enabled)
-            forces[i]->activate();
+            (*forces)[i]->activate();
         else
-            forces[i]->deactivate();
+            (*forces)[i]->deactivate();
     }
     
     // Enter the message loop
@@ -367,7 +366,7 @@ void Application::run()
                     if( NULL != physical_model )
                     {
                         stopwatch.start();
-                        physical_model->compute_next_step(forces, forces_num);
+                        physical_model->compute_next_step(*forces);
                         double time = stopwatch.stop();
 
                         if( NULL != performance_reporter )

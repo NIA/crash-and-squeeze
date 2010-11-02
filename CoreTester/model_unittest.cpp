@@ -52,14 +52,14 @@ namespace
         for(int i = 0; i < vnum; ++i)
         {
             const PhysicalVertex & v = m.get_vertex(i);
-            ASSERT_EQ(get_pos(vertices[i]), v.pos);
+            ASSERT_EQ(get_pos(vertices[i]), v.get_pos());
             if( NULL == masses )
-                ASSERT_EQ(constant_mass, v.mass);
+                ASSERT_EQ(constant_mass, v.get_mass());
             else
-                ASSERT_EQ(masses[i], v.mass);
+                ASSERT_EQ(masses[i], v.get_mass());
 
-            ASSERT_GE( v.nearest_cluster_index, 0 );
-            ASSERT_LT( v.nearest_cluster_index, cnum );
+            ASSERT_GE( v.get_nearest_cluster_index(), 0 );
+            ASSERT_LT( v.get_nearest_cluster_index(), cnum );
         }
 
         for(int i = 0; i < cnum; ++i)
@@ -95,15 +95,17 @@ TEST(ModelTest, StepComputationShouldNotFail)
 {
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
     Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
+    
     const int FORCES_NUM = 10;
-    Force * forces[FORCES_NUM];
+    ForcesArray forces(FORCES_NUM);
     PlaneForce f;
     for(int i = 0; i < FORCES_NUM; ++i)
-        forces[i] = &f;
+        forces.push_back( &f );
 
-    EXPECT_NO_THROW( m.compute_next_step(forces, FORCES_NUM) );
-    // when there is no forces, pointer to them is allowed to be NULL
-    EXPECT_NO_THROW( m.compute_next_step(NULL, 0) );
+    EXPECT_NO_THROW( m.compute_next_step(forces) );
+    // should work with no forces
+    ForcesArray empty;
+    EXPECT_NO_THROW( m.compute_next_step(empty) );
 }
 
 TEST(ModelTest, BadForces)
@@ -111,6 +113,47 @@ TEST(ModelTest, BadForces)
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
     Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
     set_tester_err_callback();
-    EXPECT_THROW( m.compute_next_step(NULL, 45), CoreTesterException );
+    ForcesArray bad;
+    bad.push_back(NULL);
+    EXPECT_THROW( m.compute_next_step(bad), CoreTesterException );
     unset_tester_err_callback();
+}
+
+void check_axis_indices(int index, int axis_indices[VECTOR_SIZE], int clusters_by_axes[VECTOR_SIZE])
+{
+    EXPECT_EQ( index, Model::axis_indices_to_index(axis_indices, clusters_by_axes) );
+    
+    int result[VECTOR_SIZE];
+    Model::index_to_axis_indices(index, clusters_by_axes, result);
+    for(int i = 0; i < VECTOR_SIZE; ++i)
+    {
+        EXPECT_EQ( axis_indices[i], result[i] ) << "result[" << i << "] incorrect";
+    }
+}
+
+TEST(ModelTest, AxisIndicesTrivial)
+{
+    int clusters_by_axes[VECTOR_SIZE] = { 1, 1, 1 };
+    int index = 0;
+    int axis_indices[VECTOR_SIZE] = { 0, 0, 0 };
+
+    check_axis_indices(index, axis_indices, clusters_by_axes);
+}
+
+TEST(ModelTest, AxisIndicesCenter)
+{
+    int clusters_by_axes[VECTOR_SIZE] = { 3, 5, 7 };
+    int index = (3*5*7 - 1)/2;
+    int axis_indices[VECTOR_SIZE] = { 1, 2, 3 };
+
+    check_axis_indices(index, axis_indices, clusters_by_axes);
+}
+
+TEST(ModelTest, AxisIndicesEnd)
+{
+    int clusters_by_axes[VECTOR_SIZE] = { 2, 3, 6 };
+    int index = 2*3*6 - 1;
+    int axis_indices[VECTOR_SIZE] = { 2-1, 3-1, 6-1 };
+
+    check_axis_indices(index, axis_indices, clusters_by_axes);
 }

@@ -165,6 +165,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\physical_vertex.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\reactions.cpp"
 				>
 			</File>

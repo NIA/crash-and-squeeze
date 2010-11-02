@@ -1,4 +1,5 @@
 #pragma once
+#include "Collections/array.h"
 #include "Core/core.h"
 #include "Math/vector.h"
 #include "Math/plane.h"
@@ -37,6 +38,8 @@ namespace CrashAndSqueeze
             virtual bool is_applied_to(const Math::Vector &point) const = 0;
             Math::Vector get_value_at(const Math::Vector &point, const Math::Vector &velocity) const;
         };
+
+        typedef ::CrashAndSqueeze::Collections::Array<Force *> ForcesArray;
 
         // A simplest force applied everywhere
         class EverywhereForce : public Force

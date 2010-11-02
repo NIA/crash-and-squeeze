@@ -7,6 +7,7 @@
 #include "Math/floating_point.h"
 #include "Math/Vector.h"
 #include "Math/Matrix.h"
+#include "Collections/array.h"
 
 namespace CrashAndSqueeze
 {
@@ -21,10 +22,6 @@ namespace CrashAndSqueeze
             Collections::Array<Cluster> clusters;
 
             ShapeDeformationReactions shape_deform_reactions;
-
-            // a constant, determining how much deformation velocities are damped:
-            // 0 - no damping of vibrations, 1 - maximum damping, rigid body
-            Math::Real damping_constant;
 
             // -- fields used in initialization --
             int clusters_by_axes[Math::VECTOR_SIZE];
@@ -66,8 +63,6 @@ namespace CrashAndSqueeze
             bool find_body_motion();
             // corrects velocity additions from shape matching
             bool correct_velocity_additions();
-            // damps oscillation velocity
-            void damp_velocity(PhysicalVertex &v);
             
             // helper for find_body_motion() and correct_velocity_additions()
             bool compute_angular_velocity(const Math::Vector &angular_momentum, /*out*/ Math::Vector & result);
@@ -89,7 +84,7 @@ namespace CrashAndSqueeze
 
             void add_shape_deformation_reaction(ShapeDeformationReaction & reaction);
 
-            bool compute_next_step(const Force * const forces[], int forces_num);
+            bool compute_next_step(const ForcesArray & forces);
 
             void update_vertices(/*out*/ void *vertices, int vertices_num, VertexInfo const &vertex_info);
 
@@ -101,8 +96,12 @@ namespace CrashAndSqueeze
             
             virtual ~Model();
 
-            static const Math::Real DEFAULT_DAMPING_CONSTANT;
-            
+            // some internal helpers, public just to be able to test them
+            static int axis_indices_to_index(const int indices[Math::VECTOR_SIZE],
+                                             const int clusters_by_axes[Math::VECTOR_SIZE]);
+            static void index_to_axis_indices(int index,
+                                              const int clusters_by_axes[Math::VECTOR_SIZE],
+                                              /* out */ int indices[Math::VECTOR_SIZE]);
         private:
             // No copying!
             Model(const Model &);

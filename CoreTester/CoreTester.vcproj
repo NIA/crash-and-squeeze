@@ -191,6 +191,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\physical_vertex_unittest.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\vertex_info_unittest.cpp"
 				>
 			</File>

@@ -9,7 +9,7 @@
 #include "Logging/logger.h"
 
 typedef ::CrashAndSqueeze::Logging::Logger PhysicsLogger;
-using CrashAndSqueeze::Core::Force;
+using CrashAndSqueeze::Core::ForcesArray;
 using CrashAndSqueeze::Core::HalfSpaceSpringForce;
 using CrashAndSqueeze::Core::EverywhereForce;
 using CrashAndSqueeze::Core::CylinderSpringForce;
@@ -248,9 +248,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         }
 
         // -------------------------- F o r c e s -----------------------
-        const int FORCES_NUM = 4;
-        const int SPRINGS_NUM = FORCES_NUM - 2;
-        Force * forces[FORCES_NUM];
+        const int SPRINGS_NUM =2;
+        ForcesArray forces;
 
         HalfSpaceSpringForce springs[SPRINGS_NUM] = {
             HalfSpaceSpringForce(8000, Vector(0,0,0.25), Vector(0,0,1), 100),
@@ -261,11 +260,11 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         
         for(int i = 0; i < SPRINGS_NUM; ++i)
         {
-            forces[i] = &springs[i];
+            forces.push_back( &springs[i] );
         }
-        forces[SPRINGS_NUM] = &gravity;
-        forces[SPRINGS_NUM+1] = &cylinder_force;
-        app.set_forces(forces, FORCES_NUM);
+        forces.push_back( &gravity );
+        forces.push_back( &cylinder_force );
+        app.set_forces(forces);
         
         // ------------------- F o r c e   m o d e l s ----------------
         // ---- 1: Plane

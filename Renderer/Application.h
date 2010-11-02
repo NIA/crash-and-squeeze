@@ -43,8 +43,7 @@ private:
 
     ModelEntities model_entities;
 
-    ::CrashAndSqueeze::Core::Force ** forces;
-    int forces_num;
+    ::CrashAndSqueeze::Core::ForcesArray * forces;
     bool forces_enabled;
 
     Camera camera;
@@ -97,7 +96,7 @@ public:
     // creates a physical model if `physical` is true (and returns it);
     // returns NULL otherwise
     PhysicalModel * add_model(Model &model, bool physical = false);
-    void set_forces(::CrashAndSqueeze::Core::Force ** forces, int forces_num);
+    void set_forces(::CrashAndSqueeze::Core::ForcesArray & forces);
     void run();
 
     void toggle_wireframe();

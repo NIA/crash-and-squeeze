@@ -79,7 +79,7 @@ public:
 class ForcesError : public RuntimeError
 {
 public:
-    ForcesError() : RuntimeError( _T("Bad forces given") ) {}
+    ForcesError() : RuntimeError( _T("Forces not set") ) {}
 };
 class PerformanceFrequencyError : public RuntimeError
 {

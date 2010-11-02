@@ -68,13 +68,13 @@ namespace CrashAndSqueeze
         void Cluster::add_vertex(PhysicalVertex &vertex)
         {
             // update mass
-            total_mass += vertex.mass;
+            total_mass += vertex.get_mass();
 
             // add new vertex
             vertex_infos.create_item().vertex = &vertex;
 
             // increment vertex's cluster counter
-            ++vertex.including_clusters_num;
+            vertex.include_to_one_more_cluster();
 
             // invalidate initial characteristics
             initial_characteristics_computed = false;
@@ -91,7 +91,7 @@ namespace CrashAndSqueeze
             {
                 PhysicalVertex &v = get_vertex(i);
                 
-                vertex_infos[i].initial_offset_position = v.pos - initial_center_of_mass;
+                vertex_infos[i].initial_offset_position = v.get_pos() - initial_center_of_mass;
                 vertex_infos[i].equilibrium_offset_position = vertex_infos[i].initial_offset_position;
             }
             
@@ -120,7 +120,7 @@ namespace CrashAndSqueeze
                 for(int i = 0; i < get_vertices_num(); ++i)
                 {
                     PhysicalVertex &v = get_vertex(i);
-                    center_of_mass += v.mass*v.pos/total_mass;
+                    center_of_mass += v.get_mass()*v.get_pos()/total_mass;
                 }
             }
         }
@@ -139,7 +139,7 @@ namespace CrashAndSqueeze
             {
                 PhysicalVertex &v = get_vertex(i);
 
-                asymmetric_term += v.mass*Matrix( v.pos - center_of_mass, get_equilibrium_position(i) );
+                asymmetric_term += v.get_mass()*Matrix( v.get_pos() - center_of_mass, get_equilibrium_position(i) );
             }
         }
 
@@ -151,7 +151,7 @@ namespace CrashAndSqueeze
                 PhysicalVertex &v = get_vertex(i);
                 Vector equilibrium_pos = get_equilibrium_position(i);
 
-                symmetric_term += v.mass*Matrix( equilibrium_pos, equilibrium_pos );
+                symmetric_term += v.get_mass()*Matrix( equilibrium_pos, equilibrium_pos );
             }
             if( symmetric_term.is_invertible() )
             {
@@ -214,32 +214,23 @@ namespace CrashAndSqueeze
                 
                 Vector goal_position = total_deformation*equilibrium_pos + center_of_mass;
                 
-                Vector velocity_addition = goal_speed_constant*(goal_position - vertex.pos)/dt;
+                Vector velocity_addition = goal_speed_constant*(goal_position - vertex.get_pos())/dt;
 
-                // we need average velocity addition, not sum, so divide by vertex.including_clusters_num
-                if(0 == vertex.including_clusters_num)
-                {
-                    Logger::warning("internal error: in Cluster::apply_goal_positions: vertex with incorrect zero value of including_clusters_num", __FILE__, __LINE__);
-                    continue;
-                }
-                velocity_addition /= vertex.including_clusters_num;
-                
-                // TODO: thread-safe cluster addition: velocity_additions[]...
-                vertex.velocity_addition += velocity_addition;
-                
-                linear_momentum_addition += vertex.mass*velocity_addition;
+                // velocity_addition is corrected inside this function...
+                vertex.add_to_velocity_addition(velocity_addition);
+                // ...and after that momentum delta is added to linear_momentum_addition
+                linear_momentum_addition += vertex.get_mass()*velocity_addition;
             }
 
             // -- enforce total momentum conservation --
 
             if( 0 != total_mass )
             {
-                Vector velocity_correction = - linear_momentum_addition / total_mass;
+                // specific (per a unity of mass) velocity correction
+                Vector specific_velocity_correction = - linear_momentum_addition / total_mass;
+                
                 for(int i = 0; i < get_vertices_num(); ++i)
-                {
-                    PhysicalVertex &vertex = get_vertex(i);
-                    vertex.velocity_addition += velocity_correction;
-                }
+                    get_vertex(i).correct_velocity_addition(specific_velocity_correction);
             }
         }
 

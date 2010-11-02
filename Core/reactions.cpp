@@ -27,7 +27,7 @@ namespace CrashAndSqueeze
             for(int i = 0; i < vertices_num; ++i)
             {
                 int vertex_index = shape_vertex_indices[i];
-                int cluster_index = model.get_vertex(vertex_index).nearest_cluster_index;
+                int cluster_index = model.get_vertex(vertex_index).get_nearest_cluster_index();
                 const Cluster * cluster = &model.get_cluster(cluster_index);
                 
                 // if there is a record for the cluster, increment its weight; otherwise add a new record
