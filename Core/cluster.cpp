@@ -226,11 +226,10 @@ namespace CrashAndSqueeze
 
             if( 0 != total_mass )
             {
-                // specific (per a unity of mass) velocity correction
-                Vector specific_velocity_correction = - linear_momentum_addition / total_mass;
+                Vector velocity_correction = - linear_momentum_addition / total_mass;
                 
                 for(int i = 0; i < get_vertices_num(); ++i)
-                    get_vertex(i).correct_velocity_addition(specific_velocity_correction);
+                    get_vertex(i).correct_velocity_addition(velocity_correction);
             }
         }
 

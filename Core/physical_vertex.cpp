@@ -62,12 +62,6 @@ namespace CrashAndSqueeze
             return true;
         }
 
-        // applies specific (per a unity of mass) velocity correction
-        void PhysicalVertex::correct_velocity_addition(const Vector &specific_velocity_correction)
-        {
-            velocity_addition += mass*specific_velocity_correction;
-        }
-
         bool PhysicalVertex::integrate_velocity(const ForcesArray & forces, Real dt)
         {
             Vector acceleration = Vector::ZERO;

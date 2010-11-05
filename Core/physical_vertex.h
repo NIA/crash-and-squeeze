@@ -85,8 +85,7 @@ namespace CrashAndSqueeze
             // and adds corrected value to velocity_addition
             bool add_to_velocity_addition(Math::Vector &addition);
             
-            // applies specific (per a unity of mass) velocity correction
-            void correct_velocity_addition(const Math::Vector &specific_velocity_correction);
+            void correct_velocity_addition(const Math::Vector &correction) { velocity_addition += correction; }
 
             // step integration
             bool integrate_velocity(const ForcesArray & forces, Math::Real dt);

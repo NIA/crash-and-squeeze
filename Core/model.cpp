@@ -338,11 +338,10 @@ namespace CrashAndSqueeze
             {
                 PhysicalVertex &v = vertices[i];
 
-                // specific (per a unity of mass) velocity correction
-                Vector specific_velocity_correction = - center_of_mass_velocity_addition
-                                                      - v.angular_velocity_to_linear(angular_velocity_addition, center_of_mass);
+                Vector velocity_correction = - center_of_mass_velocity_addition
+                                             - v.angular_velocity_to_linear(angular_velocity_addition, center_of_mass);
 
-                v.correct_velocity_addition(specific_velocity_correction);
+                v.correct_velocity_addition(velocity_correction);
             }
             return true;
         }
