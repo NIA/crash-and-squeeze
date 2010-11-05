@@ -44,7 +44,7 @@ namespace CrashAndSqueeze
             return mass * cross_product(pos - center, which_velocity);
         }
 
-        // gets an additions from a single cluster,
+        // gets an addition from a single cluster,
         // corrects it in place (!) according to including_clusters_num,
         // and adds corrected value to velocity_addition
         bool PhysicalVertex::add_to_velocity_addition(Vector &addition)

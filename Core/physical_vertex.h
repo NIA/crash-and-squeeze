@@ -80,8 +80,8 @@ namespace CrashAndSqueeze
                 return angular_momentum(velocity_addition, center);
             }
 
-            // gets an additions from a single cluster,
-            // corrects it in place (!!!) according to including_clusters_num,
+            // gets an addition from a single cluster,
+            // corrects it in place (!) according to including_clusters_num,
             // and adds corrected value to velocity_addition
             bool add_to_velocity_addition(Math::Vector &addition);
             
