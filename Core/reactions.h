@@ -1,14 +1,12 @@
 #pragma once
 #include "Math/floating_point.h"
-#include "Collections/array.h"
+#include "Core/core.h"
 #include "Core/imodel.h"
 
 namespace CrashAndSqueeze
 {
     namespace Core
     {
-        typedef Collections::Array<int> IndexArray;
-
         // An internal structure for linking shape of ShapeDeformationAction to clusters
         struct ClusterWithWeight
         {

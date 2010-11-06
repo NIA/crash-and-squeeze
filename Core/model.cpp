@@ -37,40 +37,37 @@ namespace CrashAndSqueeze
         Model::Model( const void *source_vertices,
                       int vertices_num,
                       VertexInfo const &vertex_info,
+                      const IndexArray &frame_indices,
                       const int clusters_by_axes[Math::VECTOR_SIZE],
                       Math::Real cluster_padding_coeff,
                       const MassFloat *masses,
                       const MassFloat constant_mass)
             : vertices(vertices_num),
-              
+              frame_vertices(frame_indices.size()),
+
               cluster_padding_coeff(cluster_padding_coeff),
 
               min_pos(MAX_COORDINATE_VECTOR),
-              max_pos(-MAX_COORDINATE_VECTOR), 
-              
-              total_mass(0),
-              center_of_mass(Vector::ZERO),
-              inertia_tensor(Matrix::ZERO),
-              center_of_mass_velocity(Vector::ZERO),
-              angular_velocity(Vector::ZERO)
+              max_pos(-MAX_COORDINATE_VECTOR),
+
+              body(NULL),
+              frame(NULL)
         {
             vertices.create_items(vertices_num);
             vertices.freeze();
 
-            if( init_vertices(source_vertices, vertex_info, masses, constant_mass) )
+            if( init_vertices(source_vertices, vertex_info, frame_indices, masses, constant_mass) )
             {
-                if( find_body_properties() )
-                {
-                    for(int i = 0; i < VECTOR_SIZE; ++i)
-                        this->clusters_by_axes[i] = clusters_by_axes[i];
-                    
-                    init_clusters();
-                }
+                for(int i = 0; i < VECTOR_SIZE; ++i)
+                    this->clusters_by_axes[i] = clusters_by_axes[i];
+                
+                init_clusters();
             }
         }
 
         bool Model::init_vertices(const void *source_vertices,
                                   VertexInfo const &vertex_info,
+                                  const IndexArray &frame_indices,
                                   const MassFloat *masses,
                                   const MassFloat constant_mass)
         {
@@ -105,8 +102,6 @@ namespace CrashAndSqueeze
                 }
                 
                 vertices[i] = PhysicalVertex(pos, mass);
-                total_mass += mass;
-
 
                 for(int j = 0; j < VECTOR_SIZE; ++j)
                 {
@@ -119,6 +114,10 @@ namespace CrashAndSqueeze
                 
                 source_vertex = add_to_pointer(source_vertex, vertex_info.get_vertex_size());
             }
+
+            body = new Body(vertices, false);
+            frame = new Body(vertices, frame_indices, true);
+            frame->compute_properties();
             return true;
         }
         
@@ -247,106 +246,9 @@ namespace CrashAndSqueeze
             shape_deform_reactions.push_back( & reaction );
         }
 
-        bool Model::check_total_mass()
-        {
-            if(less_or_equal(total_mass, 0))
-            {
-                Logger::error("internal error: Model run-time check: total_mass is <= 0", __FILE__, __LINE__);
-                return false;
-            }
-            return true;
-        }
-
-        bool Model::find_body_properties()
-        {
-            if( false == check_total_mass() )
-                return false;
-            
-            center_of_mass = Vector::ZERO;
-            for(int i = 0; i < vertices.size(); ++i)
-            {
-                PhysicalVertex &v = vertices[i];
-                
-                center_of_mass += v.get_mass()*v.get_pos()/total_mass;
-            }
-
-            inertia_tensor = Matrix::ZERO;
-            for(int i = 0; i < vertices.size(); ++i)
-            {
-                PhysicalVertex &v = vertices[i];
-                Vector offset = v.get_pos() - center_of_mass;
-                
-                inertia_tensor += v.get_mass() * ( (offset*offset)*Matrix::IDENTITY - Matrix(offset, offset) );
-            }
-
-            return true;
-        }
-
-        bool Model::compute_angular_velocity(const Vector &angular_momentum, /*out*/ Vector & result)
-        {
-            if( ! inertia_tensor.is_invertible() )
-            {
-                Logger::error("in Model::compute_angular_velocity: inertia_tensor is singular, cannot invert to find angular velocity", __FILE__, __LINE__);
-                return false;
-            }
-            result = inertia_tensor.inverted()*angular_momentum;
-            return true;
-        }
-
-        bool Model::find_body_motion()
-        {
-            if( false == check_total_mass() )
-                return false;
-
-            center_of_mass_velocity = Vector::ZERO;
-            Vector angular_momentum = Vector::ZERO;
-            
-            for(int i = 0; i < vertices.size(); ++i)
-            {
-                PhysicalVertex &v = vertices[i];
-                
-                center_of_mass_velocity += v.get_linear_momentum()/total_mass;
-                angular_momentum += v.get_angular_momentum(center_of_mass);
-            }
-            if( false == compute_angular_velocity(angular_momentum, angular_velocity) )
-                return false;
-
-            return true;
-        }
-
-        bool Model::correct_velocity_additions()
-        {
-            if( false == check_total_mass() )
-                return false;
-
-            Vector center_of_mass_velocity_addition = Vector::ZERO;
-            Vector angular_momentum_addition = Vector::ZERO;
-
-            for(int i = 0; i < vertices.size(); ++i)
-            {
-                PhysicalVertex &v = vertices[i];
-
-                center_of_mass_velocity_addition += v.get_linear_momentum_addition() / total_mass;
-                angular_momentum_addition += v.get_angular_momentum_addition(center_of_mass);
-            }
-            
-            Vector angular_velocity_addition;
-            if( false == compute_angular_velocity(angular_momentum_addition, angular_velocity_addition) )
-                return false;
-
-            for(int i = 0; i < vertices.size(); ++i)
-            {
-                PhysicalVertex &v = vertices[i];
-
-                Vector velocity_correction = - center_of_mass_velocity_addition
-                                             - v.angular_velocity_to_linear(angular_velocity_addition, center_of_mass);
-
-                v.correct_velocity_addition(velocity_correction);
-            }
-            return true;
-        }
-
-        bool Model::compute_next_step(const ForcesArray & forces)
+        bool Model::compute_next_step(const ForcesArray & forces,
+                                      /*out*/ Math::Vector & linear_velocity_change,
+                                      /*out*/ Math::Vector & angular_velocity_change)
         {
             shape_deform_reactions.freeze();
             
@@ -359,11 +261,17 @@ namespace CrashAndSqueeze
                 clusters[i].match_shape(dt);
             }
             
-            if( false == find_body_properties())
+            // Re-compute properties (due to changed positions of vertices)
+            if( false == body->compute_properties() )
                 return false;
             
-            if( false == correct_velocity_additions())
+            // -- Force linear and angular momenta conservation --
+
+            if( false == body->compute_velocity_additions() )
                 return false;
+
+            body->compensate_velocities( body->get_linear_velocity_addition(),
+                                         body->get_angular_velocity_addition() );
             
             // -- For each vertex of model: integrate velocities --
             for(int i = 0; i < vertices.size(); ++i)
@@ -372,15 +280,28 @@ namespace CrashAndSqueeze
                     return false;
             }
             
-            if( false == find_body_motion() )
+            // Find global motion for damping
+            if( false == body->compute_velocities() )
                 return false;
 
             // -- For each vertex of model: damp velocities and integrate positions --
             for(int i = 0; i < vertices.size(); ++i)
             {
-                vertices[i].damp_velocity(center_of_mass_velocity, angular_velocity, center_of_mass);
+                vertices[i].damp_velocity(body->get_linear_velocity(),
+                                          body->get_angular_velocity(),
+                                          body->get_center_of_mass());
                 vertices[i].integrate_position(dt);
             }
+            
+            // -- Now substitute the motion of frame (to make it the current reference frame again)
+
+            if( false == frame->compute_velocities() )
+                return false;
+            
+            linear_velocity_change = frame->get_linear_velocity();
+            angular_velocity_change = frame->get_angular_velocity();
+
+            body->compensate_velocities(frame->get_linear_velocity(), frame->get_angular_velocity());
 
             // -- For each reaction: check state and invoke if needed
             for(int i = 0; i < shape_deform_reactions.size(); ++i)
@@ -415,7 +336,8 @@ namespace CrashAndSqueeze
 
         Model::~Model()
         {
+            delete body;
+            delete frame;
         }
-
     }
 }

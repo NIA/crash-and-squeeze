@@ -80,9 +80,11 @@ namespace
     };
 #pragma warning( default : 4512 ) 
 
+    // adds values `from`, `from`+1, ..., `to`-1 to array,
+    // total `to`-`from` items.
     void add_range(IndexArray &arr, int from, int to)
     {
-        for(int i = from; i <= to; ++i)
+        for(int i = from; i < to; ++i)
         {
             arr.push_back(i);
         }
@@ -197,6 +199,10 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                          &CYLINDER_COLOR, 1,
                          cylinder_model_vertices, cylinder_model_indices );
 
+        IndexArray frame;
+        add_range(frame, 0, CYLINDER_EDGES_PER_BASE); // first layer
+        add_range(frame, CYLINDER_VERTICES_COUNT - CYLINDER_EDGES_PER_BASE - 1, CYLINDER_VERTICES_COUNT); // lower cap
+
         Model cylinder_model(app.get_device(),
                              D3DPT_TRIANGLESTRIP,
                              simple_shader,
@@ -207,7 +213,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                              CYLINDER_INDICES_COUNT - 2,
                              D3DXVECTOR3(0, 0, 0),
                              D3DXVECTOR3(0, 0, 0));
-        PhysicalModel * phys_mod = app.add_model(cylinder_model, true);
+        PhysicalModel * phys_mod = app.add_model(cylinder_model, true, &frame);
         if(NULL == phys_mod)
             throw NullPointerError();
 
@@ -233,7 +239,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
             for(int j = 0; j < SUBSHAPES_COUNT; ++j)
             {
                 int subshape_start = SHAPE_OFFSET + i*SHAPE_STEP + j*SUBSHAPE_SIZE;
-                add_range(vertex_indices[subshape_index], subshape_start, subshape_start + SUBSHAPE_SIZE - 1);
+                add_range(vertex_indices[subshape_index], subshape_start, subshape_start + SUBSHAPE_SIZE);
                 // register reaction
                 RepaintReaction & reaction = * new RepaintReaction( vertex_indices[subshape_index],
                                                                     CALLBACK_THRESHOLD,
@@ -252,8 +258,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         ForcesArray forces;
 
         HalfSpaceSpringForce springs[SPRINGS_NUM] = {
-            HalfSpaceSpringForce(8000, Vector(0,0,0.25), Vector(0,0,1), 100),
-            HalfSpaceSpringForce(400, Vector(0,0,4.5), Vector(0,1,-3), 0),
+            HalfSpaceSpringForce(8000, Vector(0,0,0.25), Vector(0,0,1), 40),
+            HalfSpaceSpringForce(400, Vector(0,0,4.8), Vector(0,1,-3), 0),
         };
         EverywhereForce gravity(Vector(0, 0, -3));
         CylinderSpringForce cylinder_force(15000, Vector(-1, 0.5, 0.5), Vector(1, 0.5, 0.5), 0.25, 150);

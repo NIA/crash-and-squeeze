@@ -4,6 +4,7 @@
 #include "Core/imodel.h"
 #include "Core/force.h"
 #include "Core/reactions.h"
+#include "Core/body.h"
 #include "Math/floating_point.h"
 #include "Math/Vector.h"
 #include "Math/Matrix.h"
@@ -21,6 +22,8 @@ namespace CrashAndSqueeze
             Collections::Array<PhysicalVertex> vertices;
             Collections::Array<Cluster> clusters;
 
+            Collections::Array<PhysicalVertex*> frame_vertices;
+
             ShapeDeformationReactions shape_deform_reactions;
 
             // -- fields used in initialization --
@@ -37,7 +40,8 @@ namespace CrashAndSqueeze
             // -- initialization steps: all return false on failure --
             
             bool init_vertices(const void *source_vertices,
-                               VertexInfo const &vertex_info,
+                               const VertexInfo &vertex_info,
+                               const IndexArray &frame_indices,
                                const MassFloat *masses,
                                const MassFloat constant_mass);
             
@@ -48,24 +52,13 @@ namespace CrashAndSqueeze
 
             // -- fields used in step computation --
 
-            Math::Real total_mass;
-            Math::Vector center_of_mass;
-            Math::Matrix inertia_tensor;
-            Math::Vector center_of_mass_velocity;
-            Math::Vector angular_velocity;
-            
+            // entire model as a body
+            Body *body;
+            // rigid frame
+            Body *frame;
+
             // -- step computation steps --
-            // self-control check
-            bool check_total_mass();
-            // computes center of mass and inertia tensor
-            bool find_body_properties();
-            // computes velocity of center of mass and angular velocity
-            bool find_body_motion();
-            // corrects velocity additions from shape matching
             bool correct_velocity_additions();
-            
-            // helper for find_body_motion() and correct_velocity_additions()
-            bool compute_angular_velocity(const Math::Vector &angular_momentum, /*out*/ Math::Vector & result);
 
             // TODO: DisplayVertex display_vertices; int display_vertices_num;
         public:
@@ -73,10 +66,13 @@ namespace CrashAndSqueeze
             // strucutre, described by vertex_info. Takes a pointer masses to vertices_num
             // values of mass. If masses are equal for all vertices, it can be null
             // and the mass should be given as constant_mass argument.
+            // The model must have rigid frame, defined by frame_indices array of indices
+            // of frame vertices.
             // TODO: low-/hi-polygonal meshes
             Model(const void *source_vertices,
                   int vetrices_num,
                   VertexInfo const &vertex_info,
+                  const IndexArray &frame_indices,
                   const int clusters_by_axes[Math::VECTOR_SIZE],
                   Math::Real cluster_padding_coeff,
                   const MassFloat *masses,
@@ -84,7 +80,11 @@ namespace CrashAndSqueeze
 
             void add_shape_deformation_reaction(ShapeDeformationReaction & reaction);
 
-            bool compute_next_step(const ForcesArray & forces);
+            // computes next step in local coordinates of body (coordinate system is bound to body frame),
+            // sets `linear_velocity_change' and `angular_velocity_change': the change of global motion
+            bool compute_next_step(const ForcesArray & forces,
+                                   /*out*/ Math::Vector & linear_velocity_change,
+                                   /*out*/ Math::Vector & angular_velocity_change);
 
             void update_vertices(/*out*/ void *vertices, int vertices_num, VertexInfo const &vertex_info);
 

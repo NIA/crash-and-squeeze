@@ -39,15 +39,10 @@ namespace CrashAndSqueeze
             return nearest_cluster_index;
         }
 
-        Vector PhysicalVertex::angular_momentum(const Math::Vector &which_velocity, const Math::Vector &center) const
-        {
-            return mass * cross_product(pos - center, which_velocity);
-        }
-
         // gets an addition from a single cluster,
-        // corrects it in place (!) according to including_clusters_num,
+        // corrects it according to including_clusters_num,
         // and adds corrected value to velocity_addition
-        bool PhysicalVertex::add_to_velocity_addition(Vector &addition)
+        bool PhysicalVertex::add_to_velocity_addition(const Vector & addition)
         {
             // we need average velocity addition, not sum, so divide by including_clusters_num
             if(0 == including_clusters_num)
@@ -55,10 +50,9 @@ namespace CrashAndSqueeze
                 Logger::error("internal error: in Cluster::apply_goal_positions: vertex with incorrect zero value of including_clusters_num", __FILE__, __LINE__);
                 return false;
             }
-            addition /= including_clusters_num;
-            
+
             // TODO: thread-safe cluster addition: velocity_additions[]...
-            velocity_addition += addition;
+            velocity_addition += addition/including_clusters_num;
             return true;
         }
 
@@ -82,6 +76,12 @@ namespace CrashAndSqueeze
             velocity += velocity_addition + acceleration*dt;
             velocity_addition = Vector::ZERO;
             return true;
+        }
+
+        void PhysicalVertex::integrate_position(Math::Real dt)
+        {
+            if( ! fixed )
+                pos += velocity*dt;
         }
 
         Vector PhysicalVertex::angular_velocity_to_linear(const Math::Vector &body_angular_velocity,

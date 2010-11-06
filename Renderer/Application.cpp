@@ -6,6 +6,7 @@ using CrashAndSqueeze::Core::ForcesArray;
 using CrashAndSqueeze::Math::Vector;
 using CrashAndSqueeze::Math::VECTOR_SIZE;
 using CrashAndSqueeze::Math::Real;
+using CrashAndSqueeze::Core::IndexArray;
 
 const unsigned VECTORS_IN_MATRIX = sizeof(D3DXMATRIX)/sizeof(D3DXVECTOR4);
 
@@ -74,7 +75,7 @@ namespace
 }
 
 Application::Application(Logger &logger) :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(3.3f, 1.0f, 0.97f), // Constants selected for better view of cylinder
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(7.9f, 0.9f, 0.97f), // Constants selected for better view the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
     forces(NULL), logger(logger)
@@ -190,20 +191,23 @@ IDirect3DDevice9 * Application::get_device()
     return device;
 }
 
-PhysicalModel * Application::add_model(Model &model, bool physical)
+PhysicalModel * Application::add_model(Model &model, bool physical, IndexArray * frame)
 {
     ModelEntity model_entity = {NULL, NULL, NULL};
 
-    // TODO: Null pointer
     model_entity.display_model = &model;
 
     if(physical)
     {
+        if(NULL == frame)
+            throw NullPointerError();
+
         Vertex * vertices = model.lock_vertex_buffer();
         model_entity.physical_model =
             new PhysicalModel(vertices,
                               model.get_vertices_count(),
                               VERTEX_INFO,
+                              *frame,
                               CLUSTERS_BY_AXES,
                               CLUSTER_PADDING_COEFF,
                               NULL,
@@ -365,8 +369,10 @@ void Application::run()
                     
                     if( NULL != physical_model )
                     {
+                        Vector linear_velocity_change, angular_velocity_chage;
+
                         stopwatch.start();
-                        physical_model->compute_next_step(*forces);
+                        physical_model->compute_next_step(*forces, linear_velocity_change, angular_velocity_chage);
                         double time = stopwatch.stop();
 
                         if( NULL != performance_reporter )

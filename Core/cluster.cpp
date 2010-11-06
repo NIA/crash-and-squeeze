@@ -206,7 +206,6 @@ namespace CrashAndSqueeze
         {
             // -- find and apply velocity_addition --
 
-            Vector linear_momentum_addition = Vector::ZERO;
             for(int i = 0; i < get_vertices_num(); ++i)
             {
                 PhysicalVertex &vertex = get_vertex(i);
@@ -216,20 +215,7 @@ namespace CrashAndSqueeze
                 
                 Vector velocity_addition = goal_speed_constant*(goal_position - vertex.get_pos())/dt;
 
-                // velocity_addition is corrected inside this function...
                 vertex.add_to_velocity_addition(velocity_addition);
-                // ...and after that momentum delta is added to linear_momentum_addition
-                linear_momentum_addition += vertex.get_mass()*velocity_addition;
-            }
-
-            // -- enforce total momentum conservation --
-
-            if( 0 != total_mass )
-            {
-                Vector velocity_correction = - linear_momentum_addition / total_mass;
-                
-                for(int i = 0; i < get_vertices_num(); ++i)
-                    get_vertex(i).correct_velocity_addition(velocity_correction);
             }
         }
 

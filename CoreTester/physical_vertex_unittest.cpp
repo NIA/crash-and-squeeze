@@ -15,11 +15,12 @@ TEST(PhysicalVertexTest, Properties)
     EXPECT_EQ( mass, v.get_mass() );
     EXPECT_EQ( velocity, v.get_velocity() );
 
-    EXPECT_EQ( mass*velocity, v.get_linear_momentum() );
-    EXPECT_EQ( mass*Vector(0, -1, 0), v.get_angular_momentum( pos - Vector(1, 0, 0) ) );
-
     Vector body_angular_velocity(0, 0, 1);
     EXPECT_EQ( Vector(0, 1, 0), v.angular_velocity_to_linear( body_angular_velocity, pos - Vector(1, 0, 0) ) );
+
+    const Vector velocity_correction(0, 0, -3);
+    vertex.correct_velocity( velocity_correction );
+    EXPECT_EQ( velocity + velocity_correction, v.get_velocity() );
 }
 
 TEST(PhysicalVertexTest, InterfaceForCluster)
@@ -27,8 +28,7 @@ TEST(PhysicalVertexTest, InterfaceForCluster)
     const Vector pos(1,1,1);
     Real mass = 4;
     const Vector velocity(0,0,1);
-    const Vector addition_before(0,0,2);
-    Vector addition = addition_before;
+    const Vector addition(0,0,2);
 
     PhysicalVertex vertex(pos, mass, velocity);
     const PhysicalVertex &v = vertex;
@@ -42,12 +42,5 @@ TEST(PhysicalVertexTest, InterfaceForCluster)
     
     // addition is divided by 2 here because vertex belons to 2 clusters
     vertex.add_to_velocity_addition(addition);
-    EXPECT_EQ( addition_before/2, addition );
-    EXPECT_EQ( mass*addition, v.get_linear_momentum_addition() );
-    EXPECT_EQ( mass*Vector(0, -1, 0), v.get_angular_momentum_addition( pos - Vector(1, 0, 0) ) );
-
-    const Vector addition_correction(0, 0, -1/mass);
-    // correction is multiplied by mass and added to current velocity addition
-    vertex.correct_velocity_addition( addition_correction );
-    EXPECT_EQ( Vector::ZERO, v.get_linear_momentum_addition() );
+    EXPECT_EQ( addition/2, v.get_velocity_addition() );
 }

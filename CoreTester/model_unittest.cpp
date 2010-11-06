@@ -17,8 +17,8 @@ namespace
             { 1,    2,    3},
             {-4, 5.3f,    8},
             { 0,    0,    0},
-            { 4,   -1, 0.1f}
-
+            { 4,   -1, 0.1f},
+            { 5,   1,  0.1f}
         };
     const int VERTICES1_NUM = sizeof(vertices1)/sizeof(vertices1[0]);
 
@@ -32,16 +32,33 @@ namespace
             {0xDEADBEEF, 7, 2, 1},
             { 0xBADF00D, 0, 0, 0},
             {0xDEADBEEF, 1, 1, 1},
+            { 0xBADF00D, -1, -1, -1},
         };
 
-    template<class V> Vector get_pos(V vertex) { return Vector(); }
+    template<class V> Vector get_pos(V vertex) { return Vector::ZERO; }
     template<> Vector get_pos<TestVertex1>(TestVertex1 v) { return Vector(v.x, v.y, v.z); }
     template<> Vector get_pos<TestVertex2>(TestVertex2 v) { return Vector(v.x, v.y, v.z); }
+}
+
+class ModelTest : public ::testing::Test
+{
+protected:
+    Vector linear_velocity_change;
+    Vector angular_velocity_change;
+
+    IndexArray frame;
+    static const int FRAME_SIZE = 4;
+
+    virtual void SetUp()
+    {
+        for(int i = 0; i < FRAME_SIZE; ++i)
+            frame.push_back(i);
+    }
 
     template<int SIZE,class V>
     void test_creation(V (&vertices)[SIZE], const VertexInfo &vi, const MassFloat *masses, MassFloat constant_mass = 0)
     {
-        Model m(vertices, SIZE, vi, CLUSTERS_BY_AXES, PADDING, masses, constant_mass);
+        Model m(vertices, SIZE, vi, frame, CLUSTERS_BY_AXES, PADDING, masses, constant_mass);
         int vnum = m.get_vertices_num();
         
         int cnum = m.get_clusters_num();
@@ -67,34 +84,45 @@ namespace
             ASSERT_TRUE(m.get_cluster(i).is_valid());
         }
     }
+
+    void check_axis_indices(int index, int axis_indices[VECTOR_SIZE], int clusters_by_axes[VECTOR_SIZE])
+    {
+        EXPECT_EQ( index, Model::axis_indices_to_index(axis_indices, clusters_by_axes) );
+        
+        int result[VECTOR_SIZE];
+        Model::index_to_axis_indices(index, clusters_by_axes, result);
+        for(int i = 0; i < VECTOR_SIZE; ++i)
+        {
+            EXPECT_EQ( axis_indices[i], result[i] ) << "result[" << i << "] incorrect";
+        }
+    }
 };
 
-// TODO: fixtures
 // TODO: typed tests
 
-TEST(ModelTest, Creation1)
+TEST_F(ModelTest, Creation1)
 {
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
     test_creation(vertices1, vi1, NULL, 4);
 }
 
-TEST(ModelTest, Creation2)
+TEST_F(ModelTest, Creation2)
 {
     VertexInfo vi2( sizeof(vertices2[0]), sizeof(vertices2[0].dummy) );
     test_creation(vertices2, vi2, NULL, 4);
 }
 
-TEST(ModelTest, Creation1WithMasses)
+TEST_F(ModelTest, Creation1WithMasses)
 {
-    MassFloat masses[VERTICES1_NUM] = { 26, 0.00004, 4, 8 };
+    MassFloat masses[VERTICES1_NUM] = { 26, 0.00004, 4, 8, 3 };
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
     test_creation(vertices1, vi1, masses);
 }
 
-TEST(ModelTest, StepComputationShouldNotFail)
+TEST_F(ModelTest, StepComputationShouldNotFail)
 {
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
-    Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
+    Model m(vertices1, VERTICES1_NUM, vi1, frame, CLUSTERS_BY_AXES, PADDING, NULL, 4);
     
     const int FORCES_NUM = 10;
     ForcesArray forces(FORCES_NUM);
@@ -102,36 +130,24 @@ TEST(ModelTest, StepComputationShouldNotFail)
     for(int i = 0; i < FORCES_NUM; ++i)
         forces.push_back( &f );
 
-    EXPECT_NO_THROW( m.compute_next_step(forces) );
+    EXPECT_NO_THROW( m.compute_next_step(forces, linear_velocity_change, angular_velocity_change) );
     // should work with no forces
     ForcesArray empty;
-    EXPECT_NO_THROW( m.compute_next_step(empty) );
+    EXPECT_NO_THROW( m.compute_next_step(empty, linear_velocity_change, angular_velocity_change) );
 }
 
-TEST(ModelTest, BadForces)
+TEST_F(ModelTest, BadForces)
 {
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
-    Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
+    Model m(vertices1, VERTICES1_NUM, vi1, frame, CLUSTERS_BY_AXES, PADDING, NULL, 4);
     set_tester_err_callback();
     ForcesArray bad;
     bad.push_back(NULL);
-    EXPECT_THROW( m.compute_next_step(bad), CoreTesterException );
+    EXPECT_THROW( m.compute_next_step(bad, linear_velocity_change, angular_velocity_change), CoreTesterException );
     unset_tester_err_callback();
 }
 
-void check_axis_indices(int index, int axis_indices[VECTOR_SIZE], int clusters_by_axes[VECTOR_SIZE])
-{
-    EXPECT_EQ( index, Model::axis_indices_to_index(axis_indices, clusters_by_axes) );
-    
-    int result[VECTOR_SIZE];
-    Model::index_to_axis_indices(index, clusters_by_axes, result);
-    for(int i = 0; i < VECTOR_SIZE; ++i)
-    {
-        EXPECT_EQ( axis_indices[i], result[i] ) << "result[" << i << "] incorrect";
-    }
-}
-
-TEST(ModelTest, AxisIndicesTrivial)
+TEST_F(ModelTest, AxisIndicesTrivial)
 {
     int clusters_by_axes[VECTOR_SIZE] = { 1, 1, 1 };
     int index = 0;
@@ -140,7 +156,7 @@ TEST(ModelTest, AxisIndicesTrivial)
     check_axis_indices(index, axis_indices, clusters_by_axes);
 }
 
-TEST(ModelTest, AxisIndicesCenter)
+TEST_F(ModelTest, AxisIndicesCenter)
 {
     int clusters_by_axes[VECTOR_SIZE] = { 3, 5, 7 };
     int index = (3*5*7 - 1)/2;
@@ -149,7 +165,7 @@ TEST(ModelTest, AxisIndicesCenter)
     check_axis_indices(index, axis_indices, clusters_by_axes);
 }
 
-TEST(ModelTest, AxisIndicesEnd)
+TEST_F(ModelTest, AxisIndicesEnd)
 {
     int clusters_by_axes[VECTOR_SIZE] = { 2, 3, 6 };
     int index = 2*3*6 - 1;

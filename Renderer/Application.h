@@ -94,8 +94,8 @@ public:
 
     // Adds given model to Application's list of models;
     // creates a physical model if `physical` is true (and returns it);
-    // returns NULL otherwise
-    PhysicalModel * add_model(Model &model, bool physical = false);
+    // returns NULL otherwise. `frame` must not be NULL if `physical` is true.
+    PhysicalModel * add_model(Model &model, bool physical = false, ::CrashAndSqueeze::Core::IndexArray * frame = NULL);
     void set_forces(::CrashAndSqueeze::Core::ForcesArray & forces);
     void run();
 
