@@ -253,3 +253,37 @@ TEST(VectorTest, IsOrthogonalTo)
     EXPECT_TRUE( v1.is_orthogonal_to(v2) );
     EXPECT_TRUE( v2.is_orthogonal_to(v1) );
 }
+
+TEST(VectorTest, ProjectOrthogonal)
+{
+    const Vector vector(1, 2, 3);
+    const Vector normal(-5, 1, 1);
+
+    ASSERT_TRUE( normal.is_orthogonal_to(vector) ); // self-check
+
+    Vector normal_component;
+    EXPECT_DOUBLE_EQ( 0, vector.project_to(normal, & normal_component) );
+    EXPECT_EQ(vector, normal_component);
+}
+
+TEST(VectorTest, ProjectToAxes)
+{
+    const Vector vector(1, 2, 3);
+    const Vector x(1, 0, 0);
+    const Vector y(0, 1, 0);
+    const Vector z(0, 0, 1);
+    
+    EXPECT_DOUBLE_EQ( vector[0], vector.project_to(x) );
+    EXPECT_DOUBLE_EQ( vector[1], vector.project_to(y) );
+    EXPECT_DOUBLE_EQ( vector[2], vector.project_to(z) );
+}
+
+TEST(VectorTest, ProjectToArbitrary)
+{
+    const Vector vector(1, 0, 1);
+    const Vector direction(1, 1, 0);
+    
+    Vector normal_component;
+    EXPECT_DOUBLE_EQ( sqrt(2.)/2, vector.project_to(direction, & normal_component) );
+    EXPECT_EQ( Vector( 0.5, -0.5, 1), normal_component );
+}

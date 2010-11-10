@@ -166,6 +166,9 @@ namespace CrashAndSqueeze
             {
                 return equal( 0, (*this)*another );
             }
+            // returns projection to `direction'. Second parameter is optional, and when
+            // it is not null, the normal component is returned through it.
+            Real project_to(const Vector &direction, /*out*/ Vector *normal_component = 0) const;
         };
 
         // define an alias

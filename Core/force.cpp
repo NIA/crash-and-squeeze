@@ -223,21 +223,10 @@ namespace CrashAndSqueeze
             }
         }
 
-        namespace
-        {
-            inline Real project(const Vector &vector_to_project, const Vector &direction, /*out*/ Vector &normal_component)
-            {
-                Vector axis = direction.normalized();
-                Real projection = vector_to_project*axis;
-                normal_component = vector_to_project - projection*axis;
-                return projection;
-            }
-        }
-
         bool CylinderSpringForce::is_applied_to(const Vector &point) const
         {
             Vector normal_component;
-            Real projection = project(point - point1, point2 - point1, normal_component);
+            Real projection = (point - point1).project_to(point2 - point1, &normal_component);
             return projection >= 0
                 && projection <= distance(point1, point2)
                 && normal_component.norm() <= get_radius();
@@ -246,7 +235,7 @@ namespace CrashAndSqueeze
         Vector CylinderSpringForce::compute_value_at(const Vector &point, const Vector &velocity) const
         {
             Vector normal_component;
-            project(point - point1, point2 - point1, normal_component);
+            (point - point1).project_to(point2 - point1, &normal_component);
 
             Vector direction = normal_component.is_zero() ? Vector(0,0,1) : normal_component.normalized();
             Vector shift = normal_component - direction*get_radius();
