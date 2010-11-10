@@ -177,6 +177,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\regions.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\vertex_info.cpp"
 				>
 			</File>
@@ -216,6 +220,10 @@
 			</File>
 			<File
 				RelativePath=".\reactions.h"
+				>
+			</File>
+			<File
+				RelativePath=".\regions.h"
 				>
 			</File>
 			<File
