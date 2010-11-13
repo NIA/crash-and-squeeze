@@ -35,8 +35,8 @@ namespace CrashAndSqueeze
             typedef const Math::Vector & (PhysicalVertex::*VelocityFunc)() const;
             // common code for compute_velocities and compute_velocities_additions
             bool abstract_compute_velocities(VelocityFunc velocity_func,
-                                             /*out*/ Math::Vector res_linear_velocity,
-                                             /*out*/ Math::Vector res_angular_velocity);
+                                             /*out*/ Math::Vector & res_linear_velocity,
+                                             /*out*/ Math::Vector & res_angular_velocity);
 
         public:
             typedef Collections::Array<PhysicalVertex> PhysicalVertexArray;

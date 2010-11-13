@@ -89,8 +89,8 @@ namespace CrashAndSqueeze
         }
 
         bool Body::abstract_compute_velocities(VelocityFunc velocity_func,
-                                               /*out*/ Math::Vector res_velocity,
-                                               /*out*/ Math::Vector res_angular_velocity)
+                                               /*out*/ Vector & res_velocity,
+                                               /*out*/ Vector & res_angular_velocity)
         {
             if( false == check_total_mass() )
                 return false;
