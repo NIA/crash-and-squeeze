@@ -2,6 +2,7 @@
 #include "Core/core.h"
 #include "Core/force.h"
 #include "Math/vector.h"
+#include "Collections/array.h"
 
 namespace CrashAndSqueeze
 {
@@ -71,12 +72,11 @@ namespace CrashAndSqueeze
 
             const Math::Vector & get_velocity_addition() const { return velocity_addition; }
 
-            // gets an addition from a single cluster,
-            // corrects it according to including_clusters_num,
-            // and adds corrected value to velocity_addition
-            bool add_to_velocity_addition(const Math::Vector &addition);
+            // gets an addition from a single cluster, divides it by including_clusters_num,
+            // and adds corrected value to velocity_addition, thus averaging addiitons
+            bool add_to_average_velocity_addition(const Math::Vector &addition);
             
-            void correct_velocity(const Math::Vector &correction) { velocity += correction; }
+            void add_to_velocity(const Math::Vector &correction) { velocity += correction; }
 
             // vertices of rigid frame are fixed: they don't move from their position when the model is deformed
             void fix() { fixed = true; }
@@ -87,5 +87,7 @@ namespace CrashAndSqueeze
             bool integrate_velocity(const ForcesArray & forces, Math::Real dt);
             void integrate_position(Math::Real dt);
         };
+
+        typedef Collections::Array<PhysicalVertex> PhysicalVertexArray;
     }
 }

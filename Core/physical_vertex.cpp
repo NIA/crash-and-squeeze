@@ -39,10 +39,9 @@ namespace CrashAndSqueeze
             return nearest_cluster_index;
         }
 
-        // gets an addition from a single cluster,
-        // corrects it according to including_clusters_num,
-        // and adds corrected value to velocity_addition
-        bool PhysicalVertex::add_to_velocity_addition(const Vector & addition)
+        // gets an addition from a single cluster, divides it by including_clusters_num,
+        // and adds corrected value to velocity_addition, thus averaging addiitons
+        bool PhysicalVertex::add_to_average_velocity_addition(const Vector & addition)
         {
             // we need average velocity addition, not sum, so divide by including_clusters_num
             if(0 == including_clusters_num)

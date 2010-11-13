@@ -140,7 +140,7 @@ namespace CrashAndSqueeze
                 PhysicalVertex &v = *vertices[i];
 
                 Vector correction = - linear - v.angular_velocity_to_linear(angular, center_of_mass);
-                v.correct_velocity(correction);
+                v.add_to_velocity(correction);
             }
         }
     }

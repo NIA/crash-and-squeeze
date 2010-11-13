@@ -19,7 +19,7 @@ TEST(PhysicalVertexTest, Properties)
     EXPECT_EQ( Vector(0, 1, 0), v.angular_velocity_to_linear( body_angular_velocity, pos - Vector(1, 0, 0) ) );
 
     const Vector velocity_correction(0, 0, -3);
-    vertex.correct_velocity( velocity_correction );
+    vertex.add_to_velocity( velocity_correction );
     EXPECT_EQ( velocity + velocity_correction, v.get_velocity() );
 }
 
@@ -41,6 +41,6 @@ TEST(PhysicalVertexTest, InterfaceForCluster)
     EXPECT_EQ( 5, v.get_nearest_cluster_index() );
     
     // addition is divided by 2 here because vertex belons to 2 clusters
-    vertex.add_to_velocity_addition(addition);
+    vertex.add_to_average_velocity_addition(addition);
     EXPECT_EQ( addition/2, v.get_velocity_addition() );
 }

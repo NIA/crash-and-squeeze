@@ -1,7 +1,6 @@
 #pragma once
 #include "Core/core.h"
 #include "Core/physical_vertex.h"
-#include "Collections/array.h"
 #include "Math/vector.h"
 #include "Math/matrix.h"
 
@@ -39,8 +38,6 @@ namespace CrashAndSqueeze
                                              /*out*/ Math::Vector & res_angular_velocity);
 
         public:
-            typedef Collections::Array<PhysicalVertex> PhysicalVertexArray;
-
             // creates rigid body from all given vertices.
             // if `rigid' is true, PhysicalVertex::fix is called for each vertex
             Body(PhysicalVertexArray &all_vertices, bool rigid = false);

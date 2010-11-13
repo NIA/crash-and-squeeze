@@ -215,7 +215,7 @@ namespace CrashAndSqueeze
                 
                 Vector velocity_addition = goal_speed_constant*(goal_position - vertex.get_pos())/dt;
 
-                vertex.add_to_velocity_addition(velocity_addition);
+                vertex.add_to_average_velocity_addition(velocity_addition);
             }
         }
 
