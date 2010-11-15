@@ -8,10 +8,6 @@ namespace CrashAndSqueeze
 
     namespace Core
     {
-        // a constant, determining how much deformation velocities are damped:
-        // 0 - no damping of vibrations, 1 - maximum damping, rigid body
-        const Real PhysicalVertex::DEFAULT_DAMPING_CONSTANT = 0.7;
-        
         bool PhysicalVertex::set_nearest_cluster_index(int index)
         {
             if(NOT_IN_A_CLUSTER != nearest_cluster_index)
@@ -79,23 +75,13 @@ namespace CrashAndSqueeze
 
         void PhysicalVertex::integrate_position(Math::Real dt)
         {
-            if( ! fixed )
-                pos += velocity*dt;
+            pos += velocity*dt;
         }
 
         Vector PhysicalVertex::angular_velocity_to_linear(const Math::Vector &body_angular_velocity,
                                                           const Math::Vector &body_center) const
         {
             return cross_product(body_angular_velocity, pos - body_center);
-        }
-
-        void PhysicalVertex::damp_velocity(const Vector &body_velocity,
-                                           const Vector &body_angular_velocity,
-                                           const Vector &body_center)
-        {
-            Vector rigid_velocity = body_velocity + angular_velocity_to_linear(body_angular_velocity, body_center);
-            Vector oscillation_velocity = velocity - rigid_velocity;
-            velocity -= damping_constant*oscillation_velocity;
         }
     }
 }

@@ -53,12 +53,19 @@ protected:
     {
         for(int i = 0; i < FRAME_SIZE; ++i)
             frame.push_back(i);
+
+        set_tester_err_callback();
+    }
+    
+    virtual void TearDown()
+    {
+        unset_tester_err_callback();
     }
 
     template<int SIZE,class V>
     void test_creation(V (&vertices)[SIZE], const VertexInfo &vi, const MassFloat *masses, MassFloat constant_mass = 0)
     {
-        Model m(vertices, SIZE, vi, frame, CLUSTERS_BY_AXES, PADDING, masses, constant_mass);
+        Model m(vertices, SIZE, vi, CLUSTERS_BY_AXES, PADDING, masses, constant_mass);
         int vnum = m.get_vertices_num();
         
         int cnum = m.get_clusters_num();
@@ -122,7 +129,7 @@ TEST_F(ModelTest, Creation1WithMasses)
 TEST_F(ModelTest, StepComputationShouldNotFail)
 {
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
-    Model m(vertices1, VERTICES1_NUM, vi1, frame, CLUSTERS_BY_AXES, PADDING, NULL, 4);
+    Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
     
     const int FORCES_NUM = 10;
     ForcesArray forces(FORCES_NUM);
@@ -131,20 +138,23 @@ TEST_F(ModelTest, StepComputationShouldNotFail)
         forces.push_back( &f );
 
     EXPECT_NO_THROW( m.compute_next_step(forces, linear_velocity_change, angular_velocity_change) );
+    
     // should work with no forces
     ForcesArray empty;
     EXPECT_NO_THROW( m.compute_next_step(empty, linear_velocity_change, angular_velocity_change) );
+    
+    // should work with frame
+    m.set_frame(frame);
+    EXPECT_NO_THROW( m.compute_next_step(forces, linear_velocity_change, angular_velocity_change) );
 }
 
 TEST_F(ModelTest, BadForces)
 {
     VertexInfo vi1( sizeof(vertices1[0]), 0 );
-    Model m(vertices1, VERTICES1_NUM, vi1, frame, CLUSTERS_BY_AXES, PADDING, NULL, 4);
-    set_tester_err_callback();
+    Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
     ForcesArray bad;
     bad.push_back(NULL);
     EXPECT_THROW( m.compute_next_step(bad, linear_velocity_change, angular_velocity_change), CoreTesterException );
-    unset_tester_err_callback();
 }
 
 TEST_F(ModelTest, AxisIndicesTrivial)

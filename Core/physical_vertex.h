@@ -21,28 +21,19 @@ namespace CrashAndSqueeze
             int nearest_cluster_index;
             // TODO: thread-safe cluster addition: velocity_additions[]...
             Math::Vector velocity_addition;
-            // a constant, determining how much deformation velocities are damped:
-            // 0 - no damping of vibrations, 1 - maximum damping, rigid body
-            Math::Real damping_constant;
-
-            // vertices of rigid frame are fixed: they don't move from their position when the model is deformed
-            bool fixed;
             
         public:
             static const int NOT_IN_A_CLUSTER = -2;
-            static const Math::Real DEFAULT_DAMPING_CONSTANT;
 
             PhysicalVertex( Math::Vector pos,
                             Math::Real mass,
                             Math::Vector velocity = Math::Vector(0,0,0) )
                 : pos(pos), mass(mass), velocity(velocity), velocity_addition(Math::Vector::ZERO),
-                  including_clusters_num(0), nearest_cluster_index(NOT_IN_A_CLUSTER),
-                  damping_constant(DEFAULT_DAMPING_CONSTANT), fixed(false) {}
+                  including_clusters_num(0), nearest_cluster_index(NOT_IN_A_CLUSTER) {}
             
             PhysicalVertex()
                 : mass(0), pos(Math::Vector::ZERO), velocity(Math::Vector::ZERO), velocity_addition(Math::Vector::ZERO),
-                  including_clusters_num(0), nearest_cluster_index(NOT_IN_A_CLUSTER),
-                  damping_constant(DEFAULT_DAMPING_CONSTANT), fixed(false) {}
+                  including_clusters_num(0), nearest_cluster_index(NOT_IN_A_CLUSTER) {}
 
             // -- properties --
             
@@ -52,10 +43,6 @@ namespace CrashAndSqueeze
             const Math::Vector & get_velocity() const { return velocity; }
             Math::Vector angular_velocity_to_linear(const Math::Vector &body_angular_velocity,
                                                     const Math::Vector &body_center) const;
-            // damps oscillation velocity
-            void damp_velocity(const Math::Vector &body_velocity,
-                               const Math::Vector &body_angular_velocity,
-                               const Math::Vector &body_center);
             // mass getter
             Math::Real get_mass() const { return mass; }
             
@@ -77,9 +64,7 @@ namespace CrashAndSqueeze
             bool add_to_average_velocity_addition(const Math::Vector &addition);
             
             void add_to_velocity(const Math::Vector &correction) { velocity += correction; }
-
-            // vertices of rigid frame are fixed: they don't move from their position when the model is deformed
-            void fix() { fixed = true; }
+            void set_velocity(const Math::Vector &new_velocity) { velocity = new_velocity; }
 
             // -- methods --
 

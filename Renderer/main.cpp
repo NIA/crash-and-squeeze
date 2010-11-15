@@ -10,9 +10,7 @@
 
 typedef ::CrashAndSqueeze::Logging::Logger PhysicsLogger;
 using CrashAndSqueeze::Core::ForcesArray;
-using CrashAndSqueeze::Core::HalfSpaceSpringForce;
-using CrashAndSqueeze::Core::EverywhereForce;
-using CrashAndSqueeze::Core::CylinderSpringForce;
+using CrashAndSqueeze::Core::PlaneForce;
 using CrashAndSqueeze::Core::ShapeDeformationReaction;
 using CrashAndSqueeze::Math::Vector;
 using CrashAndSqueeze::Math::Real;
@@ -28,6 +26,8 @@ namespace
 
     const D3DXCOLOR NO_DEFORM_COLOR = CYLINDER_COLOR;//D3DCOLOR_XRGB(0, 255, 0);
     const D3DXCOLOR MAX_DEFORM_COLOR = D3DCOLOR_XRGB(255, 0, 0);
+
+    const D3DXCOLOR FRAME_COLOR = D3DCOLOR_XRGB(128, 255, 0);
 
     const Real     CALLBACK_THRESHOLD = 0.0;
 
@@ -82,9 +82,9 @@ namespace
 
     // adds values `from`, `from`+1, ..., `to`-1 to array,
     // total `to`-`from` items.
-    void add_range(IndexArray &arr, int from, int to)
+    void add_range(IndexArray &arr, int from, int to, int step = 1)
     {
-        for(int i = from; i < to; ++i)
+        for(int i = from; i < to; i += step)
         {
             arr.push_back(i);
         }
@@ -195,13 +195,9 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         cylinder_model_vertices = new Vertex[CYLINDER_VERTICES_COUNT];
         cylinder_model_indices = new Index[CYLINDER_INDICES_COUNT];
         
-        cylinder( 0.25, 2, D3DXVECTOR3(-0.25f, -0.25f, 3),
+        cylinder( 0.25, 2, D3DXVECTOR3(0,0,-1),
                          &CYLINDER_COLOR, 1,
                          cylinder_model_vertices, cylinder_model_indices );
-
-        IndexArray frame;
-        add_range(frame, 0, CYLINDER_EDGES_PER_BASE); // first layer
-        add_range(frame, CYLINDER_VERTICES_COUNT - CYLINDER_EDGES_PER_BASE - 1, CYLINDER_VERTICES_COUNT); // lower cap
 
         Model cylinder_model(app.get_device(),
                              D3DPT_TRIANGLESTRIP,
@@ -213,106 +209,62 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                              CYLINDER_INDICES_COUNT - 2,
                              D3DXVECTOR3(0, 0, 0),
                              D3DXVECTOR3(0, 0, 0));
-        PhysicalModel * phys_mod = app.add_model(cylinder_model, true, &frame);
+        
+        PhysicalModel * phys_mod = app.add_model(cylinder_model, true);
         if(NULL == phys_mod)
             throw NullPointerError();
+        
+        IndexArray frame;
+        const Index CYLINDER_VERTICES_PER_SIDE = CYLINDER_EDGES_PER_BASE*CYLINDER_EDGES_PER_HEIGHT;
+        add_range(frame, CYLINDER_VERTICES_PER_SIDE/4, CYLINDER_VERTICES_PER_SIDE*3/4, CYLINDER_EDGES_PER_BASE); // vertical line layer
+        add_range(frame, CYLINDER_VERTICES_PER_SIDE/4 + 1, CYLINDER_VERTICES_PER_SIDE*3/4, CYLINDER_EDGES_PER_BASE); // vertical line layer
+        phys_mod->set_frame(frame);
+        cylinder_model.repaint_vertices(frame, FRAME_COLOR);
 
-        // -- shapes and shape callbacks definition --
+        //// -- shapes and shape callbacks definition --
 
-        const int SHAPE_SIZE = CYLINDER_EDGES_PER_BASE;
-        const int SHAPE_LINES_OFFSET = 3;
-        const int SHAPES_COUNT = 8;
-        const int SHAPE_STEP = (SHAPES_COUNT > 1) ?
-                               ((CYLINDER_EDGES_PER_HEIGHT - 2*SHAPE_LINES_OFFSET)/(SHAPES_COUNT - 1))*CYLINDER_EDGES_PER_BASE :
-                               0;
-        const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*CYLINDER_EDGES_PER_BASE;
+        //const int SHAPE_SIZE = CYLINDER_EDGES_PER_BASE;
+        //const int SHAPE_LINES_OFFSET = 3;
+        //const int SHAPES_COUNT = 8;
+        //const int SHAPE_STEP = (SHAPES_COUNT > 1) ?
+        //                       ((CYLINDER_EDGES_PER_HEIGHT - 2*SHAPE_LINES_OFFSET)/(SHAPES_COUNT - 1))*CYLINDER_EDGES_PER_BASE :
+        //                       0;
+        //const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*CYLINDER_EDGES_PER_BASE;
 
-        const int SUBSHAPES_COUNT = 4;
-        const int SUBSHAPE_SIZE = SHAPE_SIZE/SUBSHAPES_COUNT;
+        //const int SUBSHAPES_COUNT = 4;
+        //const int SUBSHAPE_SIZE = SHAPE_SIZE/SUBSHAPES_COUNT;
 
-        // let's have some static array of dynamic arrays... :)
-        IndexArray vertex_indices[SHAPES_COUNT*SUBSHAPES_COUNT];
-        // ...and fill it
-        int subshape_index = 0;
-        for(int i = 0; i < SHAPES_COUNT; ++i)
-        {
-            for(int j = 0; j < SUBSHAPES_COUNT; ++j)
-            {
-                int subshape_start = SHAPE_OFFSET + i*SHAPE_STEP + j*SUBSHAPE_SIZE;
-                add_range(vertex_indices[subshape_index], subshape_start, subshape_start + SUBSHAPE_SIZE);
-                // register reaction
-                RepaintReaction & reaction = * new RepaintReaction( vertex_indices[subshape_index],
-                                                                    CALLBACK_THRESHOLD,
-                                                                    cylinder_model );
-                reactions.push_back(&reaction);
-                phys_mod->add_shape_deformation_reaction(reaction);
-                // do initial repaint
-                reaction.invoke(CALLBACK_THRESHOLD);
-                
-                ++subshape_index;
-            }
-        }
+        //// let's have some static array of dynamic arrays... :)
+        //IndexArray vertex_indices[SHAPES_COUNT*SUBSHAPES_COUNT];
+        //// ...and fill it
+        //int subshape_index = 0;
+        //for(int i = 0; i < SHAPES_COUNT; ++i)
+        //{
+        //    for(int j = 0; j < SUBSHAPES_COUNT; ++j)
+        //    {
+        //        int subshape_start = SHAPE_OFFSET + i*SHAPE_STEP + j*SUBSHAPE_SIZE;
+        //        add_range(vertex_indices[subshape_index], subshape_start, subshape_start + SUBSHAPE_SIZE);
+        //        // register reaction
+        //        RepaintReaction & reaction = * new RepaintReaction( vertex_indices[subshape_index],
+        //                                                            CALLBACK_THRESHOLD,
+        //                                                            cylinder_model );
+        //        reactions.push_back(&reaction);
+        //        phys_mod->add_shape_deformation_reaction(reaction);
+        //        // do initial repaint
+        //        reaction.invoke(CALLBACK_THRESHOLD);
+        //        
+        //        ++subshape_index;
+        //    }
+        //}
 
         // -------------------------- F o r c e s -----------------------
-        const int SPRINGS_NUM =2;
         ForcesArray forces;
 
-        HalfSpaceSpringForce springs[SPRINGS_NUM] = {
-            HalfSpaceSpringForce(8000, Vector(0,0,0.25), Vector(0,0,1), 40),
-            HalfSpaceSpringForce(400, Vector(0,0,4.8), Vector(0,1,-3), 0),
-        };
-        EverywhereForce gravity(Vector(0, 0, -3));
-        CylinderSpringForce cylinder_force(15000, Vector(-1, 0.5, 0.5), Vector(1, 0.5, 0.5), 0.25, 150);
-        
-        for(int i = 0; i < SPRINGS_NUM; ++i)
-        {
-            forces.push_back( &springs[i] );
-        }
-        forces.push_back( &gravity );
-        forces.push_back( &cylinder_force );
+        PlaneForce force( Vector(0,80,0), Vector(0,0,-1), Vector(0,0,1), 0.1 );
+        forces.push_back(&force);
+
         app.set_forces(forces);
         
-        // ------------------- F o r c e   m o d e l s ----------------
-        // ---- 1: Plane
-        plane_vertices = new Vertex[PLANE_VERTICES_COUNT];
-        plane_indices = new Index[PLANE_INDICES_COUNT];
-
-        plane(7, 7, plane_vertices, plane_indices, OBSTACLE_COLOR);
-
-        Model plane1(app.get_device(),
-                     D3DPT_TRIANGLELIST,
-                     simple_shader,
-                     plane_vertices,
-                     PLANE_VERTICES_COUNT,
-                     plane_indices,
-                     PLANE_INDICES_COUNT,
-                     PLANE_INDICES_COUNT/VERTICES_PER_TRIANGLE,
-                     math_vector_to_d3dxvector(springs[0].get_plane_point()),
-                     D3DXVECTOR3(0,0,0));
-        app.add_model(plane1, false);
-        
-        // ---- 2: Cylinder
-        cylinder_vertices = new Vertex[CYLINDER_VERTICES_COUNT];
-        cylinder_indices = new Index[CYLINDER_INDICES_COUNT];
-        
-        float radius = static_cast<float>( cylinder_force.get_radius() );
-        float height = static_cast<float>( distance(cylinder_force.get_point1(), cylinder_force.get_point2()) );
-        cylinder( radius, height, D3DXVECTOR3(0, 0, 0),
-                         &OBSTACLE_COLOR, 1,
-                         cylinder_vertices, cylinder_indices );
-
-        Model cylinder1(app.get_device(),
-                        D3DPT_TRIANGLESTRIP,
-                        simple_shader,
-                        cylinder_vertices,
-                        CYLINDER_VERTICES_COUNT,
-                        cylinder_indices,
-                        CYLINDER_INDICES_COUNT,
-                        CYLINDER_INDICES_COUNT - 2,
-                        math_vector_to_d3dxvector(cylinder_force.get_point1()),
-                        D3DXVECTOR3(0, D3DX_PI/2, 0));
-        app.add_model(cylinder1, false);
-
         // -------------------------- G O ! ! ! -----------------------
         app.run();
         delete_array(&cubic_indices);

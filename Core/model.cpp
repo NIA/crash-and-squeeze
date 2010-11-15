@@ -34,18 +34,22 @@ namespace CrashAndSqueeze
             }
         }
 
+        // a constant, determining how much deformation velocities are damped:
+        // 0 - no damping of vibrations, 1 - maximum damping, rigid body
+        const Real Model::DEFAULT_DAMPING_CONSTANT = 0.7*Body::MAX_RIGIDITY_COEFF;
+
         Model::Model( const void *source_vertices,
                       int vertices_num,
                       VertexInfo const &vertex_info,
-                      const IndexArray &frame_indices,
                       const int clusters_by_axes[Math::VECTOR_SIZE],
                       Math::Real cluster_padding_coeff,
                       const MassFloat *masses,
                       const MassFloat constant_mass)
             : vertices(vertices_num),
-              frame_vertices(frame_indices.size()),
 
               cluster_padding_coeff(cluster_padding_coeff),
+
+              damping_constant(DEFAULT_DAMPING_CONSTANT),
 
               min_pos(MAX_COORDINATE_VECTOR),
               max_pos(-MAX_COORDINATE_VECTOR),
@@ -56,7 +60,7 @@ namespace CrashAndSqueeze
             vertices.create_items(vertices_num);
             vertices.freeze();
 
-            if( init_vertices(source_vertices, vertex_info, frame_indices, masses, constant_mass) )
+            if( init_vertices(source_vertices, vertex_info, masses, constant_mass) )
             {
                 for(int i = 0; i < VECTOR_SIZE; ++i)
                     this->clusters_by_axes[i] = clusters_by_axes[i];
@@ -67,7 +71,6 @@ namespace CrashAndSqueeze
 
         bool Model::init_vertices(const void *source_vertices,
                                   VertexInfo const &vertex_info,
-                                  const IndexArray &frame_indices,
                                   const MassFloat *masses,
                                   const MassFloat constant_mass)
         {
@@ -115,9 +118,7 @@ namespace CrashAndSqueeze
                 source_vertex = add_to_pointer(source_vertex, vertex_info.get_vertex_size());
             }
 
-            body = new Body(vertices, false);
-            frame = new Body(vertices, frame_indices, true);
-            frame->compute_properties();
+            body = new Body(vertices);
             return true;
         }
         
@@ -237,6 +238,13 @@ namespace CrashAndSqueeze
 
             return true;
         }
+
+        void Model::set_frame(const IndexArray &frame_indices)
+        {
+            delete frame;
+            frame = new Body(vertices, frame_indices);
+            frame->compute_properties();
+        }
         
         void Model::add_shape_deformation_reaction(ShapeDeformationReaction & reaction)
         {
@@ -273,7 +281,7 @@ namespace CrashAndSqueeze
             body->compensate_velocities( body->get_linear_velocity_addition(),
                                          body->get_angular_velocity_addition() );
             
-            // -- For each vertex of model: integrate velocities --
+            // -- For each vertex of model: integrate velocities: sum velocity additions and apply forces --
             for(int i = 0; i < vertices.size(); ++i)
             {
                 if( false == vertices[i].integrate_velocity( forces, dt ) )
@@ -284,25 +292,39 @@ namespace CrashAndSqueeze
             if( false == body->compute_velocities() )
                 return false;
 
-            // -- For each vertex of model: damp velocities and integrate positions --
+            // Damp deformation oscillations --
+            body->set_rigid_motion(damping_constant);
+
+            // -- Substract global motion of body --
+            // (to make the reference frame of center of mass current reference frame again)
+            
+            linear_velocity_change = body->get_linear_velocity();
+            angular_velocity_change = body->get_angular_velocity();
+
+            body->compensate_velocities(body->get_linear_velocity(), body->get_angular_velocity());
+
+            if( NULL != frame )
+            {
+                // -- Ensure that the frame moves as a rigid body --
+            
+                if( false == frame->compute_velocities() )
+                    return false;
+
+                frame->set_rigid_motion();
+
+                // additionally damp velocities of vertices from frame
+                // TODO: is all this magic good for energy/momenta conservation?
+                frame->set_rigid_motion( *body, damping_constant );
+
+                // TODO: change initial state so that it repeat motion of frame
+            }
+
+            // -- For each vertex of model: integrate positions --
             for(int i = 0; i < vertices.size(); ++i)
             {
-                vertices[i].damp_velocity(body->get_linear_velocity(),
-                                          body->get_angular_velocity(),
-                                          body->get_center_of_mass());
                 vertices[i].integrate_position(dt);
             }
             
-            // -- Now substitute the motion of frame (to make it the current reference frame again)
-
-            if( false == frame->compute_velocities() )
-                return false;
-            
-            linear_velocity_change = frame->get_linear_velocity();
-            angular_velocity_change = frame->get_angular_velocity();
-
-            body->compensate_velocities(frame->get_linear_velocity(), frame->get_angular_velocity());
-
             // -- For each reaction: check state and invoke if needed
             for(int i = 0; i < shape_deform_reactions.size(); ++i)
             {

@@ -75,7 +75,7 @@ namespace
 }
 
 Application::Application(Logger &logger) :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(7.9f, 0.9f, 0.97f), // Constants selected for better view the scene
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(2.0f, 1.2f, 0.0f), // Constants selected for better view the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
     forces(NULL), logger(logger)
@@ -191,7 +191,7 @@ IDirect3DDevice9 * Application::get_device()
     return device;
 }
 
-PhysicalModel * Application::add_model(Model &model, bool physical, IndexArray * frame)
+PhysicalModel * Application::add_model(Model &model, bool physical)
 {
     ModelEntity model_entity = {NULL, NULL, NULL};
 
@@ -199,15 +199,11 @@ PhysicalModel * Application::add_model(Model &model, bool physical, IndexArray *
 
     if(physical)
     {
-        if(NULL == frame)
-            throw NullPointerError();
-
         Vertex * vertices = model.lock_vertex_buffer();
         model_entity.physical_model =
             new PhysicalModel(vertices,
                               model.get_vertices_count(),
                               VERTEX_INFO,
-                              *frame,
                               CLUSTERS_BY_AXES,
                               CLUSTER_PADDING_COEFF,
                               NULL,

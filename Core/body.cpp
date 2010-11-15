@@ -2,6 +2,7 @@
 
 namespace CrashAndSqueeze
 {
+    using Math::Real;
     using Math::less_or_equal;
     using Math::Vector;
     using Math::Matrix;
@@ -10,25 +11,25 @@ namespace CrashAndSqueeze
     namespace Core
     {
         // creates rigid body from all given vertices
-        Body::Body(PhysicalVertexArray &all_vertices, bool rigid)
+        Body::Body(PhysicalVertexArray &all_vertices)
             : vertices(all_vertices.size())
         {
             set_initial_values();
 
             for(int i = 0; i < all_vertices.size(); ++i)
-                add_vertex( all_vertices[i], rigid );
+                add_vertex(all_vertices[i]);
 
             vertices.freeze();
         }
         
         // creates rigid body only from vertices defined by body_indices
-        Body::Body(PhysicalVertexArray &all_vertices, const IndexArray &body_indices, bool rigid)
+        Body::Body(PhysicalVertexArray &all_vertices, const IndexArray &body_indices)
             : vertices(body_indices.size())
         {
             set_initial_values();
 
             for(int i = 0; i < body_indices.size(); ++i)
-                add_vertex( all_vertices[ body_indices[i] ], rigid );
+                add_vertex(all_vertices[ body_indices[i] ]);
 
             vertices.freeze();
         }
@@ -44,13 +45,10 @@ namespace CrashAndSqueeze
               angular_velocity_addition = Vector::ZERO;
         }
 
-        void Body::add_vertex(PhysicalVertex &v, bool rigid)
+        void Body::add_vertex(PhysicalVertex &v)
         {
             vertices.push_back( &v );
             total_mass += v.get_mass();
-            
-            if(rigid)
-                v.fix();
         }
 
         bool Body::check_total_mass() const
@@ -141,6 +139,22 @@ namespace CrashAndSqueeze
 
                 Vector correction = - linear - v.angular_velocity_to_linear(angular, center_of_mass);
                 v.add_to_velocity(correction);
+            }
+        }
+
+        const Real Body::MAX_RIGIDITY_COEFF = 1;
+        
+        void Body::set_rigid_motion(const Body & body, Real coeff)
+        {
+            for(int i = 0; i < vertices.size(); ++i)
+            {
+                PhysicalVertex &v = *vertices[i];
+
+                Vector rigid_velocity = body.get_linear_velocity()
+                                      + v.angular_velocity_to_linear(body.get_angular_velocity(),
+                                                                     body.get_center_of_mass());
+
+                v.set_velocity( coeff*rigid_velocity + (1 - coeff)*v.get_velocity() );
             }
         }
     }
