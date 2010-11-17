@@ -5,6 +5,7 @@
 #include "Core/force.h"
 #include "Core/reactions.h"
 #include "Core/body.h"
+#include "Core/regions.h"
 #include "Math/floating_point.h"
 #include "Math/Vector.h"
 #include "Math/Matrix.h"
@@ -58,6 +59,9 @@ namespace CrashAndSqueeze
             // rigid frame
             Body *frame;
 
+            // used by Model::hit: here placed are the found vertices (which are inside the given region)
+            Collections::Array<PhysicalVertex *> vertices_in_region;
+
             // -- step computation steps --
             bool correct_velocity_additions();
 
@@ -85,6 +89,11 @@ namespace CrashAndSqueeze
             void add_shape_deformation_reaction(ShapeDeformationReaction & reaction);
 
             // -- Run-time emulation interface --
+            
+            // Applies addition of `velocity' to model's velocity. The argument `region'
+            // specifies the region being directly hit: at the first step momentum addition
+            // is distributed between vertices inside this region.
+            void hit(const IRegion &region, const Math::Vector & velocity);
             
             // computes next step in local coordinates of body (coordinate system is bound to body frame),
             // sets `linear_velocity_change' and `angular_velocity_change': the change of global motion

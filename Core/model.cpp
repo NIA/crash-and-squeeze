@@ -55,7 +55,9 @@ namespace CrashAndSqueeze
               max_pos(-MAX_COORDINATE_VECTOR),
 
               body(NULL),
-              frame(NULL)
+              frame(NULL),
+
+              vertices_in_region(vertices_num)
         {
             vertices.create_items(vertices_num);
             vertices.freeze();
@@ -119,6 +121,8 @@ namespace CrashAndSqueeze
             }
 
             body = new Body(vertices);
+
+            vertices_in_region.forbid_reallocation(vertices.size());
             return true;
         }
         
@@ -254,9 +258,39 @@ namespace CrashAndSqueeze
             shape_deform_reactions.push_back( & reaction );
         }
 
+        void Model::hit(const IRegion &region, const Vector & velocity)
+        {
+            vertices_in_region.clear();
+            Real region_mass = 0;
+
+            for(int i = 0; i < vertices.size(); ++i)
+            {
+                PhysicalVertex &v = vertices[i];
+
+                if( region.contains_point(v.get_pos()) )
+                {
+                    vertices_in_region.push_back( &v );
+                    region_mass += v.get_mass();
+                }
+            }
+
+            if( equal(0, region_mass) )
+            {
+                Logger::warning("in Model::hit: there is no vertex inside given region", __FILE__, __LINE__);
+                return;
+            }
+
+            Vector region_velocity = (velocity * body->get_total_mass())/region_mass;
+            
+            for(int i = 0; i < vertices_in_region.size(); ++i)
+            {
+                vertices_in_region[i]->add_to_velocity(region_velocity);
+            }
+        }
+
         bool Model::compute_next_step(const ForcesArray & forces,
-                                      /*out*/ Math::Vector & linear_velocity_change,
-                                      /*out*/ Math::Vector & angular_velocity_change)
+                                      /*out*/ Vector & linear_velocity_change,
+                                      /*out*/ Vector & angular_velocity_change)
         {
             shape_deform_reactions.freeze();
             

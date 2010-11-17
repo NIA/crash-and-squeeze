@@ -22,6 +22,19 @@ namespace
         };
     const int VERTICES1_NUM = sizeof(vertices1)/sizeof(vertices1[0]);
 
+    TestVertex1 stick[] =
+        {
+            {     0,     0, 0},
+            { 0.01f,     0, 0},
+            {     0, 0.01f, 0},
+            { 0.01f, 0.01f, 0},
+            {     0,     0, 2},
+            { 0.01f,     0, 2},
+            {     0, 0.01f, 2},
+            { 0.01f, 0.01f, 2},
+    };
+    const int STICK_VERTICES_NUM = sizeof(stick)/sizeof(stick[0]);
+
     struct TestVertex2
     {
         int dummy;
@@ -48,6 +61,11 @@ protected:
 
     IndexArray frame;
     static const int FRAME_SIZE = 4;
+
+    VertexInfo vi1;
+    VertexInfo vi2;
+
+    ModelTest() : vi1( sizeof(vertices1[0]), 0 ), vi2( sizeof(vertices2[0]), sizeof(vertices2[0].dummy) ) {}
 
     virtual void SetUp()
     {
@@ -109,26 +127,22 @@ protected:
 
 TEST_F(ModelTest, Creation1)
 {
-    VertexInfo vi1( sizeof(vertices1[0]), 0 );
     test_creation(vertices1, vi1, NULL, 4);
 }
 
 TEST_F(ModelTest, Creation2)
 {
-    VertexInfo vi2( sizeof(vertices2[0]), sizeof(vertices2[0].dummy) );
     test_creation(vertices2, vi2, NULL, 4);
 }
 
 TEST_F(ModelTest, Creation1WithMasses)
 {
     MassFloat masses[VERTICES1_NUM] = { 26, 0.00004, 4, 8, 3 };
-    VertexInfo vi1( sizeof(vertices1[0]), 0 );
     test_creation(vertices1, vi1, masses);
 }
 
 TEST_F(ModelTest, StepComputationShouldNotFail)
 {
-    VertexInfo vi1( sizeof(vertices1[0]), 0 );
     Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
     
     const int FORCES_NUM = 10;
@@ -150,7 +164,6 @@ TEST_F(ModelTest, StepComputationShouldNotFail)
 
 TEST_F(ModelTest, BadForces)
 {
-    VertexInfo vi1( sizeof(vertices1[0]), 0 );
     Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
     ForcesArray bad;
     bad.push_back(NULL);
@@ -182,4 +195,30 @@ TEST_F(ModelTest, AxisIndicesEnd)
     int axis_indices[VECTOR_SIZE] = { 2-1, 3-1, 6-1 };
 
     check_axis_indices(index, axis_indices, clusters_by_axes);
+}
+
+bool vectors_almost_equal(const Vector &v1, const Vector &v2, Real accuracy)
+{
+    for(int i = 0; i < VECTOR_SIZE; ++i)
+    {
+        if( ! equal(v1[i], v2[i], accuracy) )
+            return false;
+    }
+    return true;
+}
+
+TEST_F(ModelTest, Hit)
+{
+    Model m(stick, STICK_VERTICES_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
+
+    const Vector hit_velocity(0, 1, 0);
+    const Vector exp_lin_velocity(0, 1, 0);
+    const Vector exp_ang_velocity(1, 0, 0);
+
+    ForcesArray empty(0);
+    m.hit( SphericalRegion( Vector(0,0,0), 0.1 ), hit_velocity);
+    EXPECT_NO_THROW( m.compute_next_step(empty, linear_velocity_change, angular_velocity_change) );
+
+    EXPECT_EQ( exp_lin_velocity, linear_velocity_change );
+    EXPECT_TRUE( vectors_almost_equal(exp_ang_velocity, angular_velocity_change, 0.001) ) << "expected " << exp_ang_velocity << ", got " << angular_velocity_change;
 }
