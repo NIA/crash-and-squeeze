@@ -287,21 +287,6 @@ namespace CrashAndSqueeze
                 if( false == vertices[i].integrate_velocity( forces, dt ) )
                     return false;
             }
-            
-            // Find global motion for damping
-            if( false == body->compute_velocities() )
-                return false;
-
-            // Damp deformation oscillations --
-            body->set_rigid_motion(damping_constant);
-
-            // -- Substract global motion of body --
-            // (to make the reference frame of center of mass current reference frame again)
-            
-            linear_velocity_change = body->get_linear_velocity();
-            angular_velocity_change = body->get_angular_velocity();
-
-            body->compensate_velocities(body->get_linear_velocity(), body->get_angular_velocity());
 
             if( NULL != frame )
             {
@@ -312,12 +297,23 @@ namespace CrashAndSqueeze
 
                 frame->set_rigid_motion();
 
-                // additionally damp velocities of vertices from frame
-                // TODO: is all this magic good for energy/momenta conservation?
-                frame->set_rigid_motion( *body, damping_constant );
-
-                // TODO: change initial state so that it repeat motion of frame
+                // TODO: change initial state so that it should repeat the motion of frame (do it after the call of body->compensate_velocities)
             }
+            
+            // Find macroscopic motion for damping and subsequent substraction
+            if( false == body->compute_velocities() )
+                return false;
+
+            // Damp deformation oscillations
+            body->set_rigid_motion(damping_constant);
+
+            // -- Substract macroscopic motion of body --
+            // (to make the reference frame of center of mass current reference frame again)
+            
+            linear_velocity_change = body->get_linear_velocity();
+            angular_velocity_change = body->get_angular_velocity();
+
+            body->compensate_velocities(body->get_linear_velocity(), body->get_angular_velocity());
 
             // -- For each vertex of model: integrate positions --
             for(int i = 0; i < vertices.size(); ++i)
