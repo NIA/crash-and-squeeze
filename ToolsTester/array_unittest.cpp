@@ -144,6 +144,17 @@ TEST(ArrayTest, CreateManyItems)
     EXPECT_TRUE( item == a[0] );
 }
 
+TEST(ArrayTest, Clear)
+{
+    Array a;
+    Item item = {2, '3', 0};
+    a.push_back(item);
+
+    a.clear();
+
+    EXPECT_EQ(0, a.size());
+}
+
 class CheckLifeCycle
 {
     static int destructed;
@@ -207,6 +218,22 @@ TEST(ArrayTest, ShouldNotBreakLifeCycleWithBulkCreate)
 
     delete a;
     EXPECT_EQ( MANY, CheckLifeCycle::get_destructed() );
+}
+
+TEST(ArrayTest, ShouldNotBreakLifeCycleWithClear)
+{
+    const int SOME = 10;
+
+    CheckLifeCycleArray * a = new CheckLifeCycleArray;
+    a->create_items(SOME);
+
+    CheckLifeCycle::reset();
+    a->clear();
+    EXPECT_EQ( SOME, CheckLifeCycle::get_destructed() );
+
+    CheckLifeCycle::reset();
+    delete a;
+    EXPECT_EQ( 0, CheckLifeCycle::get_destructed() );
 }
 
 TEST(ArrayTest, OutOfRange)
@@ -349,5 +376,23 @@ TEST(ArrayTest, FindOrAddToFrozen)
 
     EXPECT_NO_THROW( a.find_or_add(some_boring_item, compare_items) );
     EXPECT_THROW( a.find_or_add(item, compare_items), ToolsTesterException );
+    unset_tester_err_callback();
+}
+
+TEST(ArrayTest, ForbidReallocation)
+{
     set_tester_err_callback();
+
+    const int INITIAL_SIZE = 10;
+    const int MAX_SIZE = INITIAL_SIZE + 10;
+    const int TOO_BIG_SIZE = MAX_SIZE + 10;
+    Array a(INITIAL_SIZE);
+    a.create_items(INITIAL_SIZE);
+
+    a.forbid_reallocation(MAX_SIZE);
+
+    EXPECT_NO_THROW( a.create_items(MAX_SIZE - INITIAL_SIZE) );
+    EXPECT_THROW( a.create_items(TOO_BIG_SIZE - MAX_SIZE), ToolsTesterException );
+
+    unset_tester_err_callback();
 }

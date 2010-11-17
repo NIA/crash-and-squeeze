@@ -14,6 +14,7 @@ namespace CrashAndSqueeze
             int items_num;
             int allocated_items_num;
             bool frozen;
+            bool reallocation_forbidden;
             
             bool check_index(int index) const;
             bool check_not_frozen() const;
@@ -39,14 +40,13 @@ namespace CrashAndSqueeze
             static const int ITEM_NOT_FOUND_INDEX = -1;
             typedef bool (* CompareFunc)(T const &a, T const &b);
 
-            // returns index of first item in array, equal to `item`
-            // according to given comparing function;
-            // returns -1 if there is none
+            // returns index of the first item in the array, equal to `item`,
+            // according to given comparing function; returns -1 if there is none
             int index_of(T const & item, CompareFunc compare) const;
 
             // returns first item in array, equal to `item`
             // according to given comparing function;
-            // adds it to array and returns it, if there is none
+            // OR adds it to array and returns it, if there is none
             T & find_or_add(T const & item, CompareFunc compare);
 
             T & operator[](int index);
@@ -54,7 +54,13 @@ namespace CrashAndSqueeze
 
             // after call to this function array cannot grow anymore
             void freeze() { frozen = true; }
-            bool is_frozen() { return frozen; }
+            bool is_frozen() const { return frozen; }
+
+            // allocates enough space for `max_size' items, and forbids further reallocations.
+            void forbid_reallocation(int max_size);
+
+            // removes all items from array, allocated space remains the same
+            void clear();
 
             virtual ~Array();
         private:
@@ -89,7 +95,8 @@ namespace CrashAndSqueeze
 
         template<class T>
         Array<T>::Array(int initial_allocated = INITIAL_ALLOCATED)
-            : items(NULL), items_num(0), frozen(false), allocated_items_num(initial_allocated)
+            : items(NULL), items_num(0), frozen(false), allocated_items_num(initial_allocated),
+              reallocation_forbidden(false)
         {
             if( initial_allocated < 0 )
             {
@@ -99,7 +106,7 @@ namespace CrashAndSqueeze
             {
                 if( initial_allocated > 0 )
                 {
-                    items = reinterpret_cast<T*>( malloc( sizeof(items[0])*allocated_items_num ) );
+                    items = reinterpret_cast<T*>( malloc( sizeof(items[0])*initial_allocated ) );
                     
                     if(NULL == items)
                     {
@@ -115,6 +122,12 @@ namespace CrashAndSqueeze
             if( new_allocated_num <= allocated_items_num )
                 return true;
 
+            if( reallocation_forbidden )
+            {
+                Logging::Logger::error("in Collections::Array::reallocate: reallocation forbidden by Collections::Array::forbid_reallocation");
+                return false;
+            }
+
             T *new_items = reinterpret_cast<T*>( realloc(items, sizeof(items[0])*new_allocated_num) );
             
             // if realloc failed
@@ -127,6 +140,21 @@ namespace CrashAndSqueeze
             items = new_items;
             allocated_items_num = new_allocated_num;
             return true;
+        }
+
+        template<class T>
+        void Array<T>::forbid_reallocation(int max_size)
+        {
+            if( reallocation_forbidden )
+            {
+                Logging::Logger::error("in Collections::Array::forbid_reallocation: already forbidden");
+                return;
+            }
+            
+            if( false == reallocate(max_size) )
+                return;
+
+            reallocation_forbidden = true;
         }
 
         template<class T>
@@ -220,12 +248,20 @@ namespace CrashAndSqueeze
         }
 
         template<class T>
-        Array<T>::~Array()
+        void Array<T>::clear()
         {
             for(int i = 0; i < items_num; ++i)
             {
                 items[i].~T();
             }
+            items_num = 0;
+        }
+
+        template<class T>
+        Array<T>::~Array()
+        {
+            // clear to call destructors of all items
+            clear();
             free(items);
         }
     }
