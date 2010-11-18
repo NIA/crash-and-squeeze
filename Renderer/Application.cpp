@@ -78,6 +78,7 @@ Application::Application(Logger &logger) :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(2.0f, 1.2f, 0.0f), // Constants selected for better view the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
+    show_initial_state(false), vertices_update_needed(false),
     forces(NULL), logger(logger)
 {
 
@@ -304,9 +305,13 @@ void Application::process_key(unsigned code)
     case 'S':
         emultate_one_step = true;
         break;
-    case VK_TAB:
+    case 'T':
         alpha_test_enabled = !alpha_test_enabled;
         set_alpha_test();
+        break;
+    case VK_TAB:
+        show_initial_state = !show_initial_state;
+        vertices_update_needed = true;
         break;
     }
 }
@@ -360,7 +365,6 @@ void Application::run()
                 for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
                 {
                     PhysicalModel       * physical_model       = (*iter).physical_model;
-                    Model               * display_model        = (*iter).display_model;
                     PerformanceReporter * performance_reporter = (*iter).performance_reporter;
                     
                     if( NULL != physical_model )
@@ -375,16 +379,37 @@ void Application::run()
                         {
                             performance_reporter->add_measurement(time);
                         }
-                        
-                        Vertex *vertices = display_model->lock_vertex_buffer();
-                        physical_model->update_vertices(vertices, display_model->get_vertices_count(), VERTEX_INFO);
-                        display_model->unlock_vertex_buffer();
                     }
                 }
                 ++physics_frames;
+                emultate_one_step = false;
+
+                vertices_update_needed = true;
             }
 
-            emultate_one_step = false;
+            if(vertices_update_needed)
+            {
+                // for each model entity
+                for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+                {
+                    PhysicalModel       * physical_model       = (*iter).physical_model;
+                    Model               * display_model        = (*iter).display_model;
+                    
+                    if( NULL != physical_model )
+                    {
+                        Vertex *vertices = display_model->lock_vertex_buffer();
+                        
+                        if(show_initial_state)
+                            physical_model->update_initial_vertices(vertices, display_model->get_vertices_count(), VERTEX_INFO);
+                        else
+                            physical_model->update_vertices(vertices, display_model->get_vertices_count(), VERTEX_INFO);
+                        
+                        display_model->unlock_vertex_buffer();
+                    }
+                }
+
+                vertices_update_needed = false;
+            }
             
             // graphics
             stopwatch.start();

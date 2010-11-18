@@ -23,6 +23,8 @@ namespace CrashAndSqueeze
             Collections::Array<PhysicalVertex> vertices;
             Collections::Array<Cluster> clusters;
 
+            Collections::Array<PhysicalVertex> initial_vertices;
+
             ShapeDeformationReactions shape_deform_reactions;
 
             // -- fields used in initialization --
@@ -56,6 +58,8 @@ namespace CrashAndSqueeze
 
             // entire model as a body
             Body *body;
+            // initial state of model
+            Body *initial_state;
             // rigid frame
             Body *frame;
 
@@ -64,6 +68,9 @@ namespace CrashAndSqueeze
 
             // -- step computation steps --
             bool correct_velocity_additions();
+
+            static void update_any_vertices(Collections::Array<PhysicalVertex> &src_vertices,
+                                           /*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
 
             // TODO: DisplayVertex display_vertices; int display_vertices_num;
         public:
@@ -101,7 +108,8 @@ namespace CrashAndSqueeze
                                    /*out*/ Math::Vector & linear_velocity_change,
                                    /*out*/ Math::Vector & angular_velocity_change);
 
-            void update_vertices(/*out*/ void *vertices, int vertices_num, VertexInfo const &vertex_info);
+            void update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
+            void update_initial_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
 
             // -- Properties --
             

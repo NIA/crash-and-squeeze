@@ -39,6 +39,9 @@ private:
     bool emulation_enabled;
     bool emultate_one_step;
 
+    bool show_initial_state;
+    bool vertices_update_needed;
+
     Window window;
 
     ModelEntities model_entities;
