@@ -74,6 +74,8 @@ namespace CrashAndSqueeze
             Math::Vector center_of_mass;
             // plastic deformation applied to initial shape
             Math::Matrix plasticity_state;
+            // measure of plasticity_state
+            Math::Real plastic_deformation_measure;
             // optimal linear transformation satisfying shape matching (A)
             Math::Matrix linear_transformation;
             // first (asymmetric) term of linear_transformation (Apq)

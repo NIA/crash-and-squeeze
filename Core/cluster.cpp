@@ -30,7 +30,7 @@ namespace CrashAndSqueeze
         
         // plasticity parameter: a threshold of strain, after
         // which deformation becomes non-reversible
-        const Real Cluster::DEFAULT_YIELD_CONSTANT = 0.4;
+        const Real Cluster::DEFAULT_YIELD_CONSTANT = 0.1;
 
         // plasticity paramter: a coefficient determining how fast
         // plasticity_state will be changed on large deformation
@@ -61,7 +61,8 @@ namespace CrashAndSqueeze
               center_of_mass(Vector::ZERO),
               rotation(Matrix::IDENTITY),
               total_deformation(Matrix::IDENTITY),
-              plasticity_state(Matrix::IDENTITY)
+              plasticity_state(Matrix::IDENTITY),
+              plastic_deformation_measure(0)
         {
         }
 
@@ -221,8 +222,7 @@ namespace CrashAndSqueeze
 
         Math::Real Cluster::get_relative_plastic_deformation() const
         {
-            // TODO: store it
-            return (plasticity_state - Matrix::IDENTITY).norm()/max_deformation_constant;
+            return plastic_deformation_measure/max_deformation_constant;
         }
         
         void Cluster::update_plasticity_state(Real dt)
@@ -241,12 +241,13 @@ namespace CrashAndSqueeze
                     // enforce volume conservation
                     new_plasticity_state /= cube_root(det);
                     
-                    Matrix plastic_deformation = new_plasticity_state - Matrix::IDENTITY;
-                    Real plastic_deform_measure = plastic_deformation.norm();
+                    Real new_plastic_deform_measure = (new_plasticity_state - Matrix::IDENTITY).norm();
                     
-                    if( plastic_deform_measure < max_deformation_constant )
+                    if( new_plastic_deform_measure < max_deformation_constant &&
+                        new_plastic_deform_measure > plastic_deformation_measure )
                     {
                         plasticity_state = new_plasticity_state;
+                        plastic_deformation_measure = new_plastic_deform_measure;
                         update_equilibrium_positions();
                         compute_symmetric_term();
                     }

@@ -260,7 +260,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         // -------------------------- F o r c e s -----------------------
         ForcesArray forces;
 
-        PlaneForce force( Vector(0,80,0), Vector(0,0,-1), Vector(0,0,1), 0.1 );
+        PlaneForce force( Vector(0,0,300), Vector(0,0,-1), Vector(0,0,1), 0.1 );
         forces.push_back(&force);
 
         app.set_forces(forces);
