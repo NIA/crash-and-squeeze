@@ -65,12 +65,16 @@ protected:
     VertexInfo vi1;
     VertexInfo vi2;
 
+    Real dt;
+
     ModelTest() : vi1( sizeof(vertices1[0]), 0 ), vi2( sizeof(vertices2[0]), sizeof(vertices2[0].dummy) ) {}
 
     virtual void SetUp()
     {
         for(int i = 0; i < FRAME_SIZE; ++i)
             frame.push_back(i);
+
+        dt = 0.01;
 
         set_tester_err_callback();
     }
@@ -151,15 +155,15 @@ TEST_F(ModelTest, StepComputationShouldNotFail)
     for(int i = 0; i < FORCES_NUM; ++i)
         forces.push_back( &f );
 
-    EXPECT_NO_THROW( m.compute_next_step(forces, linear_velocity_change, angular_velocity_change) );
+    EXPECT_NO_THROW( m.compute_next_step(forces, dt, linear_velocity_change, angular_velocity_change) );
     
     // should work with no forces
     ForcesArray empty;
-    EXPECT_NO_THROW( m.compute_next_step(empty, linear_velocity_change, angular_velocity_change) );
+    EXPECT_NO_THROW( m.compute_next_step(empty, dt, linear_velocity_change, angular_velocity_change) );
     
     // should work with frame
     m.set_frame(frame);
-    EXPECT_NO_THROW( m.compute_next_step(forces, linear_velocity_change, angular_velocity_change) );
+    EXPECT_NO_THROW( m.compute_next_step(forces, dt, linear_velocity_change, angular_velocity_change) );
 }
 
 TEST_F(ModelTest, BadForces)
@@ -167,7 +171,7 @@ TEST_F(ModelTest, BadForces)
     Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
     ForcesArray bad;
     bad.push_back(NULL);
-    EXPECT_THROW( m.compute_next_step(bad, linear_velocity_change, angular_velocity_change), CoreTesterException );
+    EXPECT_THROW( m.compute_next_step(bad, dt, linear_velocity_change, angular_velocity_change), CoreTesterException );
 }
 
 TEST_F(ModelTest, AxisIndicesTrivial)
@@ -217,7 +221,7 @@ TEST_F(ModelTest, Hit)
 
     ForcesArray empty(0);
     m.hit( SphericalRegion( Vector(0,0,0), 0.1 ), hit_velocity);
-    EXPECT_NO_THROW( m.compute_next_step(empty, linear_velocity_change, angular_velocity_change) );
+    EXPECT_NO_THROW( m.compute_next_step(empty, dt, linear_velocity_change, angular_velocity_change) );
 
     EXPECT_EQ( exp_lin_velocity, linear_velocity_change );
     EXPECT_TRUE( vectors_almost_equal(exp_ang_velocity, angular_velocity_change, 0.001) ) << "expected " << exp_ang_velocity << ", got " << angular_velocity_change;

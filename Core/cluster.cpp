@@ -24,8 +24,8 @@ namespace CrashAndSqueeze
         // if it equals `b`, then optimal deformation for goal positions
         // is calculated as (1 - b)*A + b*R, where R is optimal rotation
         // and A is optimal linear transformation.
-        // Thus 0 means freely (but only linearly) deformable body,
-        // 1 means absolutely rigid
+        // Thus 1 matches only rotated and shifted shape,
+        // 0 allows any linear transformation
         const Real Cluster::DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.7;
         
         // plasticity parameter: a threshold of strain, after

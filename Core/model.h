@@ -104,7 +104,7 @@ namespace CrashAndSqueeze
             
             // computes next step in local coordinates of body (coordinate system is bound to body frame),
             // sets `linear_velocity_change' and `angular_velocity_change': the change of global motion
-            bool compute_next_step(const ForcesArray & forces,
+            bool compute_next_step(const ForcesArray & forces, Math::Real dt,
                                    /*out*/ Math::Vector & linear_velocity_change,
                                    /*out*/ Math::Vector & angular_velocity_change);
 

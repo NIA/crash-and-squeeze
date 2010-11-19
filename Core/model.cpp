@@ -293,14 +293,11 @@ namespace CrashAndSqueeze
             }
         }
 
-        bool Model::compute_next_step(const ForcesArray & forces,
+        bool Model::compute_next_step(const ForcesArray & forces, Real dt,
                                       /*out*/ Vector & linear_velocity_change,
                                       /*out*/ Vector & angular_velocity_change)
         {
             shape_deform_reactions.freeze();
-            
-            // TODO: QueryPerformanceCounter
-            Real dt = 0.01;
 
             // -- For each cluster of model: do shape matching --
             for(int i = 0; i < clusters.size(); ++i)

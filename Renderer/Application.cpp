@@ -391,7 +391,7 @@ void Application::run()
                         }
 
                         stopwatch.start();
-                        physical_model->compute_next_step(*forces, linear_velocity_change, angular_velocity_chage);
+                        physical_model->compute_next_step(*forces, dt, linear_velocity_change, angular_velocity_chage);
                         double time = stopwatch.stop();
 
                         if( NULL != performance_reporter )
