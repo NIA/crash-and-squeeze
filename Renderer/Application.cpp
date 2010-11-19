@@ -78,7 +78,7 @@ Application::Application(Logger &logger) :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(2.0f, 1.2f, 0.0f), // Constants selected for better view the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
-    show_initial_state(false), vertices_update_needed(false),
+    show_initial_state(false), vertices_update_needed(false), impact_region(NULL), impact_happened(false),
     forces(NULL), logger(logger)
 {
 
@@ -114,7 +114,7 @@ void Application::init_device()
                                       &present_parameters, &device ) ) )
         throw D3DInitError();
     
-    check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE ) );
+    check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CW ) );
 	check_state( device->SetRenderState( D3DRS_ALPHAREF, (DWORD)0xffffffff ) );
     check_state( device->SetRenderState( D3DRS_ALPHATESTENABLE, TRUE ) );
 
@@ -234,6 +234,13 @@ void Application::set_forces(ForcesArray & forces)
     this->forces = & forces;
 }
 
+void Application::set_impact(const ::CrashAndSqueeze::Core::IRegion & region,
+                             const ::CrashAndSqueeze::Math::Vector &velocity)
+{
+    impact_region = & region;
+    impact_velocity = velocity;
+}
+
 void Application::rotate_models(float phi)
 {
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
@@ -313,6 +320,9 @@ void Application::process_key(unsigned code)
         show_initial_state = !show_initial_state;
         vertices_update_needed = true;
         break;
+    case VK_RETURN:
+        impact_happened = true;
+        break;
     }
 }
 
@@ -359,6 +369,9 @@ void Application::run()
         {
             total_stopwatch.start();
             // physics
+            
+            // TODO: variable dt
+            double dt = 0.01;
             if(emulation_enabled || emultate_one_step)
             {
                 // for each model entity
@@ -370,6 +383,12 @@ void Application::run()
                     if( NULL != physical_model )
                     {
                         Vector linear_velocity_change, angular_velocity_chage;
+
+                        if(impact_happened && NULL != impact_region)
+                        {
+                            physical_model->hit(*impact_region, impact_velocity);
+                            impact_happened = false;
+                        }
 
                         stopwatch.start();
                         physical_model->compute_next_step(*forces, linear_velocity_change, angular_velocity_chage);

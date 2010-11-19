@@ -11,6 +11,7 @@
 typedef ::CrashAndSqueeze::Logging::Logger PhysicsLogger;
 using CrashAndSqueeze::Core::ForcesArray;
 using CrashAndSqueeze::Core::PlaneForce;
+using CrashAndSqueeze::Core::SphericalRegion;
 using CrashAndSqueeze::Core::ShapeDeformationReaction;
 using CrashAndSqueeze::Math::Vector;
 using CrashAndSqueeze::Math::Real;
@@ -195,9 +196,12 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         cylinder_model_vertices = new Vertex[CYLINDER_VERTICES_COUNT];
         cylinder_model_indices = new Index[CYLINDER_INDICES_COUNT];
         
-        cylinder( 0.25, 2, D3DXVECTOR3(0,0,-1),
-                         &CYLINDER_COLOR, 1,
-                         cylinder_model_vertices, cylinder_model_indices );
+        const float cylinder_radius = 0.25;
+        const float cylinder_height = 2;
+        const float cylinder_z = -cylinder_height/2;
+
+        cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
+                 &CYLINDER_COLOR, 1, cylinder_model_vertices, cylinder_model_indices );
 
         Model cylinder_model(app.get_device(),
                              D3DPT_TRIANGLESTRIP,
@@ -260,10 +264,12 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         // -------------------------- F o r c e s -----------------------
         ForcesArray forces;
 
-        PlaneForce force( Vector(0,0,300), Vector(0,0,-1), Vector(0,0,1), 0.1 );
+        PlaneForce force( Vector(0,60,0), Vector(0,0,cylinder_z), Vector(0,0,1), 0.3 );
         forces.push_back(&force);
-
         app.set_forces(forces);
+
+        SphericalRegion region( Vector(0,-cylinder_radius,cylinder_z*2/3), 0.1 );
+        app.set_impact( region, Vector(0,0.3,0.0) );
         
         // -------------------------- G O ! ! ! -----------------------
         app.run();

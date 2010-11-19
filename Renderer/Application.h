@@ -49,6 +49,10 @@ private:
     ::CrashAndSqueeze::Core::ForcesArray * forces;
     bool forces_enabled;
 
+    const ::CrashAndSqueeze::Core::IRegion * impact_region;
+    ::CrashAndSqueeze::Math::Vector impact_velocity;
+    bool impact_happened;
+
     Camera camera;
 
     // Initialization steps:
@@ -99,6 +103,7 @@ public:
     // creates a physical model if `physical` is true (and returns it);
     PhysicalModel * add_model(Model &model, bool physical = false);
     void set_forces(::CrashAndSqueeze::Core::ForcesArray & forces);
+    void set_impact(const ::CrashAndSqueeze::Core::IRegion & region, const ::CrashAndSqueeze::Math::Vector &velocity);
     void run();
 
     void toggle_wireframe();
