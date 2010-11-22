@@ -10,13 +10,13 @@ namespace CrashAndSqueeze
         class IRegion
         {
         public:
-            virtual bool contains_point(const Math::Vector &point) const = 0;
+            virtual bool contains(const Math::Vector &point) const = 0;
         };
         
         class EmptyRegion : public IRegion
         {
         public:
-            virtual bool contains_point(const Math::Vector &point) const;
+            virtual bool contains(const Math::Vector &point) const;
         };
 
         class SphericalRegion : public IRegion
@@ -35,7 +35,7 @@ namespace CrashAndSqueeze
             void set_radius(Math::Real value);
 
             // -- implement Region --
-            virtual bool contains_point(const Math::Vector &point) const;
+            virtual bool contains(const Math::Vector &point) const;
         };
 
         class CylindricalRegion : public IRegion
@@ -61,7 +61,7 @@ namespace CrashAndSqueeze
             void set_radius(Math::Real value);
 
             // -- implement Region --
-            virtual bool contains_point(const Math::Vector &point) const;
+            virtual bool contains(const Math::Vector &point) const;
         };
 
         class BoxRegion : public IRegion
@@ -78,7 +78,7 @@ namespace CrashAndSqueeze
             void set_box(const Math::Vector & min_corner, const Math::Vector & max_corner);
 
             // -- implement Region --
-            virtual bool contains_point(const Math::Vector &point) const;
+            virtual bool contains(const Math::Vector &point) const;
         };
     }
 }

@@ -272,7 +272,7 @@ namespace CrashAndSqueeze
             {
                 PhysicalVertex &v = vertices[i];
 
-                if( region.contains_point(v.get_pos()) )
+                if( region.contains(v.get_pos()) )
                 {
                     vertices_in_region.push_back( &v );
                     region_mass += v.get_mass();

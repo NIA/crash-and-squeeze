@@ -5,7 +5,7 @@ TEST(RegionsTest, EmptyRegion)
 {
     const EmptyRegion empty;
     Vector point(0,1,2);
-    EXPECT_FALSE( empty.contains_point(point) );
+    EXPECT_FALSE( empty.contains(point) );
 }
 
 TEST(RegionsTest, SphericalRegionProperties)
@@ -31,9 +31,9 @@ TEST(RegionsTest, SphericalRegionContainsPoint)
     const SphericalRegion region_instance( Vector::ZERO, 2 );
     const IRegion & region = region_instance;
 
-    EXPECT_TRUE( region.contains_point( Vector(0.5, 0.5, 0.5) ) ); // inside
-    EXPECT_TRUE( region.contains_point( Vector(2, 0, 0) ) );       // border
-    EXPECT_FALSE( region.contains_point( Vector(2, 2, 2) ) );      // outside
+    EXPECT_TRUE( region.contains( Vector(0.5, 0.5, 0.5) ) ); // inside
+    EXPECT_TRUE( region.contains( Vector(2, 0, 0) ) );       // border
+    EXPECT_FALSE( region.contains( Vector(2, 2, 2) ) );      // outside
 }
 
 TEST(RegionsTest, CylindricalRegionProperties)
@@ -70,11 +70,11 @@ TEST(RegionsTest, CylindricalRegionContainsPoint)
     const CylindricalRegion region_instance( Vector(0,0,0), Vector(0,0,1), 2 );
     const IRegion & region = region_instance;
 
-    EXPECT_TRUE( region.contains_point( Vector(0.5, 0.5, 0.5) ) ); // inside
-    EXPECT_TRUE( region.contains_point( Vector(0.1, 0.7, 0) ) );   // bottom
-    EXPECT_TRUE( region.contains_point( Vector(2, 0, 0) ) );       // edge
-    EXPECT_TRUE( region.contains_point( Vector(0, 2, 0.5) ) );     // surface
-    EXPECT_FALSE( region.contains_point( Vector(2, 2, 2) ) );      // outside
+    EXPECT_TRUE( region.contains( Vector(0.5, 0.5, 0.5) ) ); // inside
+    EXPECT_TRUE( region.contains( Vector(0.1, 0.7, 0) ) );   // bottom
+    EXPECT_TRUE( region.contains( Vector(2, 0, 0) ) );       // edge
+    EXPECT_TRUE( region.contains( Vector(0, 2, 0.5) ) );     // surface
+    EXPECT_FALSE( region.contains( Vector(2, 2, 2) ) );      // outside
 }
 
 TEST(RegionsTest, BoxRegionProperties)
@@ -105,9 +105,9 @@ TEST(RegionsTest, BoxRegionContainsPoint)
     const BoxRegion region_instance( Vector(0,0,0), Vector(1,1,1) );
     const IRegion & region = region_instance;
 
-    EXPECT_TRUE( region.contains_point( Vector(0.5, 0.5, 0.5) ) ); // inside
-    EXPECT_TRUE( region.contains_point( Vector(0.1, 1, 0.1) ) );   // bottom
-    EXPECT_TRUE( region.contains_point( Vector(0.3, 0, 0) ) );     // edge
-    EXPECT_TRUE( region.contains_point( Vector(1, 1, 1) ) );       // corner
-    EXPECT_FALSE( region.contains_point( Vector(-1, -1, -1) ) );   // outside
+    EXPECT_TRUE( region.contains( Vector(0.5, 0.5, 0.5) ) ); // inside
+    EXPECT_TRUE( region.contains( Vector(0.1, 1, 0.1) ) );   // bottom
+    EXPECT_TRUE( region.contains( Vector(0.3, 0, 0) ) );     // edge
+    EXPECT_TRUE( region.contains( Vector(1, 1, 1) ) );       // corner
+    EXPECT_FALSE( region.contains( Vector(-1, -1, -1) ) );   // outside
 }
