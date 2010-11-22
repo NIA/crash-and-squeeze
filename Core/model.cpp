@@ -59,18 +59,26 @@ namespace CrashAndSqueeze
               initial_state(NULL),
               frame(NULL),
 
-              vertices_in_region(vertices_num)
+              hit_vertices_indices(vertices_num)
         {
+            // -- Finish initialization of arrays --
+            // -- (create enought items and freeze or just forbid reallocations) --
+            
             vertices.create_items(vertices_num);
             vertices.freeze();
+
             initial_vertices.create_items(vertices_num);
             initial_vertices.freeze();
 
-            if( init_vertices(source_vertices, vertex_info, masses, constant_mass) )
+            hit_vertices_indices.forbid_reallocation(vertices.size());
+
+            // Init vertices
+            if( false != init_vertices(source_vertices, vertex_info, masses, constant_mass) )
             {
                 for(int i = 0; i < VECTOR_SIZE; ++i)
                     this->clusters_by_axes[i] = clusters_by_axes[i];
                 
+                // Init clusters
                 init_clusters();
             }
         }
@@ -126,8 +134,6 @@ namespace CrashAndSqueeze
 
             body = new Body(vertices);
             initial_state = new Body(initial_vertices);
-
-            vertices_in_region.forbid_reallocation(vertices.size());
             return true;
         }
         
@@ -265,7 +271,7 @@ namespace CrashAndSqueeze
 
         void Model::hit(const IRegion &region, const Vector & velocity)
         {
-            vertices_in_region.clear();
+            hit_vertices_indices.clear();
             Real region_mass = 0;
 
             for(int i = 0; i < vertices.size(); ++i)
@@ -274,7 +280,7 @@ namespace CrashAndSqueeze
 
                 if( region.contains(v.get_pos()) )
                 {
-                    vertices_in_region.push_back( &v );
+                    hit_vertices_indices.push_back(i);
                     region_mass += v.get_mass();
                 }
             }
@@ -287,9 +293,9 @@ namespace CrashAndSqueeze
 
             Vector region_velocity = (velocity * body->get_total_mass())/region_mass;
             
-            for(int i = 0; i < vertices_in_region.size(); ++i)
+            for(int i = 0; i < hit_vertices_indices.size(); ++i)
             {
-                vertices_in_region[i]->add_to_velocity(region_velocity);
+                vertices[ hit_vertices_indices[i] ].add_to_velocity(region_velocity);
             }
         }
 

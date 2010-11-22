@@ -63,8 +63,8 @@ namespace CrashAndSqueeze
             // rigid frame
             Body *frame;
 
-            // used by Model::hit: here placed are the found vertices (which are inside the given region)
-            Collections::Array<PhysicalVertex *> vertices_in_region;
+            // used by Model::hit: here placed are indices of the found vertices (which are inside the given region)
+            IndexArray hit_vertices_indices;
 
             // -- step computation steps --
             bool correct_velocity_additions();
