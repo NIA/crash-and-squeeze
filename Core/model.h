@@ -25,7 +25,9 @@ namespace CrashAndSqueeze
 
             Collections::Array<PhysicalVertex> initial_vertices;
 
-            ShapeDeformationReactions shape_deform_reactions;
+            Collections::Array<ShapeDeformationReaction *> shape_deform_reactions;
+            Collections::Array<RegionReaction *> region_reactions;
+            Collections::Array<HitReaction *> hit_reactions;
 
             // -- fields used in initialization --
             int clusters_by_axes[Math::VECTOR_SIZE];
@@ -93,7 +95,11 @@ namespace CrashAndSqueeze
             
             void set_frame(const IndexArray &frame_indices);
 
-            void add_shape_deformation_reaction(ShapeDeformationReaction & reaction);
+            // -- Reactions --
+            
+            void add_hit_reaction(HitReaction & reaction) { hit_reactions.push_back(&reaction); }
+            void add_region_reaction(RegionReaction & reaction) { region_reactions.push_back(&reaction); }
+            void add_shape_deformation_reaction(ShapeDeformationReaction & reaction) { shape_deform_reactions.push_back(&reaction); }
 
             // -- Run-time emulation interface --
             

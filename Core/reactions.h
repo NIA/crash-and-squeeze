@@ -2,51 +2,97 @@
 #include "Math/floating_point.h"
 #include "Core/core.h"
 #include "Core/imodel.h"
+#include "Core/regions.h"
 
 namespace CrashAndSqueeze
 {
     namespace Core
     {
-        // An internal structure for linking shape of ShapeDeformationAction to clusters
-        struct ClusterWithWeight
-        {
-            const Cluster *cluster;
-            Math::Real weight;
-
-            ClusterWithWeight() : cluster(0), weight(0) {}
-            ClusterWithWeight(const Cluster * cluster, Math::Real weight) : cluster(cluster), weight(weight) {}
-        };
-        typedef Collections::Array<ClusterWithWeight> ClusterWithWeightArray;
-
-        // An abstract reaction to shape deformation. To implement your own reaction,
-        // inherit your class from this and override invoke(), then pass an instance
-        // of your class to Model::add_shape_deformation_reaction.
+        // An abstract reaction to shape deformation: is invoked when at least one
+        // vertex of the shape goes farther than `threshold_distance' from its initial position.
+        // The shape is defined by an array of indices of vertices that form the shape.
+        //
+        // To implement your own reaction, inherit your class from this
+        // and override invoke(), then pass an instance of your class
+        // to Model::add_shape_deformation_reaction.
         class ShapeDeformationReaction
         {
         private:
-            const IndexArray &shape_vertex_indices;
-            Math::Real threshold;
-
-            bool linked;
-            ClusterWithWeightArray clusters_with_weights;
-
-        protected:
-            const IndexArray &get_shape_vertex_indices() { return shape_vertex_indices; }
-            Math::Real get_threshold() { return threshold; }
+            const IndexArray & shape_vertex_indices;
+            Math::Real threshold_distance;
 
         public:
-            // When creating an instance of the reaction, the shape have to be defined by indices of
-            // vertices that form the shape, and the threshold of relative deformation have to be specified
-            ShapeDeformationReaction(const IndexArray &shape_vertex_indices, Math::Real threshold)
-                : shape_vertex_indices(shape_vertex_indices), threshold(threshold), linked(false)
-            {}
+            ShapeDeformationReaction(const IndexArray &shape_vertex_indices, Math::Real threshold_distance)
+                : shape_vertex_indices(shape_vertex_indices), threshold_distance(threshold_distance) {}
             
-            // A function called internally when the action is registered in Model
-            bool link_with_model(const IModel &model);
-            void invoke_if_needed();
+            void invoke_if_needed(const IModel &model);
             
-            virtual void invoke(Math::Real value) = 0;
+            // override this to use
+            virtual void invoke(int vertex_index, Math::Real distance) = 0;
+            
+            const IndexArray &get_shape_vertex_indices() const { return shape_vertex_indices; }
+            Math::Real get_threshold_distance() const { return threshold_distance; }
+        
+        private:
+            // no assigment operator due to a reference in class fields
+            ShapeDeformationReaction & operator=(const ShapeDeformationReaction &);
         };
-        typedef Collections::Array<ShapeDeformationReaction *> ShapeDeformationReactions;
+
+        
+        // An abstract reaction to entering or leaving the region: is invoked when at least one
+        // vertex of the shape enters the region (or when it leaves, if `reaction_on_entering' is false).
+        // The shape is defined by an array of indices of vertices that form the shape.
+        //
+        // To implement your own reaction, inherit your class from this
+        // and override invoke(), then pass an instance of your class
+        // to Model::add_region_reaction.
+        class RegionReaction
+        {
+        private:
+            const IndexArray & shape_vertex_indices;
+            const IRegion & region;
+            bool reaction_on_entering;
+
+        public:
+            RegionReaction(const IndexArray & shape_vertex_indices, const IRegion & region, bool reaction_on_entering)
+                : shape_vertex_indices(shape_vertex_indices), region(region), reaction_on_entering(reaction_on_entering) {}
+
+            void invoke_if_needed(const IModel &model);
+            
+            // override this to use
+            virtual void invoke(int vertex_index) = 0;
+
+            const IndexArray & get_shape_vertex_indices() const { return shape_vertex_indices; }
+            const IRegion & get_region() const { return region; }
+            bool reacts_on_entering() const { return reaction_on_entering; }
+        
+        private:
+            // no assigment operator due to a reference in class fields
+            RegionReaction & operator=(const RegionReaction &);
+        };
+
+        // TODO: document this
+        class HitReaction
+        {
+        private:
+            const IndexArray & shape_vertex_indices;
+            Math::Real velocity_threshold;
+
+        public:
+            HitReaction(const IndexArray & shape_vertex_indices, Math::Real velocity_threshold)
+                : shape_vertex_indices(shape_vertex_indices), velocity_threshold(velocity_threshold) {}
+
+            void invoke_if_needed(const IndexArray & hit_vertex_indices, const Math::Vector &hit_velocity);
+            
+            // override this to use
+            virtual void invoke(int vertex_index, const Math::Vector &velocity) = 0;
+
+            const IndexArray & get_shape_vertex_indices() const { return shape_vertex_indices; }
+            Math::Real get_velocity_threshold() const { return velocity_threshold; }
+        
+        private:
+            // no assigment operator due to a reference in class fields
+            HitReaction & operator=(const HitReaction &);
+        };
     }
 }

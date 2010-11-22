@@ -260,20 +260,14 @@ namespace CrashAndSqueeze
             frame = new Body(vertices, frame_indices);
             frame->compute_properties();
         }
-        
-        void Model::add_shape_deformation_reaction(ShapeDeformationReaction & reaction)
-        {
-            if( false == reaction.link_with_model(*this) )
-                return;
-
-            shape_deform_reactions.push_back( & reaction );
-        }
 
         void Model::hit(const IRegion &region, const Vector & velocity)
         {
             hit_vertices_indices.clear();
             Real region_mass = 0;
 
+            // -- Find vertices in this region --
+            
             for(int i = 0; i < vertices.size(); ++i)
             {
                 PhysicalVertex &v = vertices[i];
@@ -285,17 +279,28 @@ namespace CrashAndSqueeze
                 }
             }
 
+            // -- Report error if none found --
+
             if( equal(0, region_mass) )
             {
                 Logger::warning("in Model::hit: there is no vertex inside given region", __FILE__, __LINE__);
                 return;
             }
 
+            // -- Add the same velocity to all vertices in region --
+
             Vector region_velocity = (velocity * body->get_total_mass())/region_mass;
             
             for(int i = 0; i < hit_vertices_indices.size(); ++i)
             {
                 vertices[ hit_vertices_indices[i] ].add_to_velocity(region_velocity);
+            }
+
+            // -- Invoke reactions if needed --
+
+            for(int i = 0; i < hit_reactions.size(); ++i)
+            {
+                hit_reactions[i]->invoke_if_needed(hit_vertices_indices, region_velocity);
             }
         }
 
@@ -378,10 +383,16 @@ namespace CrashAndSqueeze
                 }
             }
             
-            // -- For each reaction: check state and invoke if needed
+            // -- Invoke reactions if needed --
+            
             for(int i = 0; i < shape_deform_reactions.size(); ++i)
             {
-                shape_deform_reactions[i]->invoke_if_needed();
+                shape_deform_reactions[i]->invoke_if_needed(*this);
+            }
+
+            for(int i = 0; i < region_reactions.size(); ++i)
+            {
+                region_reactions[i]->invoke_if_needed(*this);
             }
 
             return true;

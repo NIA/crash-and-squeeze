@@ -3,56 +3,57 @@
 namespace CrashAndSqueeze
 {
     using Logging::Logger;
-    using Math::Real;
 
     namespace Core
     {
-        namespace
+        void ShapeDeformationReaction::invoke_if_needed(const IModel &model)
         {
-            bool compare_by_cluster_pointer(const ClusterWithWeight &a, const ClusterWithWeight &b)
-            {
-                return a.cluster == b.cluster;
-            }
-        }
-
-        bool ShapeDeformationReaction::link_with_model(const IModel &model)
-        {
-            if(linked)
-            {
-                Logger::error("in ShapeDeformationReaction::link_with_model: already linked");
-                return false;
-            }
-
-            int vertices_num = shape_vertex_indices.size();
-            for(int i = 0; i < vertices_num; ++i)
+            for(int i = 0; i < shape_vertex_indices.size(); ++i)
             {
                 int vertex_index = shape_vertex_indices[i];
-                int cluster_index = model.get_vertex(vertex_index).get_nearest_cluster_index();
-                const Cluster * cluster = &model.get_cluster(cluster_index);
-                
-                // if there is a record for the cluster, increment its weight; otherwise add a new record
-                ClusterWithWeight &cww = clusters_with_weights.find_or_add( ClusterWithWeight(cluster, 0),
-                                                                            compare_by_cluster_pointer );
-                cww.weight += 1.0/vertices_num;
-            }
+                Math::Real distance = Math::distance( model.get_vertex(vertex_index).get_pos(),
+                                                      model.get_initial_vertex(vertex_index).get_pos() );
 
-            clusters_with_weights.freeze();
-            linked = true;
-            return true;
+                if( distance > threshold_distance )
+                {
+                    invoke(vertex_index, distance);
+                    return;
+                }
+            }
         }
 
-        void ShapeDeformationReaction::invoke_if_needed()
+        void RegionReaction::invoke_if_needed(const IModel &model)
         {
-            Real weighed_relative_deformation = 0;
-            for(int i = 0; i < clusters_with_weights.size(); ++i)
+            for(int i = 0; i < shape_vertex_indices.size(); ++i)
             {
-                Real relative_deformation = clusters_with_weights[i].cluster->get_relative_plastic_deformation();
-                weighed_relative_deformation += relative_deformation * clusters_with_weights[i].weight;
+                int vertex_index = shape_vertex_indices[i];
+                Math::Vector position = model.get_vertex(vertex_index).get_pos();
+                
+                // when reaction_on_entering is true:  invoke if region contains point, i.e. if contains == true == reaction_on_entering,
+                // when reaction_on_entering is false: invoke if region doesn't contain point, i.e. if contains == false == reaction_on_entering.
+                if( region.contains(position) == reaction_on_entering )
+                {
+                    invoke(vertex_index);
+                    return;
+                }
             }
+        }
 
-            if(weighed_relative_deformation > threshold)
+        void HitReaction::invoke_if_needed(const IndexArray & hit_vertices,
+                                           const Math::Vector &hit_velocity)
+        {
+            if(hit_velocity.norm() < velocity_threshold)
+                return;
+
+            for(int i = 0; i < hit_vertices.size(); ++i)
             {
-                invoke(weighed_relative_deformation);
+                int vertex_index = shape_vertex_indices[i];
+
+                if( hit_vertices.contains(vertex_index) )
+                {
+                    invoke(vertex_index, hit_velocity);
+                    return;
+                }
             }
         }
     }
