@@ -12,6 +12,7 @@ namespace CrashAndSqueeze
         public:
             virtual int get_vertices_num() const = 0;
             virtual const PhysicalVertex & get_vertex(int index) const = 0;
+            virtual const PhysicalVertex & get_initial_vertex(int index) const = 0;
             
             virtual int get_clusters_num() const = 0;
             virtual const Cluster & get_cluster(int index) const = 0;

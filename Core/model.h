@@ -117,6 +117,7 @@ namespace CrashAndSqueeze
             virtual int get_clusters_num() const { return clusters.size(); }
             
             virtual const PhysicalVertex & get_vertex(int index) const { return vertices[index]; }
+            virtual const PhysicalVertex & get_initial_vertex(int index) const { return initial_vertices[index]; }
             virtual const Cluster & get_cluster(int index) const { return clusters[index]; }
             
             virtual ~Model();
