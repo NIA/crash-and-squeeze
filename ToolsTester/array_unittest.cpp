@@ -15,11 +15,6 @@ struct Item
 
 typedef CrashAndSqueeze::Collections::Array<Item> Array;
 
-bool compare_items(Item const &a, Item const &b)
-{
-    return a == b;
-}
-
 bool compare_items_by_int(Item const &a, Item const &b)
 {
     return a.a == b.a;
@@ -114,7 +109,7 @@ TEST(ArrayTest, AddManyAndIndexOf)
     for(int i = 0; i < MANY; ++i)
     {
         ASSERT_TRUE( items[i] == a[i] );
-        ASSERT_EQ( i, a.index_of(a[i], compare_items) );
+        ASSERT_EQ( i, a.index_of(a[i]) );
     }
 }
 
@@ -259,7 +254,7 @@ TEST(ArrayTest, IndexOfInEmpty)
     Array a;
     Item item = {0};
 
-    EXPECT_EQ(Array::ITEM_NOT_FOUND_INDEX, a.index_of(item, compare_items));
+    EXPECT_EQ(Array::ITEM_NOT_FOUND_INDEX, a.index_of(item));
 }
 
 TEST(ArrayTest, IndexOfNotExisting)
@@ -269,7 +264,7 @@ TEST(ArrayTest, IndexOfNotExisting)
     a.push_back(some_boring_item);
     Item item = {1};
 
-    EXPECT_EQ(Array::ITEM_NOT_FOUND_INDEX, a.index_of(item, compare_items));
+    EXPECT_EQ(Array::ITEM_NOT_FOUND_INDEX, a.index_of(item));
 }
 
 TEST(ArrayTest, IndexOfOneOfTwo)
@@ -281,7 +276,7 @@ TEST(ArrayTest, IndexOfOneOfTwo)
     a.push_back(item);
     a.push_back(item);
 
-    EXPECT_EQ(1, a.index_of(item, compare_items));
+    EXPECT_EQ(1, a.index_of(item));
 }
 
 TEST(ArrayTest, IndexOfWithFunction)
@@ -313,6 +308,18 @@ TEST(ArrayTest, IndexOfWithStupidFunction)
     EXPECT_EQ(0, a.index_of(item, compare_items_like_no_one_cares));
 }
 
+TEST(ArrayTest, Contains)
+{
+    Array a;
+    Item some_boring_item = {0};
+    a.push_back(some_boring_item);
+    
+    Item item = {1};
+
+    EXPECT_TRUE(  a.contains(some_boring_item) );
+    EXPECT_FALSE( a.contains(item) );
+}
+
 TEST(ArrayTest, FindOrAdd_Find)
 {
     Array a;
@@ -324,7 +331,7 @@ TEST(ArrayTest, FindOrAdd_Find)
     a.push_back(some_boring_item);
     int size = a.size();
 
-    EXPECT_TRUE(a[2] == a.find_or_add(item, compare_items));
+    EXPECT_TRUE(a[2] == a.find_or_add(item));
     // nothing added
     EXPECT_EQ(size, a.size());
 }
@@ -340,7 +347,7 @@ TEST(ArrayTest, FindOrAdd_Add)
 
     int size = a.size();
 
-    EXPECT_TRUE(a[size] == a.find_or_add(item, compare_items));
+    EXPECT_TRUE(a[size] == a.find_or_add(item));
     EXPECT_TRUE(item == a[size]);
     // nothing added
     EXPECT_EQ(size + 1, a.size());
@@ -374,8 +381,8 @@ TEST(ArrayTest, FindOrAddToFrozen)
 
     a.freeze();
 
-    EXPECT_NO_THROW( a.find_or_add(some_boring_item, compare_items) );
-    EXPECT_THROW( a.find_or_add(item, compare_items), ToolsTesterException );
+    EXPECT_NO_THROW( a.find_or_add(some_boring_item) );
+    EXPECT_THROW( a.find_or_add(item), ToolsTesterException );
     unset_tester_err_callback();
 }
 

@@ -38,16 +38,28 @@ namespace CrashAndSqueeze
             void push_back(T const & item);
             
             static const int ITEM_NOT_FOUND_INDEX = -1;
-            typedef bool (* CompareFunc)(T const &a, T const &b);
+            typedef bool (* CompareFunc)(const T &a, const T &b);
+            
+            // This is the default CompareFunc for all finders. If your class doesn't have
+            // operator==, pass your own CompareFunc for those finders,
+            // otherwise this function will yield a compile error
+            static bool default_compare(const T &a, const T &b) { return a == b; }
 
             // returns index of the first item in the array, equal to `item`,
             // according to given comparing function; returns -1 if there is none
-            int index_of(T const & item, CompareFunc compare) const;
+            int index_of(T const & item, CompareFunc compare = default_compare) const;
+
+            // checks if there is an item of array, equal to `item`,
+            // according to given comparing function
+            bool contains(T const & item, CompareFunc compare = default_compare) const
+            {
+                return ITEM_NOT_FOUND_INDEX != index_of(item, compare);
+            }
 
             // returns first item in array, equal to `item`
             // according to given comparing function;
             // OR adds it to array and returns it, if there is none
-            T & find_or_add(T const & item, CompareFunc compare);
+            T & find_or_add(T const & item, CompareFunc compare = default_compare);
 
             T & operator[](int index);
             const T & operator[](int index) const;
