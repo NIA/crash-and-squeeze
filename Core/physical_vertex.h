@@ -21,19 +21,18 @@ namespace CrashAndSqueeze
             int nearest_cluster_index;
             // TODO: thread-safe cluster addition: velocity_additions[]...
             Math::Vector velocity_addition;
+            Math::Vector equilibrium_pos;
+
+            bool check_in_cluster();
             
         public:
             static const int NOT_IN_A_CLUSTER = -2;
 
-            PhysicalVertex( Math::Vector pos,
-                            Math::Real mass,
+            PhysicalVertex( Math::Vector pos = Math::Vector::ZERO,
+                            Math::Real mass = 0,
                             Math::Vector velocity = Math::Vector(0,0,0) )
                 : pos(pos), mass(mass), velocity(velocity), velocity_addition(Math::Vector::ZERO),
-                  including_clusters_num(0), nearest_cluster_index(NOT_IN_A_CLUSTER) {}
-            
-            PhysicalVertex()
-                : mass(0), pos(Math::Vector::ZERO), velocity(Math::Vector::ZERO), velocity_addition(Math::Vector::ZERO),
-                  including_clusters_num(0), nearest_cluster_index(NOT_IN_A_CLUSTER) {}
+                  including_clusters_num(0), nearest_cluster_index(NOT_IN_A_CLUSTER), equilibrium_pos(pos) {}
 
             // -- properties --
             
@@ -62,7 +61,11 @@ namespace CrashAndSqueeze
             // gets an addition from a single cluster, divides it by including_clusters_num,
             // and adds corrected value to velocity_addition, thus averaging addiitons
             bool add_to_average_velocity_addition(const Math::Vector &addition);
-            
+
+            // adds to equilibrium_pos `delta', divided by including_clusters_num
+            bool change_equilibrium_pos(const Math::Vector &delta);
+            const Math::Vector & get_equilibrium_pos() const { return equilibrium_pos; }
+
             void add_to_velocity(const Math::Vector &correction) { velocity += correction; }
             void set_velocity(const Math::Vector &new_velocity) { velocity = new_velocity; }
 

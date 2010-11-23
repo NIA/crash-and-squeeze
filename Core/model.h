@@ -2,6 +2,7 @@
 #include "Core/core.h"
 #include "Core/vertex_info.h"
 #include "Core/imodel.h"
+#include "Core/cluster.h"
 #include "Core/force.h"
 #include "Core/reactions.h"
 #include "Core/body.h"
@@ -71,7 +72,8 @@ namespace CrashAndSqueeze
             // -- step computation steps --
             bool correct_velocity_additions();
 
-            static void update_any_vertices(Collections::Array<PhysicalVertex> &src_vertices,
+            typedef const Math::Vector & (PhysicalVertex::*PositionFunc)() const;
+            static void update_any_vertices(Collections::Array<PhysicalVertex> &src_vertices, PositionFunc pos_func,
                                            /*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
 
             // TODO: DisplayVertex display_vertices; int display_vertices_num;
@@ -116,17 +118,24 @@ namespace CrashAndSqueeze
 
             void update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
             void update_initial_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
+            void update_equilibrium_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
 
             // -- Properties --
             
             virtual int get_vertices_num() const { return vertices.size(); }
-            virtual int get_clusters_num() const { return clusters.size(); }
+            int get_clusters_num() const { return clusters.size(); }
             
-            virtual const PhysicalVertex & get_vertex(int index) const { return vertices[index]; }
-            virtual const PhysicalVertex & get_initial_vertex(int index) const { return initial_vertices[index]; }
-            virtual const Cluster & get_cluster(int index) const { return clusters[index]; }
+            const PhysicalVertex & get_vertex(int index) const { return vertices[index]; }
+            const Cluster & get_cluster(int index) const { return clusters[index]; }
             
+            // -- Implement IModel --
+
+            virtual const Math::Vector & get_vertex_equilibrium_pos(int index) const { return vertices[index].get_equilibrium_pos(); }
+            virtual const Math::Vector & get_vertex_initial_pos(int index) const { return initial_vertices[index].get_pos(); }
+
             virtual ~Model();
+
+            // -- static methods --
 
             static const Math::Real DEFAULT_DAMPING_CONSTANT;
             

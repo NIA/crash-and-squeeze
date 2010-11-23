@@ -398,7 +398,7 @@ namespace CrashAndSqueeze
             return true;
         }
 
-        void Model::update_any_vertices(Collections::Array<PhysicalVertex> &src_vertices,
+        void Model::update_any_vertices(Collections::Array<PhysicalVertex> &src_vertices, PositionFunc pos_func,
                                         /*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
             if(vertices_num > src_vertices.size())
@@ -414,7 +414,10 @@ namespace CrashAndSqueeze
                 VertexFloat *position = reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(0)));
 
                 for(int j = 0; j < VECTOR_SIZE; ++j)
-                    position[j] = static_cast<VertexFloat>( (src_vertices[i].get_pos())[j] );
+                {
+                    const Vector & src_vertex_pos = (src_vertices[i].*pos_func)();
+                    position[j] = static_cast<VertexFloat>( src_vertex_pos[j] );
+                }
 
                 out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
             }
@@ -422,12 +425,17 @@ namespace CrashAndSqueeze
 
         void Model::update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
-            update_any_vertices(vertices, out_vertices, vertices_num, vertex_info);
+            update_any_vertices(vertices, &PhysicalVertex::get_pos, out_vertices, vertices_num, vertex_info);
         }
 
         void Model::update_initial_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
-            update_any_vertices(initial_vertices, out_vertices, vertices_num, vertex_info);
+            update_any_vertices(initial_vertices, &PhysicalVertex::get_pos, out_vertices, vertices_num, vertex_info);
+        }
+
+        void Model::update_equilibrium_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
+        {
+            update_any_vertices(vertices, &PhysicalVertex::get_equilibrium_pos, out_vertices, vertices_num, vertex_info);
         }
 
         Model::~Model()

@@ -11,8 +11,8 @@ namespace CrashAndSqueeze
             for(int i = 0; i < shape_vertex_indices.size(); ++i)
             {
                 int vertex_index = shape_vertex_indices[i];
-                Math::Real distance = Math::distance( model.get_vertex(vertex_index).get_pos(),
-                                                      model.get_initial_vertex(vertex_index).get_pos() );
+                Math::Real distance = Math::distance( model.get_vertex_equilibrium_pos(vertex_index),
+                                                      model.get_vertex_initial_pos(vertex_index) );
 
                 if( distance > threshold_distance )
                 {
@@ -27,7 +27,7 @@ namespace CrashAndSqueeze
             for(int i = 0; i < shape_vertex_indices.size(); ++i)
             {
                 int vertex_index = shape_vertex_indices[i];
-                Math::Vector position = model.get_vertex(vertex_index).get_pos();
+                Math::Vector position = model.get_vertex_equilibrium_pos(vertex_index);
                 
                 // when reaction_on_entering is true:  invoke if region contains point, i.e. if contains == true == reaction_on_entering,
                 // when reaction_on_entering is false: invoke if region doesn't contain point, i.e. if contains == false == reaction_on_entering.

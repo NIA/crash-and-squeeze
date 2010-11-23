@@ -129,7 +129,11 @@ namespace CrashAndSqueeze
         {
             for(int i = 0; i < get_vertices_num(); ++i)
             {
-                vertex_infos[i].equilibrium_offset_position = plasticity_state * vertex_infos[i].initial_offset_position;
+                Vector new_pos = plasticity_state * vertex_infos[i].initial_offset_position;
+                Vector & equilibrium_pos = vertex_infos[i].equilibrium_offset_position;
+
+                get_vertex(i).change_equilibrium_pos(new_pos - equilibrium_pos);
+                equilibrium_pos = new_pos;
             }
         }
 
@@ -243,6 +247,7 @@ namespace CrashAndSqueeze
                     
                     Real new_plastic_deform_measure = (new_plasticity_state - Matrix::IDENTITY).norm();
                     
+                    // TODO: is condition of (new_plastic_deform_measure > plastic_deformation_measure) useful?
                     if( new_plastic_deform_measure < max_deformation_constant &&
                         new_plastic_deform_measure > plastic_deformation_measure )
                     {

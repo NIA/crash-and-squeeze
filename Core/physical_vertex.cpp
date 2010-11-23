@@ -35,19 +35,35 @@ namespace CrashAndSqueeze
             return nearest_cluster_index;
         }
 
-        // gets an addition from a single cluster, divides it by including_clusters_num,
-        // and adds corrected value to velocity_addition, thus averaging addiitons
-        bool PhysicalVertex::add_to_average_velocity_addition(const Vector & addition)
+        bool PhysicalVertex::check_in_cluster()
         {
-            // we need average velocity addition, not sum, so divide by including_clusters_num
             if(0 == including_clusters_num)
             {
                 Logger::error("internal error: in Cluster::apply_goal_positions: vertex with incorrect zero value of including_clusters_num", __FILE__, __LINE__);
                 return false;
             }
+            return true;
+        }
+
+        // gets an addition from a single cluster, divides it by including_clusters_num,
+        // and adds corrected value to velocity_addition, thus averaging addiitons
+        bool PhysicalVertex::add_to_average_velocity_addition(const Vector & addition)
+        {
+            if( false == check_in_cluster() )
+                return false;
+            // we need average velocity addition, not sum, so divide by including_clusters_num
 
             // TODO: thread-safe cluster addition: velocity_additions[]...
             velocity_addition += addition/including_clusters_num;
+            return true;
+        }
+
+        bool PhysicalVertex::change_equilibrium_pos(const Vector &delta)
+        {
+            if( false == check_in_cluster() )
+                return false;
+
+            equilibrium_pos += delta/including_clusters_num;
             return true;
         }
 
