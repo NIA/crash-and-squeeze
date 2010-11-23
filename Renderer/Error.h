@@ -91,6 +91,11 @@ class NullPointerError : public RuntimeError
 public:
     NullPointerError() : RuntimeError( _T("Unexpected NULL pointer") ) {}
 };
+class D3DXFontError : public RuntimeError
+{
+public:
+    D3DXFontError() : RuntimeError( _T("Error while creating D3DX font") ) {}
+};
 inline void check_render( HRESULT res )
 {
     if( FAILED(res) )

@@ -14,6 +14,8 @@ namespace
 {
     const int         WINDOW_SIZE = 600;
     const D3DCOLOR    BACKGROUND_COLOR = D3DCOLOR_XRGB( 5, 5, 10 );
+    const D3DCOLOR    TEXT_COLOR = D3DCOLOR_XRGB( 255, 255, 0 );
+    const int         TEXT_HEIGHT = 30;
     const bool        INITIAL_WIREFRAME_STATE = true;
     const D3DCOLOR    BLACK = D3DCOLOR_XRGB( 0, 0, 0 );
     const float       ROTATE_STEP = D3DX_PI/30.0f;
@@ -79,12 +81,13 @@ Application::Application(Logger &logger) :
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
     show_initial_state(false), vertices_update_needed(false), impact_region(NULL), impact_happened(false),
-    forces(NULL), logger(logger)
+    forces(NULL), logger(logger), font(NULL)
 {
 
     try
     {
         init_device();
+        init_font();
     }
     // using catch(...) because every caught exception is rethrown
     catch(...)
@@ -120,6 +123,18 @@ void Application::init_device()
 
     toggle_wireframe();
     set_alpha_test();
+}
+
+void Application::init_font()
+{
+    if( FAILED( D3DXCreateFont(device, TEXT_HEIGHT, 0, FW_BOLD, 0, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
+                                       DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Arial"), &font) ) )
+        throw D3DXFontError();
+
+    text_rect.top = 10;
+    text_rect.left = 10;
+    text_rect.right = WINDOW_SIZE;
+    text_rect.bottom =  text_rect.top + TEXT_HEIGHT;
 }
 
 void  Application::set_alpha_test()
@@ -179,12 +194,17 @@ void Application::render()
         // Draw
         (*iter).display_model->draw();
     }
+
+    // Draw text
+    TCHAR* text = show_initial_state ? _T("Initial positions") : _T("Normal");
+    if( 0 == font->DrawText(NULL, text, -1, &text_rect, 0, TEXT_COLOR) )
+        throw RenderError();
+
     // End the scene
     check_render( device->EndScene() );
     
     // Present the backbuffer contents to the display
     check_render( device->Present( NULL, NULL, NULL, NULL ) );
-
 }
 
 IDirect3DDevice9 * Application::get_device()
@@ -479,6 +499,7 @@ void Application::release_interfaces()
 {
     release_interface( d3d );
     release_interface( device );
+    release_interface( font );
 }
 
 Application::~Application()

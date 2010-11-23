@@ -29,6 +29,9 @@ private:
 
     IDirect3D9                  *d3d;           // used to create the D3DDevice
     IDirect3DDevice9            *device;        // our rendering device
+    ID3DXFont                   *font;          // font to draw text
+
+    RECT text_rect;
 
     bool directional_light_enabled;
     bool point_light_enabled;
@@ -57,6 +60,7 @@ private:
 
     // Initialization steps:
     void init_device();
+    void init_font();
 
     // Wrappers for SetVertexShaderConstantF:
     void set_shader_const(unsigned reg, const float *data, unsigned vector4_count)
