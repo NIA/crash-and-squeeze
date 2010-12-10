@@ -181,6 +181,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\rigid_body.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\vertex_info.cpp"
 				>
 			</File>
@@ -224,6 +228,10 @@
 			</File>
 			<File
 				RelativePath=".\regions.h"
+				>
+			</File>
+			<File
+				RelativePath=".\rigid_body.h"
 				>
 			</File>
 			<File
