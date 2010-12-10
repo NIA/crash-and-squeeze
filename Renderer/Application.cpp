@@ -15,7 +15,11 @@ namespace
     const int         WINDOW_SIZE = 600;
     const D3DCOLOR    BACKGROUND_COLOR = D3DCOLOR_XRGB( 5, 5, 10 );
     const D3DCOLOR    TEXT_COLOR = D3DCOLOR_XRGB( 255, 255, 0 );
-    const int         TEXT_HEIGHT = 30;
+    const int         TEXT_HEIGHT = 20;
+    const int         TEXT_MARGIN = 10;
+    const int         TEXT_SPACING = 0;
+    const int         TEXT_WIDTH = WINDOW_SIZE - 2*TEXT_MARGIN;
+    const int         TEXT_LINE_HEIGHT = TEXT_HEIGHT + TEXT_SPACING;
     const bool        INITIAL_WIREFRAME_STATE = true;
     const D3DCOLOR    BLACK = D3DCOLOR_XRGB( 0, 0, 0 );
     const float       ROTATE_STEP = D3DX_PI/30.0f;
@@ -24,6 +28,41 @@ namespace
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.2;
 
+    const TCHAR *     SHOW_MODES_CAPTIONS[Application::_SHOW_MODES_COUNT] = 
+                      {
+                          _T("Show: Current"),
+                          _T("Show: Equilibrium"),
+                          _T("Show: Initial"),
+                      };
+
+    const TCHAR *     HELP_TEXT = _T("Welcome to Crash-And-Squeeze Demo!\n\n")
+                                  _T("Keys:\n\n")
+                                  _T("F1: display/hide this help,\n")
+                                  _T("Space: pause/continue emulation,\n")
+                                  _T("S: emulate one step (when paused),\n")
+                                  _T("Arrows: rotate camera,\n")
+                                  _T("+/-, PgUp/PgDn: zoom in/out,\n")
+                                  _T("F: toggle forces on/off,\n")
+                                  _T("Enter: hit the model,\n")
+                                  _T("Tab: switch between current, initial\n")
+                                  _T("        and equilibrium state,\n")
+                                  _T("Esc: exit");
+
+    inline bool is_key_pressed(int virtual_key)
+    {
+        return ::GetAsyncKeyState(virtual_key) < 0;
+    }
+
+    struct MyRect : public RECT
+    {
+        MyRect(LONG x = 0, LONG y = 0, LONG w = 0, LONG h = 0) { left = x; top = y; right = x + w; bottom = y + h; }
+        LONG width() { return right - left; }
+        LONG height() { return bottom - top; }
+    };
+}
+
+namespace
+{
     //---------------- SHADER CONSTANTS ---------------------------
     //    c0-c3 is the view matrix
     const unsigned    SHADER_REG_VIEW_MX = 0;
@@ -77,11 +116,11 @@ namespace
 }
 
 Application::Application(Logger &logger) :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(2.0f, 1.2f, 0.0f), // Constants selected for better view the scene
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(1.8f, 1.6f, -0.75f), // Constants selected for better view the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
-    show_initial_state(false), vertices_update_needed(false), impact_region(NULL), impact_happened(false),
-    forces(NULL), logger(logger), font(NULL)
+    vertices_update_needed(false), impact_region(NULL), impact_happened(false),
+    forces(NULL), logger(logger), font(NULL), show_mode(SHOW_CURRENT_POSITIONS), show_help(false)
 {
 
     try
@@ -130,11 +169,6 @@ void Application::init_font()
     if( FAILED( D3DXCreateFont(device, TEXT_HEIGHT, 0, FW_BOLD, 0, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
                                        DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Arial"), &font) ) )
         throw D3DXFontError();
-
-    text_rect.top = 10;
-    text_rect.left = 10;
-    text_rect.right = WINDOW_SIZE;
-    text_rect.bottom =  text_rect.top + TEXT_HEIGHT;
 }
 
 void  Application::set_alpha_test()
@@ -195,16 +229,45 @@ void Application::render()
         (*iter).display_model->draw();
     }
 
-    // Draw text
-    TCHAR* text = show_initial_state ? _T("Initial positions") : _T("Normal");
-    if( 0 == font->DrawText(NULL, text, -1, &text_rect, 0, TEXT_COLOR) )
-        throw RenderError();
+    // Draw text info
+    draw_text_info();
 
     // End the scene
     check_render( device->EndScene() );
     
     // Present the backbuffer contents to the display
     check_render( device->Present( NULL, NULL, NULL, NULL ) );
+}
+
+void Application::draw_text_info()
+{
+    if(show_help)
+    {
+        draw_text(HELP_TEXT, MyRect(TEXT_MARGIN, TEXT_MARGIN, TEXT_WIDTH, WINDOW_SIZE), TEXT_COLOR);
+    }
+    else
+    {
+        // Show mode
+        int previous_text_bottom = TEXT_MARGIN;
+        draw_text(SHOW_MODES_CAPTIONS[show_mode], MyRect(TEXT_MARGIN, previous_text_bottom, TEXT_WIDTH, TEXT_HEIGHT), TEXT_COLOR);
+        previous_text_bottom += TEXT_LINE_HEIGHT;
+        // Emulation enabled?
+        const TCHAR * emulation_text = emulation_enabled ? _T("Emulation: ON") : _T("Emulation: OFF");
+        draw_text(emulation_text, MyRect(TEXT_MARGIN, previous_text_bottom, TEXT_WIDTH, TEXT_HEIGHT), TEXT_COLOR);
+        previous_text_bottom += TEXT_LINE_HEIGHT;
+        // F1 for help
+        draw_text(_T("Press F1 for help"), MyRect(TEXT_MARGIN, previous_text_bottom, TEXT_WIDTH, TEXT_HEIGHT), TEXT_COLOR);
+    }
+}
+
+void Application::draw_text(const TCHAR * text, RECT rect, D3DCOLOR color, bool align_right)
+{
+    DWORD format_flags = 0;
+    if(align_right)
+        format_flags |= DT_RIGHT;
+
+    if( 0 == font->DrawText(NULL, text, -1, &rect, format_flags, color) )
+        throw RenderError();
 }
 
 IDirect3DDevice9 * Application::get_device()
@@ -269,8 +332,11 @@ void Application::rotate_models(float phi)
     }
 }
 
-void Application::process_key(unsigned code)
+void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
 {
+    UNREFERENCED_PARAMETER(ctrl);
+    UNREFERENCED_PARAMETER(alt);
+
     switch( code )
     {
     case VK_ESCAPE:
@@ -337,11 +403,14 @@ void Application::process_key(unsigned code)
         set_alpha_test();
         break;
     case VK_TAB:
-        show_initial_state = !show_initial_state;
+        show_mode = ( show_mode + (shift ? - 1 : 1) + _SHOW_MODES_COUNT )%_SHOW_MODES_COUNT;
         vertices_update_needed = true;
         break;
     case VK_RETURN:
         impact_happened = true;
+        break;
+    case VK_F1:
+        show_help = !show_help;
         break;
     }
 }
@@ -379,7 +448,8 @@ void Application::run()
         {
             if( msg.message == WM_KEYDOWN )
             {
-                process_key( static_cast<unsigned>( msg.wParam ) );
+                process_key( static_cast<unsigned>( msg.wParam ), is_key_pressed(VK_SHIFT),
+                             is_key_pressed(VK_CONTROL), is_key_pressed(VK_MENU) );
             }
 
             TranslateMessage( &msg );
@@ -437,12 +507,20 @@ void Application::run()
                     if( NULL != physical_model )
                     {
                         Vertex *vertices = display_model->lock_vertex_buffer();
-                        
-                        if(show_initial_state)
-                            physical_model->update_initial_vertices(vertices, display_model->get_vertices_count(), VERTEX_INFO);
-                        else
+
+                        switch(show_mode)
+                        {
+                        case SHOW_CURRENT_POSITIONS:
                             physical_model->update_vertices(vertices, display_model->get_vertices_count(), VERTEX_INFO);
-                        
+                            break;
+                        case SHOW_EQUILIBRIUM_POSITIONS:
+                            physical_model->update_equilibrium_positions(vertices, display_model->get_vertices_count(), VERTEX_INFO);
+                            break;
+                        case SHOW_INITIAL_POSITIONS:
+                            physical_model->update_initial_vertices(vertices, display_model->get_vertices_count(), VERTEX_INFO);
+                            break;
+                        }
+
                         display_model->unlock_vertex_buffer();
                     }
                 }

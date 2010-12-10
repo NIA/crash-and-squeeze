@@ -31,8 +31,6 @@ private:
     IDirect3DDevice9            *device;        // our rendering device
     ID3DXFont                   *font;          // font to draw text
 
-    RECT text_rect;
-
     bool directional_light_enabled;
     bool point_light_enabled;
     bool spot_light_enabled;
@@ -42,8 +40,10 @@ private:
     bool emulation_enabled;
     bool emultate_one_step;
 
-    bool show_initial_state;
     bool vertices_update_needed;
+    int show_mode;
+
+    bool show_help;
 
     Window window;
 
@@ -91,8 +91,10 @@ private:
     void set_alpha_test();
 
     void rotate_models(float phi);
-    void process_key(unsigned code);
+    void process_key(unsigned code, bool shift, bool ctrl, bool alt);
 
+    void draw_text(const TCHAR * text, RECT rect, D3DCOLOR color, bool align_right = false);
+    void draw_text_info();
     void render();
 
     // Deinitialization steps:
@@ -113,6 +115,14 @@ public:
     void toggle_wireframe();
 
     ~Application();
+
+    enum ShowMode
+    {
+        SHOW_CURRENT_POSITIONS,
+        SHOW_EQUILIBRIUM_POSITIONS,
+        SHOW_INITIAL_POSITIONS,
+        _SHOW_MODES_COUNT
+    };
 
 private:
     // No copying!
