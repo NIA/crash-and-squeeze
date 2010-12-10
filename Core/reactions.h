@@ -15,6 +15,9 @@ namespace CrashAndSqueeze
         // To implement your own reaction, inherit your class from this
         // and override invoke(), then pass an instance of your class
         // to Model::add_shape_deformation_reaction.
+        //
+        // If two or more vertices from shape exceed threshold distance, the index
+        // of vertex with the greatest distance is passed to invoke().
         class ShapeDeformationReaction
         {
         private:

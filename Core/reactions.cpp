@@ -3,22 +3,31 @@
 namespace CrashAndSqueeze
 {
     using Logging::Logger;
+    using Math::Real;
 
     namespace Core
     {
         void ShapeDeformationReaction::invoke_if_needed(const IModel &model)
         {
+            Real max_distance = 0;
+            int max_distance_vertex_index = 0;
             for(int i = 0; i < shape_vertex_indices.size(); ++i)
             {
                 int vertex_index = shape_vertex_indices[i];
-                Math::Real distance = Math::distance( model.get_vertex_equilibrium_pos(vertex_index),
+                Real distance = Math::distance( model.get_vertex_equilibrium_pos(vertex_index),
                                                       model.get_vertex_initial_pos(vertex_index) );
 
-                if( distance > threshold_distance )
+                if(distance > max_distance)
                 {
-                    invoke(vertex_index, distance);
-                    return;
+                    max_distance = distance;
+                    max_distance_vertex_index = vertex_index;
                 }
+            }
+
+            if( max_distance > threshold_distance )
+            {
+                invoke(max_distance_vertex_index, max_distance);
+                return;
             }
         }
 

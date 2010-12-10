@@ -25,12 +25,13 @@ namespace
     const D3DCOLOR CYLINDER_COLOR = D3DCOLOR_XRGB(100, 150, 255);
     const D3DCOLOR OBSTACLE_COLOR = D3DCOLOR_XRGB(100, 100, 100);
 
-    const D3DXCOLOR NO_DEFORM_COLOR = CYLINDER_COLOR;//D3DCOLOR_XRGB(0, 255, 0);
+    const D3DXCOLOR NO_DEFORM_COLOR = CYLINDER_COLOR;
     const D3DXCOLOR MAX_DEFORM_COLOR = D3DCOLOR_XRGB(255, 0, 0);
+    const D3DXCOLOR MEDIUM_DEFORM_COLOR = (NO_DEFORM_COLOR + MAX_DEFORM_COLOR)/2.0f;
 
     const D3DXCOLOR FRAME_COLOR = D3DCOLOR_XRGB(128, 255, 0);
 
-    const Real     CALLBACK_THRESHOLD = 0.0;
+    const Real      THRESHOLD_DISTANCE = 0.05;
 
     inline D3DXVECTOR3 math_vector_to_d3dxvector(const Vector &v)
     {
@@ -95,16 +96,23 @@ namespace
     {
     private:
         Model &model;
+        IndexArray one_vertex;
 
     public:
         RepaintReaction(const IndexArray &shape_vertex_indices, Real threshold_distance, Model &model)
-            : ShapeDeformationReaction(shape_vertex_indices, threshold_distance), model(model)
-        {}
-
-        virtual void invoke(Real value)
+            : ShapeDeformationReaction(shape_vertex_indices, threshold_distance), model(model), one_vertex(1)
         {
-            // TODO: something interesting
-            UNREFERENCED_PARAMETER(value);
+            one_vertex.push_back(0);
+            one_vertex.freeze();
+        }
+
+        virtual void invoke(int vertex_index, Real distance)
+        {
+            UNREFERENCED_PARAMETER(distance);
+
+            model.repaint_vertices(get_shape_vertex_indices(), MEDIUM_DEFORM_COLOR);
+            one_vertex[0] = vertex_index;
+            model.repaint_vertices(one_vertex, MAX_DEFORM_COLOR);
         }
     };
 }
@@ -219,41 +227,40 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         phys_mod->set_frame(frame);
         cylinder_model.repaint_vertices(frame, FRAME_COLOR);
 
-        //// -- shapes and shape callbacks definition --
+        // -- shapes and shape callbacks definition --
 
-        //const int SHAPE_SIZE = CYLINDER_EDGES_PER_BASE;
-        //const int SHAPE_LINES_OFFSET = 3;
-        //const int SHAPES_COUNT = 8;
-        //const int SHAPE_STEP = (SHAPES_COUNT > 1) ?
-        //                       ((CYLINDER_EDGES_PER_HEIGHT - 2*SHAPE_LINES_OFFSET)/(SHAPES_COUNT - 1))*CYLINDER_EDGES_PER_BASE :
-        //                       0;
-        //const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*CYLINDER_EDGES_PER_BASE;
+        const int SHAPE_SIZE = CYLINDER_EDGES_PER_BASE;
+        const int SHAPE_LINES_OFFSET = 3;
+        const int SHAPES_COUNT = 8;
+        const int SHAPE_STEP = (SHAPES_COUNT > 1) ?
+                               ((CYLINDER_EDGES_PER_HEIGHT - 2*SHAPE_LINES_OFFSET)/(SHAPES_COUNT - 1))*CYLINDER_EDGES_PER_BASE :
+                               0;
+        const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*CYLINDER_EDGES_PER_BASE;
 
-        //const int SUBSHAPES_COUNT = 4;
-        //const int SUBSHAPE_SIZE = SHAPE_SIZE/SUBSHAPES_COUNT;
+        const int SUBSHAPES_COUNT = 4;
+        const int SUBSHAPE_SIZE = SHAPE_SIZE/SUBSHAPES_COUNT;
 
-        //// let's have some static array of dynamic arrays... :)
-        //IndexArray vertex_indices[SHAPES_COUNT*SUBSHAPES_COUNT];
-        //// ...and fill it
-        //int subshape_index = 0;
-        //for(int i = 0; i < SHAPES_COUNT; ++i)
-        //{
-        //    for(int j = 0; j < SUBSHAPES_COUNT; ++j)
-        //    {
-        //        int subshape_start = SHAPE_OFFSET + i*SHAPE_STEP + j*SUBSHAPE_SIZE;
-        //        add_range(vertex_indices[subshape_index], subshape_start, subshape_start + SUBSHAPE_SIZE);
-        //        // register reaction
-        //        RepaintReaction & reaction = * new RepaintReaction( vertex_indices[subshape_index],
-        //                                                            CALLBACK_THRESHOLD,
-        //                                                            cylinder_model );
-        //        reactions.push_back(&reaction);
-        //        phys_mod->add_shape_deformation_reaction(reaction);
-        //        // do initial repaint
-        //        reaction.invoke(CALLBACK_THRESHOLD);
-        //        
-        //        ++subshape_index;
-        //    }
-        //}
+        // let's have some static array of dynamic arrays... :)
+        IndexArray vertex_indices[SHAPES_COUNT*SUBSHAPES_COUNT];
+        // ...and fill it
+        int subshape_index = 0;
+        for(int i = 0; i < SHAPES_COUNT; ++i)
+        {
+            for(int j = 0; j < SUBSHAPES_COUNT; ++j)
+            {
+                int subshape_start = SHAPE_OFFSET + i*SHAPE_STEP + j*SUBSHAPE_SIZE;
+                add_range(vertex_indices[subshape_index], subshape_start, subshape_start + SUBSHAPE_SIZE);
+                // create reaction
+                RepaintReaction & reaction = * new RepaintReaction( vertex_indices[subshape_index],
+                                                                    THRESHOLD_DISTANCE,
+                                                                    cylinder_model );
+                reactions.push_back(&reaction);
+                // register reaction
+                phys_mod->add_shape_deformation_reaction(reaction);
+                
+                ++subshape_index;
+            }
+        }
 
         // -------------------------- F o r c e s -----------------------
         ForcesArray forces;
