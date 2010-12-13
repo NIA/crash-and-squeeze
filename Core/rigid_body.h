@@ -7,6 +7,7 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
+        // A kinematic model of rigid body
         class RigidBody
         {
         private:
@@ -15,12 +16,18 @@ namespace CrashAndSqueeze
             Math::Vector velocity;
             Math::Vector angular_velocity;
 
+            Math::Matrix rotation_matrix;
+
+            bool rotation_matrix_outdated;
+            void recompute_rotation_matrix();
+
+            void set_rotation(const Math::Vector & value);
+
         public:
             RigidBody(const Math::Vector & position,
                       const Math::Vector & rotation,
                       const Math::Vector & velocity = Math::Vector::ZERO,
-                      const Math::Vector & angular_velocity = Math::Vector::ZERO)
-                : position(position), rotation(rotation), velocity(velocity), angular_velocity(angular_velocity) {}
+                      const Math::Vector & angular_velocity = Math::Vector::ZERO);
 
             const Math::Vector & get_position() const { return position; }
             const Math::Vector & get_rotation() const { return rotation; }
@@ -34,9 +41,7 @@ namespace CrashAndSqueeze
                            const Math::Vector & acceleration = Math::Vector::ZERO,
                            const Math::Vector & angular_acceleration = Math::Vector::ZERO);
 
-            void get_rotation_matrix(/*out*/ Math::Matrix & result) const;
-
-            ~RigidBody();
+            const Math::Matrix & get_rotation_matrix();
         };
     }
 }
