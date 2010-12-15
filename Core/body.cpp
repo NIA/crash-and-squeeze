@@ -144,7 +144,7 @@ namespace CrashAndSqueeze
 
         const Real Body::MAX_RIGIDITY_COEFF = 1;
         
-        void Body::set_rigid_motion(const Body & body, Real coeff)
+        void Body::set_rigid_motion(const IBody & body, Real coeff)
         {
             for(int i = 0; i < vertices.size(); ++i)
             {
@@ -152,7 +152,7 @@ namespace CrashAndSqueeze
 
                 Vector rigid_velocity = body.get_linear_velocity()
                                       + v.angular_velocity_to_linear(body.get_angular_velocity(),
-                                                                     body.get_center_of_mass());
+                                                                     body.get_position());
 
                 v.set_velocity( coeff*rigid_velocity + (1 - coeff)*v.get_velocity() );
             }

@@ -11,19 +11,26 @@ namespace CrashAndSqueeze
     namespace Core
     {
         RigidBody::RigidBody(const Vector & position, const Matrix & orientation,
-                             const Vector & velocity, const Vector & angular_velocity)
+                             const Vector & linear_velocity, const Vector & angular_velocity)
             : position(position),
               orientation(orientation),
-              velocity(velocity),
+              linear_velocity(linear_velocity),
               angular_velocity(angular_velocity)
         {}
+
+        void RigidBody::set_motion(const IBody &body)
+        {
+            set_linear_velocity( body.get_linear_velocity() +
+                                 cross_product(body.get_angular_velocity(), -body.get_position()) );
+            set_angular_velocity( body.get_angular_velocity() );
+        }
         
         void RigidBody::integrate(Real dt, const Vector & acceleration, const Vector & angular_acceleration)
         {
-            velocity += acceleration*dt;
+            linear_velocity += acceleration*dt;
             angular_velocity += angular_acceleration*dt;
 
-            position += velocity*dt;
+            position += linear_velocity*dt;
             orientation += cross_product_matrix(angular_velocity*dt)*orientation;
         }
 

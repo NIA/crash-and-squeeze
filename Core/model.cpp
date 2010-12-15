@@ -46,7 +46,7 @@ namespace CrashAndSqueeze
                       const MassFloat *masses,
                       const MassFloat constant_mass)
             : vertices(vertices_num),
-              initial_vertices(vertices_num),
+              initial_positions(vertices_num),
 
               cluster_padding_coeff(cluster_padding_coeff),
 
@@ -56,7 +56,6 @@ namespace CrashAndSqueeze
               max_pos(-MAX_COORDINATE_VECTOR),
 
               body(NULL),
-              initial_state(NULL),
               frame(NULL),
 
               hit_vertices_indices(vertices_num)
@@ -67,8 +66,8 @@ namespace CrashAndSqueeze
             vertices.create_items(vertices_num);
             vertices.freeze();
 
-            initial_vertices.create_items(vertices_num);
-            initial_vertices.freeze();
+            initial_positions.create_items(vertices_num);
+            initial_positions.freeze();
 
             hit_vertices_indices.forbid_reallocation(vertices.size());
 
@@ -118,8 +117,9 @@ namespace CrashAndSqueeze
                     mass = static_cast<Real>(constant_mass);
                 }
                 
-                vertices[i] = initial_vertices[i] = PhysicalVertex(pos, mass);
-
+                vertices[i] = PhysicalVertex(pos, mass);
+                initial_positions[i] = pos;
+                
                 for(int j = 0; j < VECTOR_SIZE; ++j)
                 {
                     if(pos[j] < min_pos[j])
@@ -133,7 +133,6 @@ namespace CrashAndSqueeze
             }
 
             body = new Body(vertices);
-            initial_state = new Body(initial_vertices);
             return true;
         }
         
@@ -253,7 +252,12 @@ namespace CrashAndSqueeze
 
             return true;
         }
-
+        
+        Vector Model::get_vertex_initial_pos(int index) const
+        {
+            return initial_state.get_orientation() * initial_positions[index];
+        }
+        
         void Model::set_frame(const IndexArray &frame_indices)
         {
             delete frame;
@@ -339,6 +343,8 @@ namespace CrashAndSqueeze
             {
                 // -- Ensure that the frame moves as a rigid body --
             
+                if( false == frame->compute_properties() )
+                    return false;
                 if( false == frame->compute_velocities() )
                     return false;
 
@@ -371,16 +377,13 @@ namespace CrashAndSqueeze
                 // -- If there is the frame, initial_state should repeat its motion so that frame position cannot change
 
                 // Re-compute frame velocities, changed after the call of body->compensate_velocities
+                if( false == frame->compute_properties() )
+                    return false;
                 if( false == frame->compute_velocities() )
                     return false;
 
-                initial_state->set_rigid_motion(*frame);
-                
-                // For each vertex of initial state: integrate positions
-                for(int i = 0; i < initial_vertices.size(); ++i)
-                {
-                    initial_vertices[i].integrate_position(dt);
-                }
+                initial_state.set_motion(*frame);
+                initial_state.integrate(dt);
             }
             
             // -- Invoke reactions if needed --
@@ -397,26 +400,26 @@ namespace CrashAndSqueeze
 
             return true;
         }
-
-        void Model::update_any_vertices(Collections::Array<PhysicalVertex> &src_vertices, PositionFunc pos_func,
-                                        /*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
+        
+        void Model::update_any_positions(PositionFunc pos_func, /*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
-            if(vertices_num > src_vertices.size())
+            if(vertices_num > vertices.size())
             {
                 Logger::warning("in Model::update_any_vertices: requested to update too many vertices, probably wrong vertices given?", __FILE__, __LINE__);
-                vertices_num = src_vertices.size();
+                vertices_num = vertices.size();
             }
 
             void *out_vertex = out_vertices;
             for(int i = 0; i < vertices_num; ++i)
             {
                 // TODO: many points and vectors, only position so far
-                VertexFloat *position = reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(0)));
+                VertexFloat *out_position = reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(0)));
 
+                const Vector src_position = (this->*pos_func)(i);
+                
                 for(int j = 0; j < VECTOR_SIZE; ++j)
                 {
-                    const Vector & src_vertex_pos = (src_vertices[i].*pos_func)();
-                    position[j] = static_cast<VertexFloat>( src_vertex_pos[j] );
+                    out_position[j] = static_cast<VertexFloat>( src_position[j] );
                 }
 
                 out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
@@ -425,23 +428,22 @@ namespace CrashAndSqueeze
 
         void Model::update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
-            update_any_vertices(vertices, &PhysicalVertex::get_pos, out_vertices, vertices_num, vertex_info);
+            update_any_positions(&Model::get_vertex_current_pos, out_vertices, vertices_num, vertex_info);
         }
 
         void Model::update_initial_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
-            update_any_vertices(initial_vertices, &PhysicalVertex::get_pos, out_vertices, vertices_num, vertex_info);
+            update_any_positions(&Model::get_vertex_initial_pos, out_vertices, vertices_num, vertex_info);
         }
 
         void Model::update_equilibrium_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
-            update_any_vertices(vertices, &PhysicalVertex::get_equilibrium_pos, out_vertices, vertices_num, vertex_info);
+            update_any_positions(&Model::get_vertex_equilibrium_pos, out_vertices, vertices_num, vertex_info);
         }
 
         Model::~Model()
         {
             delete body;
-            delete initial_state;
             delete frame;
         }
     }

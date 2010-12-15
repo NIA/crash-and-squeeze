@@ -1,34 +1,36 @@
 #pragma once
 #include "Math/floating_point.h"
-#include "Math/Vector.h"
-#include "Math/Matrix.h"
+#include "Math/vector.h"
+#include "Math/matrix.h"
+#include "Core/ibody.h"
 
 namespace CrashAndSqueeze
 {
     namespace Core
     {
         // A kinematic model of rigid body
-        class RigidBody
+        class RigidBody : public IBody
         {
         private:
             Math::Vector position;
             Math::Matrix orientation;
-            Math::Vector velocity;
+            Math::Vector linear_velocity;
             Math::Vector angular_velocity;
 
         public:
-            RigidBody(const Math::Vector & position,
+            RigidBody(const Math::Vector & position = Math::Vector::ZERO,
                       const Math::Matrix & orientation = Math::Matrix::IDENTITY,
-                      const Math::Vector & velocity = Math::Vector::ZERO,
+                      const Math::Vector & linear_velocity = Math::Vector::ZERO,
                       const Math::Vector & angular_velocity = Math::Vector::ZERO);
 
-            const Math::Vector & get_position() const { return position; }
+            virtual /*override*/ const Math::Vector & get_position() const { return position; }
             const Math::Matrix & get_orientation() const { return orientation; }
-            const Math::Vector & get_velocity() const { return velocity; }
-            const Math::Vector & get_angular_velocity() const { return angular_velocity; }
+            virtual /*override*/ const Math::Vector & get_linear_velocity() const { return linear_velocity; }
+            virtual /*override*/ const Math::Vector & get_angular_velocity() const { return angular_velocity; }
 
-            void add_to_velocity(const Math::Vector & addition) { velocity += addition; }
-            void add_to_angular_velocity(const Math::Vector & addition) { angular_velocity += addition; }
+            void set_linear_velocity(const Math::Vector & value) { linear_velocity = value; }
+            void set_angular_velocity(const Math::Vector & value) { angular_velocity = value; }
+            void set_motion(const IBody &body);
 
             void integrate(Math::Real dt,
                            const Math::Vector & acceleration = Math::Vector::ZERO,

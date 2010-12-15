@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/core.h"
 #include "Core/physical_vertex.h"
+#include "Core/ibody.h"
 #include "Math/vector.h"
 #include "Math/matrix.h"
 
@@ -8,7 +9,7 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
-        class Body
+        class Body : public IBody
         {
         private:
             Collections::Array<PhysicalVertex *> vertices;
@@ -62,15 +63,16 @@ namespace CrashAndSqueeze
             // with its angular velocity around its center of mass.
             // Argument `coeff' specifies how close to those velocities they will be:
             // 1 - equal, absolutely rigid body; 0 - no change.
-            void set_rigid_motion(const Body & body, Math::Real coeff = MAX_RIGIDITY_COEFF);
+            void set_rigid_motion(const IBody & body, Math::Real coeff = MAX_RIGIDITY_COEFF);
             // enforces rigid motion of body itself
             void set_rigid_motion(Math::Real coeff = MAX_RIGIDITY_COEFF) { set_rigid_motion(*this, coeff); }
 
             Math::Real get_total_mass() const { return total_mass; }
             const Math::Vector & get_center_of_mass() const { return center_of_mass; }
             const Math::Matrix & get_inertia_tensor() const { return inertia_tensor; }
-            const Math::Vector & get_linear_velocity() const { return linear_velocity; }
-            const Math::Vector & get_angular_velocity() const { return angular_velocity; }
+            virtual /*override*/ const Math::Vector & get_position() const { return get_center_of_mass(); }
+            virtual /*override*/ const Math::Vector & get_linear_velocity() const { return linear_velocity; }
+            virtual /*override*/ const Math::Vector & get_angular_velocity() const { return angular_velocity; }
             const Math::Vector & get_linear_velocity_addition() const { return linear_velocity_addition; }
             const Math::Vector & get_angular_velocity_addition() const { return angular_velocity_addition; }
         };

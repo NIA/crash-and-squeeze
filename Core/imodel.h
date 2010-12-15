@@ -10,8 +10,8 @@ namespace CrashAndSqueeze
         {
         public:
             virtual int get_vertices_num() const = 0;
-            virtual const Math::Vector & get_vertex_equilibrium_pos(int index) const = 0;
-            virtual const Math::Vector & get_vertex_initial_pos(int index) const = 0;
+            virtual Math::Vector get_vertex_equilibrium_pos(int index) const = 0;
+            virtual Math::Vector get_vertex_initial_pos(int index) const = 0;
         };
     }
 }

@@ -211,6 +211,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ibody.h"
+				>
+			</File>
+			<File
 				RelativePath=".\imodel.h"
 				>
 			</File>

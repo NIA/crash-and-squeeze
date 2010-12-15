@@ -7,6 +7,7 @@
 #include "Core/reactions.h"
 #include "Core/body.h"
 #include "Core/regions.h"
+#include "Core/rigid_body.h"
 #include "Math/floating_point.h"
 #include "Math/Vector.h"
 #include "Math/Matrix.h"
@@ -24,7 +25,7 @@ namespace CrashAndSqueeze
             Collections::Array<PhysicalVertex> vertices;
             Collections::Array<Cluster> clusters;
 
-            Collections::Array<PhysicalVertex> initial_vertices;
+            Collections::Array<Math::Vector> initial_positions;
 
             Collections::Array<ShapeDeformationReaction *> shape_deform_reactions;
             Collections::Array<RegionReaction *> region_reactions;
@@ -61,10 +62,10 @@ namespace CrashAndSqueeze
 
             // entire model as a body
             Body *body;
-            // initial state of model
-            Body *initial_state;
             // rigid frame
             Body *frame;
+            // initial state of model: it is moving because the frame is not moving
+            RigidBody initial_state;
 
             // used by Model::hit: here placed are indices of the found vertices (which are inside the given region)
             IndexArray hit_vertices_indices;
@@ -72,9 +73,8 @@ namespace CrashAndSqueeze
             // -- step computation steps --
             bool correct_velocity_additions();
 
-            typedef const Math::Vector & (PhysicalVertex::*PositionFunc)() const;
-            static void update_any_vertices(Collections::Array<PhysicalVertex> &src_vertices, PositionFunc pos_func,
-                                           /*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
+            typedef Math::Vector (Model::*PositionFunc)(int index) const;
+            void update_any_positions(PositionFunc pos_func, /*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
 
             // TODO: DisplayVertex display_vertices; int display_vertices_num;
         public:
@@ -130,8 +130,10 @@ namespace CrashAndSqueeze
             
             // -- Implement IModel --
 
-            virtual const Math::Vector & get_vertex_equilibrium_pos(int index) const { return vertices[index].get_equilibrium_pos(); }
-            virtual const Math::Vector & get_vertex_initial_pos(int index) const { return initial_vertices[index].get_pos(); }
+            virtual Math::Vector get_vertex_equilibrium_pos(int index) const { return vertices[index].get_equilibrium_pos(); }
+            virtual Math::Vector get_vertex_initial_pos(int index) const;
+            
+            Math::Vector get_vertex_current_pos(int index) const { return vertices[index].get_pos(); }
 
             virtual ~Model();
 
