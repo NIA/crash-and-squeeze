@@ -138,6 +138,24 @@ TEST_F(MatrixTest, AddWrite)
     EXPECT_EQ( old - 155, m1.get_at(1,1) );
 }
 
+TEST_F(MatrixTest, GetRow)
+{
+    Vector row1(m1.get_at(1,0), m1.get_at(1,1), m1.get_at(1,2));
+    Vector row2(m1.get_at(2,0), m1.get_at(2,1), m1.get_at(2,2));
+    
+    EXPECT_EQ(row1, m1.get_row(1));
+    EXPECT_EQ(row2, m1.get_row(2));
+}
+
+TEST_F(MatrixTest, GetColumn)
+{
+    Vector col0(m1.get_at(0,0), m1.get_at(1,0), m1.get_at(2,0));
+    Vector col2(m1.get_at(0,2), m1.get_at(1,2), m1.get_at(2,2));
+    
+    EXPECT_EQ(col0, m1.get_column(0));
+    EXPECT_EQ(col2, m1.get_column(2));
+}
+
 TEST_F(MatrixTest, ConstructFromVectorMultiply)
 {
     const Real values[MATRIX_ELEMENTS_NUM] =

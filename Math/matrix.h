@@ -33,10 +33,10 @@ namespace CrashAndSqueeze
                 return true;
             }
 
-            int element_index(int line, int column) const
+            int element_index(int row, int column) const
             {
-                if(check_index(line) || check_index(column))
-                    return VECTOR_SIZE*line + column;
+                if(check_index(row) || check_index(column))
+                    return VECTOR_SIZE*row + column;
                 else
                     return 0;
             }
@@ -57,23 +57,25 @@ namespace CrashAndSqueeze
             // -- getters/setters --
 
             // indices in matrix: 0,0 to 2,2
-            Real Matrix::get_at(int line, int column) const
+            Real Matrix::get_at(int row, int column) const
             {
-                return values[ element_index(line, column) ];
+                return values[ element_index(row, column) ];
             }
             
             // indices in matrix: 0,0 to 2,2
-            void Matrix::set_at(int line, int column, Real value)
+            void Matrix::set_at(int row, int column, Real value)
             {
-                values[ element_index(line, column) ] = value;
+                values[ element_index(row, column) ] = value;
             }
 
             // indices in matrix: 0,0 to 2,2
-            void Matrix::add_at(int line, int column, Real value)
+            void Matrix::add_at(int row, int column, Real value)
             {
-                values[ element_index(line, column) ] += value;
+                values[ element_index(row, column) ] += value;
             }
 
+            Vector get_row(int row) const;
+            Vector get_column(int column) const;
 
             // -- assignment operators --
 

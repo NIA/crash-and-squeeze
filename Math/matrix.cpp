@@ -27,6 +27,26 @@ namespace CrashAndSqueeze
                     set_at(i, j, left_vector[i]*right_vector[j]);
         }
         
+        // -- getters/setters --
+
+        Vector Matrix::get_row(int row) const
+        {
+            Vector result;
+            for(int j = 0; j < VECTOR_SIZE; ++j)
+                result[j] = get_at(row, j);
+
+            return result;
+        }
+
+        Vector Matrix::get_column(int column) const
+        {
+            Vector result;
+            for(int i = 0; i < VECTOR_SIZE; ++i)
+                result[i] = get_at(i, column);
+
+            return result;
+        }
+
         // -- assignment operators --
 
         Matrix & Matrix::assigment_operation(const Matrix &another, Operation operation)
