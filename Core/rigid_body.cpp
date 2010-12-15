@@ -10,20 +10,13 @@ namespace CrashAndSqueeze
 
     namespace Core
     {
-        RigidBody::RigidBody(const Vector & position, const Vector & rotation,
-                  const Vector & velocity, const Vector & angular_velocity)
+        RigidBody::RigidBody(const Vector & position, const Matrix & orientation,
+                             const Vector & velocity, const Vector & angular_velocity)
             : position(position),
+              orientation(orientation),
               velocity(velocity),
               angular_velocity(angular_velocity)
-        {
-            set_rotation(rotation);
-        }
-
-        void RigidBody::set_rotation(const Vector & value)
-        {
-            rotation = value;
-            rotation_matrix_outdated = true;
-        }
+        {}
         
         void RigidBody::integrate(Real dt, const Vector & acceleration, const Vector & angular_acceleration)
         {
@@ -31,47 +24,51 @@ namespace CrashAndSqueeze
             angular_velocity += angular_acceleration*dt;
 
             position += velocity*dt;
-            set_rotation(rotation + angular_velocity*dt);
+            orientation += cross_product_matrix(angular_velocity*dt)*orientation;
         }
 
-        void RigidBody::recompute_rotation_matrix()
+        Matrix RigidBody::cross_product_matrix(Vector v)
         {
-            const Real x_angle = rotation[0];
-            const Real y_angle = rotation[1];
-            const Real z_angle = rotation[2];
-
-            const Real x_values[MATRIX_ELEMENTS_NUM] = 
+            const Real values[MATRIX_ELEMENTS_NUM] =
             {
-                1,            0,             0,
-                0, cos(x_angle), -sin(x_angle),
-                0, sin(x_angle),  cos(x_angle),
+                    0, -v[2],  v[1],
+                 v[2],     0, -v[0],
+                -v[1],  v[0],     0,
             };
-
-            const Real y_values[MATRIX_ELEMENTS_NUM] = 
-            {
-                 cos(y_angle), 0, sin(y_angle),
-                            0, 1,            0,
-                -sin(y_angle), 0, cos(y_angle),
-            };
-
-            const Real z_values[MATRIX_ELEMENTS_NUM] = 
-            {
-                cos(z_angle), -sin(z_angle), 0, 
-                sin(z_angle),  cos(z_angle), 0, 
-                           0,             0, 1, 
-            };
-            
-            rotation_matrix = Matrix(z_values)*Matrix(y_values)*Matrix(x_values);
+            return Matrix(values);
         }
 
-        const Matrix & RigidBody::get_rotation_matrix()
+        Matrix RigidBody::x_rotation_matrix(Real angle)
         {
-            if(rotation_matrix_outdated)
+            const Real values[MATRIX_ELEMENTS_NUM] = 
             {
-                recompute_rotation_matrix();
-                rotation_matrix_outdated = false;
-            }
-            return rotation_matrix;
+                1,          0,           0,
+                0, cos(angle), -sin(angle),
+                0, sin(angle),  cos(angle),
+            };
+            return Matrix(values);
+        }
+
+        Matrix RigidBody::y_rotation_matrix(Real angle)
+        {
+            const Real values[MATRIX_ELEMENTS_NUM] = 
+            {
+                 cos(angle), 0, sin(angle),
+                          0, 1,          0,
+                -sin(angle), 0, cos(angle),
+            };
+            return Matrix(values);
+        }
+
+        Matrix RigidBody::z_rotation_matrix(Real angle)
+        {
+            const Real values[MATRIX_ELEMENTS_NUM] = 
+            {
+                cos(angle), -sin(angle), 0, 
+                sin(angle),  cos(angle), 0, 
+                         0,           0, 1, 
+            };
+            return Matrix(values);
         }
     }
 }

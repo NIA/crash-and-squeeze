@@ -12,25 +12,18 @@ namespace CrashAndSqueeze
         {
         private:
             Math::Vector position;
-            Math::Vector rotation;
+            Math::Matrix orientation;
             Math::Vector velocity;
             Math::Vector angular_velocity;
 
-            Math::Matrix rotation_matrix;
-
-            bool rotation_matrix_outdated;
-            void recompute_rotation_matrix();
-
-            void set_rotation(const Math::Vector & value);
-
         public:
             RigidBody(const Math::Vector & position,
-                      const Math::Vector & rotation,
+                      const Math::Matrix & orientation = Math::Matrix::IDENTITY,
                       const Math::Vector & velocity = Math::Vector::ZERO,
                       const Math::Vector & angular_velocity = Math::Vector::ZERO);
 
             const Math::Vector & get_position() const { return position; }
-            const Math::Vector & get_rotation() const { return rotation; }
+            const Math::Matrix & get_orientation() const { return orientation; }
             const Math::Vector & get_velocity() const { return velocity; }
             const Math::Vector & get_angular_velocity() const { return angular_velocity; }
 
@@ -41,7 +34,14 @@ namespace CrashAndSqueeze
                            const Math::Vector & acceleration = Math::Vector::ZERO,
                            const Math::Vector & angular_acceleration = Math::Vector::ZERO);
 
-            const Math::Matrix & get_rotation_matrix();
+            // static helpers for matrices
+            static Math::Matrix x_rotation_matrix(Math::Real angle);
+            static Math::Matrix y_rotation_matrix(Math::Real angle);
+            static Math::Matrix z_rotation_matrix(Math::Real angle);
+
+            // for vector V returns such matrix A that for each vector U
+            // A*U == cross_product(V, U)
+            static Math::Matrix cross_product_matrix(Math::Vector v);
         };
     }
 }
