@@ -19,9 +19,11 @@ namespace CrashAndSqueeze
             
             // initial position of vertex measured off
             // the cluster's center of mass
-            Math::Vector initial_offset_position;
+            Math::Vector initial_offset_pos;
             // position in deformed shape (plasticity_state*initial_offset_position)
-            Math::Vector equilibrium_offset_position;
+            Math::Vector equilibrium_offset_pos;
+            // position in model coordinates
+            Math::Vector equilibrium_pos;
         };
 
         class Cluster
@@ -115,8 +117,8 @@ namespace CrashAndSqueeze
             // updates plasticity_state due to deformation applied
             void update_plasticity_state(Math::Real dt);
             
-            // is called after updating plasticity_state
-            void update_equilibrium_positions();
+            // updates equilibrium position offsets (if plasticity_state changed) and equilibrium positions
+            void update_equilibrium_positions(bool plasticity_state_changed);
 
             // is called after updating plasticity_state
             void update_equilibrium_positions(Math::Real dt);
@@ -148,7 +150,7 @@ namespace CrashAndSqueeze
             // returns equilibrium position of vertex
             // (measured off the initial center of mass of the cluster)
             // taking into account plasticity_state
-            const Math::Vector & get_equilibrium_position(int index) const;
+            const Math::Vector & get_equilibrium_offset_pos(int index) const;
 
             Math::Real get_total_mass() const { return total_mass; }
 

@@ -92,8 +92,9 @@ namespace CrashAndSqueeze
             {
                 PhysicalVertex &v = get_vertex(i);
                 
-                vertex_infos[i].initial_offset_position = v.get_pos() - initial_center_of_mass;
-                vertex_infos[i].equilibrium_offset_position = vertex_infos[i].initial_offset_position;
+                vertex_infos[i].initial_offset_pos = v.get_pos() - initial_center_of_mass;
+                vertex_infos[i].equilibrium_offset_pos = vertex_infos[i].initial_offset_pos;
+                vertex_infos[i].equilibrium_pos = center_of_mass + vertex_infos[i].equilibrium_offset_pos;
             }
             
             initial_characteristics_computed = true;
@@ -108,6 +109,7 @@ namespace CrashAndSqueeze
 
             update_center_of_mass();
             compute_transformations();
+            update_equilibrium_positions(false);
             apply_goal_positions(dt);
             update_plasticity_state(dt);
         }
@@ -125,15 +127,22 @@ namespace CrashAndSqueeze
                 }
             }
         }
-        void Cluster::update_equilibrium_positions()
+
+        void Cluster::update_equilibrium_positions(bool plasticity_state_changed)
         {
             for(int i = 0; i < get_vertices_num(); ++i)
             {
-                Vector new_pos = plasticity_state * vertex_infos[i].initial_offset_position;
-                Vector & equilibrium_pos = vertex_infos[i].equilibrium_offset_position;
+                Vector & equil_offset_pos = vertex_infos[i].equilibrium_offset_pos;
+                Vector & equil_pos        = vertex_infos[i].equilibrium_pos;
+                if(plasticity_state_changed)
+                {
+                    equil_offset_pos = plasticity_state * vertex_infos[i].initial_offset_pos;
+                }
 
-                get_vertex(i).change_equilibrium_pos(new_pos - equilibrium_pos);
-                equilibrium_pos = new_pos;
+                Vector new_equil_pos = center_of_mass + rotation * equil_offset_pos;
+
+                get_vertex(i).change_equilibrium_pos(new_equil_pos - equil_pos);
+                equil_pos = new_equil_pos;
             }
         }
 
@@ -144,7 +153,7 @@ namespace CrashAndSqueeze
             {
                 PhysicalVertex &v = get_vertex(i);
 
-                asymmetric_term += v.get_mass()*Matrix( v.get_pos() - center_of_mass, get_equilibrium_position(i) );
+                asymmetric_term += v.get_mass()*Matrix( v.get_pos() - center_of_mass, get_equilibrium_offset_pos(i) );
             }
         }
 
@@ -154,7 +163,7 @@ namespace CrashAndSqueeze
             for(int i = 0; i < get_vertices_num(); ++i)
             {
                 PhysicalVertex &v = get_vertex(i);
-                Vector equilibrium_pos = get_equilibrium_position(i);
+                Vector equilibrium_pos = get_equilibrium_offset_pos(i);
 
                 symmetric_term += v.get_mass()*Matrix( equilibrium_pos, equilibrium_pos );
             }
@@ -214,7 +223,7 @@ namespace CrashAndSqueeze
             for(int i = 0; i < get_vertices_num(); ++i)
             {
                 PhysicalVertex &vertex = get_vertex(i);
-                Vector equilibrium_pos = get_equilibrium_position(i);
+                Vector equilibrium_pos = get_equilibrium_offset_pos(i);
                 
                 Vector goal_position = total_deformation*equilibrium_pos + center_of_mass;
                 
@@ -253,7 +262,7 @@ namespace CrashAndSqueeze
                     {
                         plasticity_state = new_plasticity_state;
                         plastic_deformation_measure = new_plastic_deform_measure;
-                        update_equilibrium_positions();
+                        update_equilibrium_positions(true);
                         compute_symmetric_term();
                     }
                 }
@@ -289,10 +298,10 @@ namespace CrashAndSqueeze
         // returns equilibrium position of vertex
         // (measured off the center of mass of the cluster)
         // taking into account plasticity_state
-        const Vector & Cluster::get_equilibrium_position(int index) const
+        const Vector & Cluster::get_equilibrium_offset_pos(int index) const
         {
             check_initial_characteristics();
-            return vertex_infos[index].equilibrium_offset_position;
+            return vertex_infos[index].equilibrium_offset_pos;
         }
 
         Cluster::~Cluster()
