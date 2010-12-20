@@ -185,6 +185,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\shape_matcher.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\vertex_info.cpp"
 				>
 			</File>
@@ -236,6 +240,10 @@
 			</File>
 			<File
 				RelativePath=".\rigid_body.h"
+				>
+			</File>
+			<File
+				RelativePath=".\shape_matcher.h"
 				>
 			</File>
 			<File

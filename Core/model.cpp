@@ -317,7 +317,7 @@ namespace CrashAndSqueeze
             // -- For each cluster of model: do shape matching --
             for(int i = 0; i < clusters.size(); ++i)
             {
-                clusters[i].match_shape(dt);
+                clusters[i].compute_correction(dt);
             }
             
             // Re-compute properties (due to changed positions of vertices)

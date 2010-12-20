@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/core.h"
 #include "Core/physical_vertex.h"
+#include "Core/shape_matcher.h"
 #include "Math/vector.h"
 #include "Math/matrix.h"
 #include "Collections/array.h"
@@ -9,43 +10,13 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
-        // An internal struct defining a membership of vertex in cluster
-        struct PhysicalVertexMappingInfo
-        {
-            // index in model's vertex array
-            PhysicalVertex *vertex;
-
-            // TODO: thread-safe cluster addition: Math::Vector velocity_additions[MAX_CLUSTERS_FOR_VERTEX]
-            
-            // initial position of vertex measured off
-            // the cluster's center of mass
-            Math::Vector initial_offset_pos;
-            // position in deformed shape (plasticity_state*initial_offset_position)
-            Math::Vector equilibrium_offset_pos;
-            // position in model coordinates
-            Math::Vector equilibrium_pos;
-        };
-
         class Cluster
         {
         private:
-            // -- constant (at run-time) fields --
+            ShapeMatcher shape_matcher;
             
-            // array of vertices belonging to the cluster
-            Collections::Array<PhysicalVertexMappingInfo> vertex_infos;
+            // -- parameters --
 
-            // initial center of mass of vertices
-            Math::Vector initial_center_of_mass;
-
-            Math::Real total_mass;
-
-            bool initial_characteristics_computed;
-            bool valid;
-
-            // pos and size define the space occupied by the cluster
-            Math::Vector pos;
-            Math::Vector size;
-            
             // a constant, determining how fast points are pulled to
             // their position, i.e. how rigid the body is:
             // 0 means no constraint at all, 1 means absolutely rigid
@@ -72,44 +43,12 @@ namespace CrashAndSqueeze
 
             // -- variable (at run-time) fields --
 
-            // center of mass of vertices
-            Math::Vector center_of_mass;
             // plastic deformation applied to initial shape
             Math::Matrix plasticity_state;
             // measure of plasticity_state
             Math::Real plastic_deformation_measure;
-            // optimal linear transformation satisfying shape matching (A)
-            Math::Matrix linear_transformation;
-            // first (asymmetric) term of linear_transformation (Apq)
-            Math::Matrix asymmetric_term;
-            // second (symmetric) term of linear_transformation (Aqq)
-            Math::Matrix symmetric_term;
-            // rotational part of linear_transformation (R)
-            Math::Matrix rotation;
-            // symmetric part of linear_transformation (S)
-            Math::Matrix scale;
-            // total deformation used in goal positions calculation (interpolated from R and A)
+            // total deformation used in goal positions calculation (interpolated from optimal rotation and optimal linear transformation)
             Math::Matrix total_deformation;
-            
-            // -- access helpers --
-            bool check_initial_characteristics() const;
-            
-            // -- shape matching steps --
-            
-            // re-computes center of mass
-            void update_center_of_mass();
-            
-            // computes required transformations
-            void compute_transformations();
-            
-            // computes linear_transformation
-            void compute_linear_transformation();
-            
-            // computes asymmetric_term (each step)
-            void compute_asymmetric_term();
-            
-            // computes symmetric_term (only after plasticity state changed)
-            void compute_symmetric_term();
             
             // computes goal positions and applies corrections to velocities of vertices
             void apply_goal_positions(Math::Real dt);
@@ -119,53 +58,39 @@ namespace CrashAndSqueeze
             
             // updates equilibrium position offsets (if plasticity_state changed) and equilibrium positions
             void update_equilibrium_positions(bool plasticity_state_changed);
-
-            // is called after updating plasticity_state
-            void update_equilibrium_positions(Math::Real dt);
         
         public:
             Cluster();
-            virtual ~Cluster();
             
             // -- methods --
 
-            void add_vertex(PhysicalVertex &vertex);
+            void add_vertex(PhysicalVertex &vertex) { shape_matcher.add_vertex(vertex); }
 
             // this must be called after last vertex is added
-            void compute_initial_characteristics();
+            void compute_initial_characteristics() { shape_matcher.compute_initial_characteristics(); }
 
-            bool is_valid() const { return valid; }
+            bool is_valid() const { return shape_matcher.is_valid(); }
 
-            void match_shape(Math::Real dt);
+            void compute_correction(Math::Real dt);
 
             // -- getters/setters --
 
-            int get_vertices_num() const { return vertex_infos.size(); }
+            int get_vertices_num() const { return shape_matcher.get_vertices_num(); }
 
-            PhysicalVertex & get_vertex(int index);
-            const PhysicalVertex & get_vertex(int index) const;
-
-            const Math::Vector & get_initial_center_of_mass() const;
-
-            // returns equilibrium position of vertex
-            // (measured off the initial center of mass of the cluster)
-            // taking into account plasticity_state
-            const Math::Vector & get_equilibrium_offset_pos(int index) const;
-
-            Math::Real get_total_mass() const { return total_mass; }
+            PhysicalVertex & get_vertex(int index) { return shape_matcher.get_vertex(index); }
+            const PhysicalVertex & get_vertex(int index) const { return shape_matcher.get_vertex(index); }
 
             Math::Real get_goal_speed_constant() const { return goal_speed_constant; }
             Math::Real get_linear_elasticity_constant() const { return linear_elasticity_constant; }
             Math::Real get_yield_constant() const { return yield_constant; }
             Math::Real get_creep_constant() const { return creep_constant; }
 
-            const Math::Vector & get_center_of_mass() const { return center_of_mass; }
-            const Math::Matrix & get_rotation() const { return rotation; }
+            const Math::Vector & get_center_of_mass() const { return shape_matcher.get_center_of_mass(); }
+            const Math::Matrix & get_rotation() const { return shape_matcher.get_rotation(); }
+            const Math::Matrix & get_linear_transformation() const { return shape_matcher.get_linear_transformation(); }
             const Math::Matrix & get_total_deformation() const { return total_deformation; }
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
             Math::Real get_relative_plastic_deformation() const;
-
-            static const int INITIAL_ALLOCATED_VERTICES_NUM = 100;
 
             static const Math::Real DEFAULT_GOAL_SPEED_CONSTANT;
             static const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT;
