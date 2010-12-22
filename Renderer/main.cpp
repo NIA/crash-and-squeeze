@@ -13,6 +13,7 @@ using CrashAndSqueeze::Core::ForcesArray;
 using CrashAndSqueeze::Core::PlaneForce;
 using CrashAndSqueeze::Core::SphericalRegion;
 using CrashAndSqueeze::Core::ShapeDeformationReaction;
+using CrashAndSqueeze::Core::HitReaction;
 using CrashAndSqueeze::Math::Vector;
 using CrashAndSqueeze::Math::Real;
 using CrashAndSqueeze::Core::IndexArray;
@@ -113,6 +114,24 @@ namespace
             model.repaint_vertices(get_shape_vertex_indices(), MEDIUM_DEFORM_COLOR);
             one_vertex[0] = vertex_index;
             model.repaint_vertices(one_vertex, MAX_DEFORM_COLOR);
+        }
+    };
+
+    class MessageBoxReaction : public HitReaction
+    {
+    private:
+        const TCHAR * message;
+
+    public:
+        MessageBoxReaction(const IndexArray & shape_vertex_indices, Real velocity_threshold, const TCHAR * message)
+            : HitReaction(shape_vertex_indices, velocity_threshold), message(message) {}
+
+        virtual void invoke(int vertex_index, const Vector &velocity)
+        {
+            UNREFERENCED_PARAMETER(vertex_index);
+            UNREFERENCED_PARAMETER(velocity);
+            MessageBox(NULL, message, _T("Hit Reaction"), MB_OK | MB_ICONINFORMATION);
+            this->disable();
         }
     };
 }
@@ -261,6 +280,15 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                 ++subshape_index;
             }
         }
+
+        IndexArray hit_point(1);
+        hit_point.push_back(390); // oops, hard-coded...
+        
+        MessageBoxReaction weak_hit_reaction(hit_point, 1, _T("Weak hit occured!"));
+        MessageBoxReaction strong_hit_reaction(hit_point, 100, _T("[!BUG!] Strong hit occured!"));
+
+        phys_mod->add_hit_reaction(weak_hit_reaction);
+        phys_mod->add_hit_reaction(strong_hit_reaction);
 
         // -------------------------- F o r c e s -----------------------
         ForcesArray forces;

@@ -9,6 +9,9 @@ namespace CrashAndSqueeze
     {
         void ShapeDeformationReaction::invoke_if_needed(const IModel &model)
         {
+            if( ! is_enabled() )
+                return;
+
             Real max_distance = 0;
             int max_distance_vertex_index = 0;
             for(int i = 0; i < shape_vertex_indices.size(); ++i)
@@ -33,6 +36,9 @@ namespace CrashAndSqueeze
 
         void RegionReaction::invoke_if_needed(const IModel &model)
         {
+            if( ! is_enabled() )
+                return;
+
             for(int i = 0; i < shape_vertex_indices.size(); ++i)
             {
                 int vertex_index = shape_vertex_indices[i];
@@ -51,7 +57,7 @@ namespace CrashAndSqueeze
         void HitReaction::invoke_if_needed(const IndexArray & hit_vertices,
                                            const Math::Vector &hit_velocity)
         {
-            if(hit_velocity.norm() < velocity_threshold)
+            if( ! is_enabled() || hit_velocity.norm() < velocity_threshold )
                 return;
 
             for(int i = 0; i < hit_vertices.size(); ++i)

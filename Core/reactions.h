@@ -8,6 +8,18 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
+        class Enabled
+        {
+        private:
+            bool enabled;
+        public:
+            Enabled() : enabled(true) {}
+
+            bool is_enabled() { return enabled; }
+            void enable() { enabled = true; }
+            void disable() { enabled = false; }
+        };
+
         // An abstract reaction to shape deformation: is invoked when at least one
         // vertex of the shape goes farther than `threshold_distance' from its initial position.
         // The shape is defined by an array of indices of vertices that form the shape.
@@ -18,7 +30,7 @@ namespace CrashAndSqueeze
         //
         // If two or more vertices from shape exceed threshold distance, the index
         // of vertex with the greatest distance is passed to invoke().
-        class ShapeDeformationReaction
+        class ShapeDeformationReaction : public Enabled
         {
         private:
             const IndexArray & shape_vertex_indices;
@@ -49,7 +61,7 @@ namespace CrashAndSqueeze
         // To implement your own reaction, inherit your class from this
         // and override invoke(), then pass an instance of your class
         // to Model::add_region_reaction.
-        class RegionReaction
+        class RegionReaction : public Enabled
         {
         private:
             const IndexArray & shape_vertex_indices;
@@ -74,8 +86,14 @@ namespace CrashAndSqueeze
             RegionReaction & operator=(const RegionReaction &);
         };
 
-        // TODO: document this
-        class HitReaction
+        // An abstract reaction to hitting model: is invoked when at least one
+        // vertex of the shape is affected by hit.
+        // The shape is defined by an array of indices of vertices that form the shape.
+        //
+        // To implement your own reaction, inherit your class from this
+        // and override invoke(), then pass an instance of your class
+        // to Model::add_hit_reaction.
+        class HitReaction : public Enabled
         {
         private:
             const IndexArray & shape_vertex_indices;
