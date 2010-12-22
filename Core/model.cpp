@@ -32,6 +32,13 @@ namespace CrashAndSqueeze
             {
                 return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
             }
+
+            template<class T>
+            inline void make_fixed_size(Collections::Array<T> &arr, int size)
+            {
+                arr.create_items(size);
+                arr.freeze();
+            }
         }
 
         // a constant, determining how much deformation velocities are damped:
@@ -47,6 +54,7 @@ namespace CrashAndSqueeze
                       const MassFloat constant_mass)
             : vertices(vertices_num),
               initial_positions(vertices_num),
+              relative_initial_positions(vertices_num),
 
               cluster_padding_coeff(cluster_padding_coeff),
 
@@ -63,11 +71,9 @@ namespace CrashAndSqueeze
             // -- Finish initialization of arrays --
             // -- (create enought items and freeze or just forbid reallocations) --
             
-            vertices.create_items(vertices_num);
-            vertices.freeze();
-
-            initial_positions.create_items(vertices_num);
-            initial_positions.freeze();
+            make_fixed_size(vertices, vertices_num);
+            make_fixed_size(initial_positions, vertices_num);
+            make_fixed_size(relative_initial_positions, vertices_num);
 
             hit_vertices_indices.forbid_reallocation(vertices.size());
 
@@ -255,7 +261,10 @@ namespace CrashAndSqueeze
         
         Vector Model::get_vertex_initial_pos(int index) const
         {
-            return initial_state.get_orientation() * initial_positions[index];
+            if(NULL == frame)
+                return initial_positions[index];
+            else
+                return frame_shape.get_center_of_mass() + frame_shape.get_rotation() * relative_initial_positions[index];
         }
         
         void Model::set_frame(const IndexArray &frame_indices)
@@ -263,6 +272,19 @@ namespace CrashAndSqueeze
             delete frame;
             frame = new Body(vertices, frame_indices);
             frame->compute_properties();
+
+            for(int i = 0; i < vertices.size(); ++i)
+            {
+                relative_initial_positions[i] = initial_positions[i] - frame->get_center_of_mass();
+            }
+
+            frame_shape.reset();
+            for(int i = 0; i < frame_indices.size(); ++i)
+            {
+                PhysicalVertex & v = vertices[ frame_indices[i] ];
+                frame_shape.add_vertex(v);
+            }
+            frame_shape.compute_initial_characteristics();
         }
 
         void Model::hit(const IRegion &region, const Vector & velocity)
@@ -374,16 +396,9 @@ namespace CrashAndSqueeze
 
             if( NULL != frame )
             {
-                // -- If there is the frame, initial_state should repeat its motion so that frame position cannot change
+                // -- If there is the frame, initial_state should repeat its motion so that frame relative position could not change
 
-                // Re-compute frame velocities, changed after the call of body->compensate_velocities
-                if( false == frame->compute_properties() )
-                    return false;
-                if( false == frame->compute_velocities() )
-                    return false;
-
-                initial_state.set_motion(*frame);
-                initial_state.integrate(dt);
+                frame_shape.match_shape();
             }
             
             // -- Invoke reactions if needed --

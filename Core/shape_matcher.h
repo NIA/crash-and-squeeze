@@ -82,6 +82,9 @@ namespace CrashAndSqueeze
             
             // -- methods --
 
+            // reset to initial, empty state
+            void reset();
+
             void add_vertex(PhysicalVertex &vertex);
 
             // this must be called after last vertex is added

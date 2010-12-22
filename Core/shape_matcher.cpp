@@ -15,15 +15,21 @@ namespace CrashAndSqueeze
     namespace Core
     {
         ShapeMatcher::ShapeMatcher()
-            : vertex_infos(INITIAL_ALLOCATED_VERTICES_NUM),
-              
-              initial_characteristics_computed(true),
-              valid(false),              
-
-              total_mass(0),
-              center_of_mass(Vector::ZERO),
-              rotation(Matrix::IDENTITY)
+            : vertex_infos(INITIAL_ALLOCATED_VERTICES_NUM)
         {
+            reset();
+        }
+
+        void ShapeMatcher::reset()
+        {
+            vertex_infos.clear();
+            
+            total_mass = 0;
+            center_of_mass = Vector::ZERO;
+            rotation = Matrix::IDENTITY;
+
+            initial_characteristics_computed = true;
+            valid = false;
         }
 
         void ShapeMatcher::add_vertex(PhysicalVertex &vertex)
@@ -33,9 +39,6 @@ namespace CrashAndSqueeze
 
             // add new vertex
             vertex_infos.create_item().vertex = &vertex;
-
-            // increment vertex's cluster counter
-            vertex.include_to_one_more_cluster();
 
             // invalidate initial characteristics
             initial_characteristics_computed = false;

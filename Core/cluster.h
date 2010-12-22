@@ -64,7 +64,7 @@ namespace CrashAndSqueeze
             
             // -- methods --
 
-            void add_vertex(PhysicalVertex &vertex) { shape_matcher.add_vertex(vertex); }
+            void add_vertex(PhysicalVertex &vertex);
 
             // this must be called after last vertex is added
             void compute_initial_characteristics() { shape_matcher.compute_initial_characteristics(); }

@@ -53,6 +53,15 @@ namespace CrashAndSqueeze
         {
         }
 
+
+        void Cluster::add_vertex(PhysicalVertex &vertex)
+        {
+            shape_matcher.add_vertex(vertex);
+
+            // increment vertex's cluster counter
+            vertex.include_to_one_more_cluster();
+        }
+
         void Cluster::compute_correction(Real dt)
         {
             if(0 == get_vertices_num())

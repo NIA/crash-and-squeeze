@@ -25,11 +25,16 @@ namespace CrashAndSqueeze
             Collections::Array<PhysicalVertex> vertices;
             Collections::Array<Cluster> clusters;
 
+            // initial state of model
             Collections::Array<Math::Vector> initial_positions;
+            // positions of initial state relative to the center of frame
+            Collections::Array<Math::Vector> relative_initial_positions;
 
             Collections::Array<ShapeDeformationReaction *> shape_deform_reactions;
             Collections::Array<RegionReaction *> region_reactions;
             Collections::Array<HitReaction *> hit_reactions;
+
+            ShapeMatcher frame_shape;
 
             // -- fields used in initialization --
             int clusters_by_axes[Math::VECTOR_SIZE];
@@ -64,8 +69,6 @@ namespace CrashAndSqueeze
             Body *body;
             // rigid frame
             Body *frame;
-            // initial state of model: it is moving because the frame is not moving
-            RigidBody initial_state;
 
             // used by Model::hit: here placed are indices of the found vertices (which are inside the given region)
             IndexArray hit_vertices_indices;

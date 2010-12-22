@@ -224,6 +224,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         const Index CYLINDER_VERTICES_PER_SIDE = CYLINDER_EDGES_PER_BASE*CYLINDER_EDGES_PER_HEIGHT;
         add_range(frame, CYLINDER_VERTICES_PER_SIDE/4, CYLINDER_VERTICES_PER_SIDE*3/4, CYLINDER_EDGES_PER_BASE); // vertical line layer
         add_range(frame, CYLINDER_VERTICES_PER_SIDE/4 + 1, CYLINDER_VERTICES_PER_SIDE*3/4, CYLINDER_EDGES_PER_BASE); // vertical line layer
+        add_range(frame, CYLINDER_VERTICES_PER_SIDE/4 + 2, CYLINDER_VERTICES_PER_SIDE*3/4, CYLINDER_EDGES_PER_BASE); // vertical line layer
         phys_mod->set_frame(frame);
         cylinder_model.repaint_vertices(frame, FRAME_COLOR);
 
