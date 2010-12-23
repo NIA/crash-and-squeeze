@@ -259,7 +259,7 @@ namespace CrashAndSqueeze
         }
         Vector Model::get_vertex_equilibrium_pos(int index) const
         {
-            return initial_state.get_inverted_orientation() * (vertices[index].get_equilibrium_pos() - initial_state.get_position());
+            return relative_to_frame.get_orientation() * (vertices[index].get_equilibrium_pos() + relative_to_frame.get_position());
         }
         
         void Model::set_frame(const IndexArray &frame_indices)
@@ -378,7 +378,7 @@ namespace CrashAndSqueeze
 
             if( NULL != frame )
             {
-                // -- If there is the frame, initial_state should repeat its motion so that frame position cannot change
+                // -- If there is the frame, relative_to_frame should repeat its inverted motion --
 
                 // Re-compute frame velocities, changed after the call of body->compensate_velocities
                 if( false == frame->compute_properties() )
@@ -386,8 +386,9 @@ namespace CrashAndSqueeze
                 if( false == frame->compute_velocities() )
                     return false;
 
-                initial_state.set_motion(*frame);
-                initial_state.integrate(dt);
+                relative_to_frame.set_linear_velocity( - frame->get_linear_velocity() );
+                relative_to_frame.set_angular_velocity( - frame->get_angular_velocity() );
+                relative_to_frame.integrate(dt);
             }
             
             // -- Invoke reactions if needed --

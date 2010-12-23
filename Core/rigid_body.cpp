@@ -32,7 +32,6 @@ namespace CrashAndSqueeze
 
             position += linear_velocity*dt;
             orientation += cross_product_matrix(angular_velocity*dt)*orientation;
-            inverted_orientation = orientation.inverted();
         }
 
         Matrix RigidBody::cross_product_matrix(Vector v)

@@ -64,8 +64,8 @@ namespace CrashAndSqueeze
             Body *body;
             // rigid frame
             Body *frame;
-            // initial state of model: it is moving because the frame is not moving
-            RigidBody initial_state;
+            // describes motion of model relative to the frame (inverted motion of frame relative to model)
+            RigidBody relative_to_frame;
 
             // used by Model::hit: here placed are indices of the found vertices (which are inside the given region)
             IndexArray hit_vertices_indices;
