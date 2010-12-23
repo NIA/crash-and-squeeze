@@ -12,8 +12,11 @@ typedef ::CrashAndSqueeze::Logging::Logger PhysicsLogger;
 using CrashAndSqueeze::Core::ForcesArray;
 using CrashAndSqueeze::Core::PlaneForce;
 using CrashAndSqueeze::Core::SphericalRegion;
+using CrashAndSqueeze::Core::IRegion;
+using CrashAndSqueeze::Core::CylindricalRegion;
 using CrashAndSqueeze::Core::ShapeDeformationReaction;
 using CrashAndSqueeze::Core::HitReaction;
+using CrashAndSqueeze::Core::RegionReaction;
 using CrashAndSqueeze::Math::Vector;
 using CrashAndSqueeze::Math::Real;
 using CrashAndSqueeze::Core::IndexArray;
@@ -117,13 +120,13 @@ namespace
         }
     };
 
-    class MessageBoxReaction : public HitReaction
+    class MessageBoxHitReaction : public HitReaction
     {
     private:
         const TCHAR * message;
 
     public:
-        MessageBoxReaction(const IndexArray & shape_vertex_indices, Real velocity_threshold, const TCHAR * message)
+        MessageBoxHitReaction(const IndexArray & shape_vertex_indices, Real velocity_threshold, const TCHAR * message)
             : HitReaction(shape_vertex_indices, velocity_threshold), message(message) {}
 
         virtual void invoke(int vertex_index, const Vector &velocity)
@@ -131,6 +134,27 @@ namespace
             UNREFERENCED_PARAMETER(vertex_index);
             UNREFERENCED_PARAMETER(velocity);
             MessageBox(NULL, message, _T("Hit Reaction"), MB_OK | MB_ICONINFORMATION);
+            this->disable();
+        }
+    };
+
+    class MessageBoxRegionReaction : public RegionReaction
+    {
+    private:
+        const TCHAR * message;
+
+    public:
+        MessageBoxRegionReaction(const IndexArray & shape_vertex_indices,
+                                 const IRegion & region,
+                                 bool reaction_on_entering,
+                                 const TCHAR* message)
+            : RegionReaction(shape_vertex_indices, region, reaction_on_entering), message(message) {}
+        
+        virtual void invoke(int vertex_index)
+        {
+            UNREFERENCED_PARAMETER(vertex_index);
+
+            MessageBox(NULL, message, _T("Region Reaction"), MB_OK | MB_ICONINFORMATION);
             this->disable();
         }
     };
@@ -284,11 +308,23 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         IndexArray hit_point(1);
         hit_point.push_back(390); // oops, hard-coded...
         
-        MessageBoxReaction weak_hit_reaction(hit_point, 1, _T("Weak hit occured!"));
-        MessageBoxReaction strong_hit_reaction(hit_point, 100, _T("[!BUG!] Strong hit occured!"));
+        MessageBoxHitReaction weak_hit_reaction(hit_point, 1, _T("[All OK] Weak hit occured!"));
+        MessageBoxHitReaction strong_hit_reaction(hit_point, 100, _T("[!BUG!] Strong hit occured!"));
 
         phys_mod->add_hit_reaction(weak_hit_reaction);
         phys_mod->add_hit_reaction(strong_hit_reaction);
+
+        CylindricalRegion inside(Vector(0,0,cylinder_z+cylinder_height), Vector(0,0,cylinder_z), cylinder_radius - 0.1);
+        CylindricalRegion outside(Vector(0,0,cylinder_z+cylinder_height), Vector(0,0,cylinder_z), cylinder_radius + 0.012);
+
+        IndexArray shape;
+        add_range(shape, 9*CYLINDER_EDGES_PER_BASE, 10*CYLINDER_EDGES_PER_BASE);
+
+        MessageBoxRegionReaction inside_reaction(shape, inside, true, _T("[OK] Entered inside!"));
+        MessageBoxRegionReaction outside_reaction(shape, outside, false, _T("[OK] Left out!"));
+
+        phys_mod->add_region_reaction(inside_reaction);
+        phys_mod->add_region_reaction(outside_reaction);
 
         // -------------------------- F o r c e s -----------------------
         ForcesArray forces;
@@ -298,7 +334,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         app.set_forces(forces);
 
         SphericalRegion region( Vector(0,-cylinder_radius,cylinder_z*2/3), 0.1 );
-        app.set_impact( region, Vector(0,0.3,0.0) );
+        app.set_impact( region, Vector(0,45,0.0) );
         
         // -------------------------- G O ! ! ! -----------------------
         app.run();
