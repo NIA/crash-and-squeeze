@@ -14,6 +14,7 @@ namespace CrashAndSqueeze
         private:
             Math::Vector position;
             Math::Matrix orientation;
+            Math::Matrix inverted_orientation;
             Math::Vector linear_velocity;
             Math::Vector angular_velocity;
 
@@ -25,6 +26,7 @@ namespace CrashAndSqueeze
 
             virtual /*override*/ const Math::Vector & get_position() const { return position; }
             const Math::Matrix & get_orientation() const { return orientation; }
+            const Math::Matrix & get_inverted_orientation() const { return inverted_orientation; }
             virtual /*override*/ const Math::Vector & get_linear_velocity() const { return linear_velocity; }
             virtual /*override*/ const Math::Vector & get_angular_velocity() const { return angular_velocity; }
 

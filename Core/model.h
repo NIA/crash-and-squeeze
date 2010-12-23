@@ -130,7 +130,7 @@ namespace CrashAndSqueeze
             
             // -- Implement IModel --
 
-            virtual Math::Vector get_vertex_equilibrium_pos(int index) const { return vertices[index].get_equilibrium_pos(); }
+            virtual Math::Vector get_vertex_equilibrium_pos(int index) const;
             virtual Math::Vector get_vertex_initial_pos(int index) const;
             
             Math::Vector get_vertex_current_pos(int index) const { return vertices[index].get_pos(); }

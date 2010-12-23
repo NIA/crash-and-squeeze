@@ -255,7 +255,11 @@ namespace CrashAndSqueeze
         
         Vector Model::get_vertex_initial_pos(int index) const
         {
-            return initial_state.get_position() + initial_state.get_orientation() * initial_positions[index];
+            return initial_positions[index];
+        }
+        Vector Model::get_vertex_equilibrium_pos(int index) const
+        {
+            return initial_state.get_inverted_orientation() * (vertices[index].get_equilibrium_pos() - initial_state.get_position());
         }
         
         void Model::set_frame(const IndexArray &frame_indices)
