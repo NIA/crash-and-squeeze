@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/core.h"
 #include "Core/force.h"
+#include "Core/abstract_vertex.h"
 #include "Math/vector.h"
 #include "Collections/array.h"
 
@@ -8,31 +9,23 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
-        class PhysicalVertex
+        class PhysicalVertex : public AbstractVertex
         {
         private:
             // position of vertex in global coordinate system
             Math::Vector pos;
             Math::Real mass;
             Math::Vector velocity;
-            // Number of clusters which include current vertex
-            // TODO: needed only for ShapeDeformationReaction, might be removed when ShapeDeformationReaction removed
-            int including_clusters_num;
-            int nearest_cluster_index;
             // TODO: thread-safe cluster addition: velocity_additions[]...
             Math::Vector velocity_addition;
             Math::Vector equilibrium_pos;
-
-            bool check_in_cluster();
             
         public:
-            static const int NOT_IN_A_CLUSTER = -2;
-
             PhysicalVertex( Math::Vector pos = Math::Vector::ZERO,
                             Math::Real mass = 0,
                             Math::Vector velocity = Math::Vector(0,0,0) )
                 : pos(pos), mass(mass), velocity(velocity), velocity_addition(Math::Vector::ZERO),
-                  including_clusters_num(0), nearest_cluster_index(NOT_IN_A_CLUSTER), equilibrium_pos(pos) {}
+                  equilibrium_pos(pos) {}
 
             // -- properties --
             
@@ -45,15 +38,6 @@ namespace CrashAndSqueeze
             // mass getter
             Math::Real get_mass() const { return mass; }
             
-            // accessor to including_clusters_num
-            void include_to_one_more_cluster() { ++including_clusters_num; }
-            // TODO: this getter used for testing, is needed anyway?
-            int get_including_clusters_num() const { return including_clusters_num; }
-
-            // accessors to nearest_cluster_index
-            bool set_nearest_cluster_index(int index);
-            int get_nearest_cluster_index() const;
-
             // -- accessors to velocity_addition --
 
             const Math::Vector & get_velocity_addition() const { return velocity_addition; }

@@ -8,43 +8,6 @@ namespace CrashAndSqueeze
 
     namespace Core
     {
-        bool PhysicalVertex::set_nearest_cluster_index(int index)
-        {
-            if(NOT_IN_A_CLUSTER != nearest_cluster_index)
-            {
-                Logger::error("in PhysicalVertex::set_nearest_cluster_index: already set", __FILE__, __LINE__);
-                return false;
-            }
-            if(index < 0)
-            {
-                Logger::error("in PhysicalVertex::set_nearest_cluster_index: invalid index", __FILE__, __LINE__);
-                return false;
-            }
-
-            nearest_cluster_index = index;
-            return true;
-        }
-
-        int PhysicalVertex::get_nearest_cluster_index() const
-        {
-            if(NOT_IN_A_CLUSTER == nearest_cluster_index)
-            {
-                Logger::error("in PhysicalVertex::get_nearest_cluster_index: internal error: vertex doesn't belong to any cluster", __FILE__, __LINE__);
-                return 0;
-            }
-            return nearest_cluster_index;
-        }
-
-        bool PhysicalVertex::check_in_cluster()
-        {
-            if(0 == including_clusters_num)
-            {
-                Logger::error("internal error: in Cluster::apply_goal_positions: vertex with incorrect zero value of including_clusters_num", __FILE__, __LINE__);
-                return false;
-            }
-            return true;
-        }
-
         // gets an addition from a single cluster, divides it by including_clusters_num,
         // and adds corrected value to velocity_addition, thus averaging addiitons
         bool PhysicalVertex::add_to_average_velocity_addition(const Vector & addition)
@@ -54,7 +17,7 @@ namespace CrashAndSqueeze
             // we need average velocity addition, not sum, so divide by including_clusters_num
 
             // TODO: thread-safe cluster addition: velocity_additions[]...
-            velocity_addition += addition/including_clusters_num;
+            velocity_addition += addition/get_including_clusters_num();
             return true;
         }
 
@@ -63,7 +26,7 @@ namespace CrashAndSqueeze
             if( false == check_in_cluster() )
                 return false;
 
-            equilibrium_pos += delta/including_clusters_num;
+            equilibrium_pos += delta/get_including_clusters_num();
             return true;
         }
 
