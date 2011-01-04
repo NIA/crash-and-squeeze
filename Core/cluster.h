@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/core.h"
 #include "Core/physical_vertex.h"
+#include "Core/graphical_vertex.h"
 #include "Math/vector.h"
 #include "Math/matrix.h"
 #include "Collections/array.h"
@@ -9,21 +10,34 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
-        // An internal struct defining a membership of vertex in cluster
+        // An internal struct defining a membership of physical vertex in cluster
         struct PhysicalVertexMappingInfo
         {
-            // index in model's vertex array
             PhysicalVertex *vertex;
 
-            // TODO: thread-safe cluster addition: Math::Vector velocity_additions[MAX_CLUSTERS_FOR_VERTEX]
-            
             // initial position of vertex measured off
             // the cluster's center of mass
             Math::Vector initial_offset_pos;
             // position in deformed shape (plasticity_state*initial_offset_position)
             Math::Vector equilibrium_offset_pos;
-            // position in model coordinates
+            // position in model coordinates (center_of_mass + rotation*equilibrium_offset_pos)
             Math::Vector equilibrium_pos;
+
+            void setup_initial_values(const Math::Vector & center_of_mass);
+        };
+        
+        // An internal struct defining a membership of graphical vertex in cluster
+        struct GraphicalVertexMappingInfo
+        {
+            GraphicalVertex *vertex;
+
+            // initial state of graphical vertex, with all points re-computed as
+            // offsets from the center of mass
+            GraphicalVertex initial_offset_state;
+            // previous state, used to find difference between it and current state
+            GraphicalVertex previous_state;
+
+            void setup_initial_values(const Math::Vector & center_of_mass);
         };
 
         class Cluster
@@ -31,21 +45,15 @@ namespace CrashAndSqueeze
         private:
             // -- constant (at run-time) fields --
             
-            // array of vertices belonging to the cluster
-            Collections::Array<PhysicalVertexMappingInfo> vertex_infos;
-
-            // initial center of mass of vertices
-            Math::Vector initial_center_of_mass;
+            Collections::Array<PhysicalVertexMappingInfo> physical_vertex_infos;
+            
+            Collections::Array<GraphicalVertexMappingInfo> graphical_vertex_infos;
 
             Math::Real total_mass;
 
             bool initial_characteristics_computed;
             bool valid;
 
-            // pos and size define the space occupied by the cluster
-            Math::Vector pos;
-            Math::Vector size;
-            
             // a constant, determining how fast points are pulled to
             // their position, i.e. how rigid the body is:
             // 0 means no constraint at all, 1 means absolutely rigid
@@ -129,9 +137,10 @@ namespace CrashAndSqueeze
             
             // -- methods --
 
-            void add_vertex(PhysicalVertex &vertex);
+            void add_physical_vertex(PhysicalVertex &vertex);
+            void add_graphical_vertex(GraphicalVertex &vertex);
 
-            // this must be called after last vertex is added
+            // this must be called after the last vertex (physical or graphical) is added
             void compute_initial_characteristics();
 
             bool is_valid() const { return valid; }
@@ -140,12 +149,11 @@ namespace CrashAndSqueeze
 
             // -- getters/setters --
 
-            int get_vertices_num() const { return vertex_infos.size(); }
+            int get_physical_vertices_num() const { return physical_vertex_infos.size(); }
+            int get_graphical_vertices_num() const { return graphical_vertex_infos.size(); }
 
-            PhysicalVertex & get_vertex(int index);
-            const PhysicalVertex & get_vertex(int index) const;
-
-            const Math::Vector & get_initial_center_of_mass() const;
+            PhysicalVertex & get_physical_vertex(int index);
+            const PhysicalVertex & get_physical_vertex(int index) const;
 
             // returns equilibrium position of vertex
             // (measured off the initial center of mass of the cluster)

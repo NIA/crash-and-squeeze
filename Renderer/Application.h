@@ -118,6 +118,7 @@ public:
 
     enum ShowMode
     {
+        SHOW_GRAPHICAL_VERTICES,
         SHOW_CURRENT_POSITIONS,
         SHOW_EQUILIBRIUM_POSITIONS,
         SHOW_INITIAL_POSITIONS,

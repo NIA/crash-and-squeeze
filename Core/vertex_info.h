@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/core.h"
+#include "Math/vector.h"
 #include "Collections/array.h"
 
 namespace CrashAndSqueeze
@@ -68,6 +69,21 @@ namespace CrashAndSqueeze
             
             int get_vectors_num() const { return vectors_offsets.size(); }
             int get_vector_offset(int index) const;
+
+            static void vertex_floats_to_vector(const VertexFloat * vertex_floats, /*out*/ Math::Vector & out_vector)
+            {
+                for(int i = 0; i < Math::VECTOR_SIZE; ++i)
+                {
+                    out_vector[i] = static_cast<Math::Real>(vertex_floats[i]);
+                }
+            }
+            static void vector_to_vertex_floats(const Math::Vector & vector, /*out*/ VertexFloat * out_vertex_floats)
+            {
+                for(int i = 0; i < Math::VECTOR_SIZE; ++i)
+                {
+                    out_vertex_floats[i] = static_cast<VertexFloat>(vector[i]);
+                }
+            }
         
         private:
             VertexInfo(); // no default constructor

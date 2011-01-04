@@ -8,6 +8,7 @@
 #include "Core/body.h"
 #include "Core/regions.h"
 #include "Core/rigid_body.h"
+#include "Core/graphical_vertex.h"
 #include "Math/floating_point.h"
 #include "Math/Vector.h"
 #include "Math/Matrix.h"
@@ -23,6 +24,7 @@ namespace CrashAndSqueeze
             // -- constant (at run-time) properties
             
             Collections::Array<PhysicalVertex> vertices;
+            Collections::Array<GraphicalVertex> graphical_vertices;
             Collections::Array<Cluster> clusters;
 
             Collections::Array<Math::Vector> initial_positions;
@@ -56,7 +58,7 @@ namespace CrashAndSqueeze
             bool init_clusters();
             
             bool get_nearest_cluster_indices(const Math::Vector position, /*out*/ int cluster_indices[Math::VECTOR_SIZE]);
-            bool add_vertex_to_clusters(PhysicalVertex &vertex);
+            bool find_clusters_for_vertex(AbstractVertex &vertex, /*out*/ Collections::Array<Cluster *> & found_clusters);
 
             // -- fields used in step computation --
 
@@ -117,8 +119,10 @@ namespace CrashAndSqueeze
                                    /*out*/ Math::Vector & angular_velocity_change);
 
             void update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
-            void update_initial_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
+            
+            void update_current_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
             void update_equilibrium_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
+            void update_initial_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
 
             // -- Properties --
             
@@ -130,6 +134,7 @@ namespace CrashAndSqueeze
             
             // -- Implement IModel --
 
+            // returns equilibrium position, moved so that to match immovable initial positions
             virtual Math::Vector get_vertex_equilibrium_pos(int index) const;
             virtual Math::Vector get_vertex_initial_pos(int index) const;
             

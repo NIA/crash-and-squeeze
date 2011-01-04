@@ -1,5 +1,4 @@
 #include "Core/model.h"
-#include <cstdlib>
 
 namespace CrashAndSqueeze
 {
@@ -21,16 +20,13 @@ namespace CrashAndSqueeze
             const Real MAX_COORDINATE = 1.0e+100; // !!! hard-coded
             const Vector MAX_COORDINATE_VECTOR(MAX_COORDINATE, MAX_COORDINATE, MAX_COORDINATE);
             const int INITIAL_ALLOCATED_CALLBACK_INFOS = 10;
-            
-            // -- helpers --
 
-            inline const void *add_to_pointer(const void *pointer, int offset)
+            // -- helpers --
+            template<class T>
+            inline void make_fixed_size(Collections::Array<T> &arr, int size)
             {
-                return reinterpret_cast<const void*>( reinterpret_cast<const char*>(pointer) + offset );
-            }
-            inline void *add_to_pointer(void *pointer, int offset)
-            {
-                return reinterpret_cast<void*>( reinterpret_cast<char*>(pointer) + offset );
+                arr.create_items(size);
+                arr.freeze();
             }
         }
 
@@ -46,6 +42,8 @@ namespace CrashAndSqueeze
                       const MassFloat *masses,
                       const MassFloat constant_mass)
             : vertices(vertices_num),
+              // TODO: different number of graphical vertices, different sources...
+              graphical_vertices(vertices_num),
               initial_positions(vertices_num),
 
               cluster_padding_coeff(cluster_padding_coeff),
@@ -63,11 +61,10 @@ namespace CrashAndSqueeze
             // -- Finish initialization of arrays --
             // -- (create enought items and freeze or just forbid reallocations) --
             
-            vertices.create_items(vertices_num);
-            vertices.freeze();
-
-            initial_positions.create_items(vertices_num);
-            initial_positions.freeze();
+            make_fixed_size(vertices, vertices_num);
+            // TODO: different number of graphical vertices, different sources...
+            make_fixed_size(graphical_vertices, vertices_num);
+            make_fixed_size(initial_positions, vertices_num);
 
             hit_vertices_indices.forbid_reallocation(vertices.size());
 
@@ -97,10 +94,10 @@ namespace CrashAndSqueeze
 
             for(int i = 0; i < vertices.size(); ++i)
             {
-                const VertexFloat *position = reinterpret_cast<const VertexFloat*>( add_to_pointer(source_vertex, vertex_info.get_point_offset(0)));
-                Vector pos = Vector( static_cast<Real>(position[0]),
-                                     static_cast<Real>(position[1]),
-                                     static_cast<Real>(position[2]) );
+                const VertexFloat *src_position = reinterpret_cast<const VertexFloat*>( add_to_pointer(source_vertex, vertex_info.get_point_offset(0)));
+                
+                Vector pos;
+                VertexInfo::vertex_floats_to_vector(src_position, pos);
                 
                 Real mass;
                 if( NULL != masses )
@@ -131,6 +128,14 @@ namespace CrashAndSqueeze
                 
                 source_vertex = add_to_pointer(source_vertex, vertex_info.get_vertex_size());
             }
+            
+            const void * source_graphical_vertex = source_vertices;
+            for(int i = 0; i < graphical_vertices.size(); ++i)
+            {
+                graphical_vertices[i] = GraphicalVertex(vertex_info, source_graphical_vertex);
+                
+                source_graphical_vertex = add_to_pointer(source_graphical_vertex, vertex_info.get_vertex_size());
+            }
 
             body = new Body(vertices);
             return true;
@@ -156,12 +161,31 @@ namespace CrashAndSqueeze
                 }
                 cluster_sizes[i] = dimensions[i]/clusters_by_axes[i];
             }
-            
+
+            Collections::Array<Cluster *> found_clusters;
+
             // -- For each vertex: assign --
             for(int i = 0; i < vertices.size(); ++i)
             {
-                if ( false == add_vertex_to_clusters(vertices[i]) )
+                if ( false == find_clusters_for_vertex(vertices[i], found_clusters) )
                     return false;
+
+                for(int j = 0; j < found_clusters.size(); ++j)
+                {
+                    found_clusters[j]->add_physical_vertex(vertices[i]);
+                }
+            }
+
+            // -- For each graphical vertex: assign --
+            for(int i = 0; i < graphical_vertices.size(); ++i)
+            {
+                if( false == find_clusters_for_vertex(graphical_vertices[i], found_clusters) )
+                    return false;
+
+                for(int j = 0; j < found_clusters.size(); ++j)
+                {
+                    found_clusters[j]->add_graphical_vertex(graphical_vertices[i]);
+                }
             }
 
             // -- For each cluster: precompute --
@@ -206,7 +230,7 @@ namespace CrashAndSqueeze
             return true;
         }
 
-        bool Model::add_vertex_to_clusters(PhysicalVertex &vertex)
+        bool Model::find_clusters_for_vertex(AbstractVertex &vertex, /*out*/ Collections::Array<Cluster *> & found_clusters)
         {
             const Vector padding = cluster_sizes*cluster_padding_coeff;
 
@@ -220,21 +244,21 @@ namespace CrashAndSqueeze
                 return false;
             int cluster_index = axis_indices_to_index(cluster_indices, clusters_by_axes);
 
-            // -- and assign to it --
+            found_clusters.clear();
+            found_clusters.push_back( &clusters[cluster_index] );
             vertex.set_nearest_cluster_index(cluster_index);
-            clusters[cluster_index].add_vertex(vertex);
 
             // -- and, probably, to his neighbours --
             for(int j = 0; j < VECTOR_SIZE; ++j)
             {
                 // -- previous cluster --
-                
+
                 if( cluster_indices[j] - 1 >= 0 &&
                     abs(position[j] - cluster_indices[j]*cluster_sizes[j]) < padding[j] )
                 {
                     --cluster_indices[j];
                     int cluster_index = axis_indices_to_index(cluster_indices, clusters_by_axes);
-                    clusters[cluster_index].add_vertex(vertex);
+                    found_clusters.push_back( &clusters[cluster_index] );
                     ++cluster_indices[j];
                 }
 
@@ -245,23 +269,25 @@ namespace CrashAndSqueeze
                 {
                     ++cluster_indices[j];
                     int cluster_index = axis_indices_to_index(cluster_indices, clusters_by_axes);
-                    clusters[cluster_index].add_vertex(vertex);
+                    found_clusters.push_back( &clusters[cluster_index] );
                     --cluster_indices[j];
                 }
             }
 
             return true;
         }
-        
+
         Vector Model::get_vertex_initial_pos(int index) const
         {
             return initial_positions[index];
         }
+
+        // returns equilibrium position, moved so that to match immovable initial positions
         Vector Model::get_vertex_equilibrium_pos(int index) const
         {
             return relative_to_frame.get_orientation() * (vertices[index].get_equilibrium_pos() + relative_to_frame.get_position());
         }
-        
+
         void Model::set_frame(const IndexArray &frame_indices)
         {
             delete frame;
@@ -274,7 +300,7 @@ namespace CrashAndSqueeze
             hit_vertices_indices.clear();
 
             // -- Find vertices in this region --
-            
+
             for(int i = 0; i < vertices.size(); ++i)
             {
                 PhysicalVertex &v = vertices[i];
@@ -317,11 +343,11 @@ namespace CrashAndSqueeze
             {
                 clusters[i].match_shape(dt);
             }
-            
+
             // Re-compute properties (due to changed positions of vertices)
             if( false == body->compute_properties() )
                 return false;
-            
+
             // -- Force linear and angular momenta conservation --
 
             if( false == body->compute_velocity_additions() )
@@ -329,7 +355,7 @@ namespace CrashAndSqueeze
 
             body->compensate_velocities( body->get_linear_velocity_addition(),
                                          body->get_angular_velocity_addition() );
-            
+
             // -- For each vertex of model: integrate velocities: sum velocity additions and apply forces --
             for(int i = 0; i < vertices.size(); ++i)
             {
@@ -340,7 +366,7 @@ namespace CrashAndSqueeze
             if( NULL != frame )
             {
                 // -- Ensure that the frame moves as a rigid body --
-            
+
                 if( false == frame->compute_properties() )
                     return false;
                 if( false == frame->compute_velocities() )
@@ -348,7 +374,7 @@ namespace CrashAndSqueeze
 
                 frame->set_rigid_motion();
             }
-            
+
             // Find macroscopic motion for damping and subsequent substraction
             if( false == body->compute_velocities() )
                 return false;
@@ -358,7 +384,7 @@ namespace CrashAndSqueeze
 
             // -- Substract macroscopic motion of body --
             // (to make the reference frame of center of mass current reference frame again)
-            
+
             linear_velocity_change = body->get_linear_velocity();
             angular_velocity_change = body->get_angular_velocity();
 
@@ -386,7 +412,7 @@ namespace CrashAndSqueeze
             }
             
             // -- Invoke reactions if needed --
-            
+
             for(int i = 0; i < shape_deform_reactions.size(); ++i)
             {
                 shape_deform_reactions[i]->invoke_if_needed(*this);
@@ -399,7 +425,7 @@ namespace CrashAndSqueeze
 
             return true;
         }
-        
+
         void Model::update_any_positions(PositionFunc pos_func, /*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
             if(vertices_num > vertices.size())
@@ -411,15 +437,12 @@ namespace CrashAndSqueeze
             void *out_vertex = out_vertices;
             for(int i = 0; i < vertices_num; ++i)
             {
-                // TODO: many points and vectors, only position so far
-                VertexFloat *out_position = reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(0)));
+                VertexFloat *out_position =
+                    reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(0)) );
 
                 const Vector src_position = (this->*pos_func)(i);
-                
-                for(int j = 0; j < VECTOR_SIZE; ++j)
-                {
-                    out_position[j] = static_cast<VertexFloat>( src_position[j] );
-                }
+
+                VertexInfo::vector_to_vertex_floats(src_position, out_position);
 
                 out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
             }
@@ -427,10 +450,51 @@ namespace CrashAndSqueeze
 
         void Model::update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
+            if(vertices_num > graphical_vertices.size())
+            {
+                Logger::warning("in Model::update_vertices: requested to update too many vertices, probably wrong vertices given?", __FILE__, __LINE__);
+                vertices_num = vertices.size();
+            }
+            if(vertex_info.get_points_num() > graphical_vertices[0].get_points_num())
+            {
+                Logger::error("in Model::update_vertices: vertex_info incompatible with that was used for initialization: too many points per vertex requested", __FILE__, __LINE__);
+                return;
+            }
+            if(vertex_info.get_vectors_num() > graphical_vertices[0].get_vectors_num())
+            {
+                Logger::error("in Model::update_vertices: vertex_info incompatible with that was used for initialization: too many vectors per vertex requested", __FILE__, __LINE__);
+                return;
+            }
+
+            void *out_vertex = out_vertices;
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                for(int j = 0; j < vertex_info.get_points_num(); ++j)
+                {
+                    VertexFloat *out_point =
+                        reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(j)) );
+
+                    VertexInfo::vector_to_vertex_floats(graphical_vertices[i].get_point(j), out_point);
+                }
+
+                for(int j = 0; j < vertex_info.get_vectors_num(); ++j)
+                {
+                    VertexFloat *out_vector =
+                        reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_vector_offset(j)) );
+
+                    VertexInfo::vector_to_vertex_floats(graphical_vertices[i].get_vector(j), out_vector);
+                }
+
+                out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
+            }
+        }
+
+        void Model::update_current_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
+        {
             update_any_positions(&Model::get_vertex_current_pos, out_vertices, vertices_num, vertex_info);
         }
 
-        void Model::update_initial_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
+        void Model::update_initial_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
             update_any_positions(&Model::get_vertex_initial_pos, out_vertices, vertices_num, vertex_info);
         }

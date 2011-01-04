@@ -169,6 +169,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\graphical_vertex.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\model.cpp"
 				>
 			</File>
@@ -216,6 +220,10 @@
 			</File>
 			<File
 				RelativePath=".\force.h"
+				>
+			</File>
+			<File
+				RelativePath=".\graphical_vertex.h"
 				>
 			</File>
 			<File

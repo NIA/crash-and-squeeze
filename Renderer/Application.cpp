@@ -30,6 +30,7 @@ namespace
 
     const TCHAR *     SHOW_MODES_CAPTIONS[Application::_SHOW_MODES_COUNT] = 
                       {
+                          _T("Show: Graphical"),
                           _T("Show: Current"),
                           _T("Show: Equilibrium"),
                           _T("Show: Initial"),
@@ -120,7 +121,7 @@ Application::Application(Logger &logger) :
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false),
-    forces(NULL), logger(logger), font(NULL), show_mode(SHOW_CURRENT_POSITIONS), show_help(false)
+    forces(NULL), logger(logger), font(NULL), show_mode(SHOW_GRAPHICAL_VERTICES), show_help(false)
 {
 
     try
@@ -371,16 +372,20 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
         rotate_models(ROTATE_STEP);
         break;
     case '1':
-        directional_light_enabled = !directional_light_enabled;
+        show_mode = 0;
+        vertices_update_needed = true;
         break;
     case '2':
-        point_light_enabled = !point_light_enabled;
+        show_mode = 1;
+        vertices_update_needed = true;
         break;
     case '3':
-        spot_light_enabled = !spot_light_enabled;
+        show_mode = 2;
+        vertices_update_needed = true;
         break;
     case '4':
-        ambient_light_enabled = !ambient_light_enabled;
+        show_mode = 3;
+        vertices_update_needed = true;
         break;
     case VK_SPACE:
         emulation_enabled = !emulation_enabled;
@@ -510,14 +515,17 @@ void Application::run()
 
                         switch(show_mode)
                         {
-                        case SHOW_CURRENT_POSITIONS:
+                        case SHOW_GRAPHICAL_VERTICES:
                             physical_model->update_vertices(vertices, display_model->get_vertices_count(), VERTEX_INFO);
+                            break;
+                        case SHOW_CURRENT_POSITIONS:
+                            physical_model->update_current_positions(vertices, display_model->get_vertices_count(), VERTEX_INFO);
                             break;
                         case SHOW_EQUILIBRIUM_POSITIONS:
                             physical_model->update_equilibrium_positions(vertices, display_model->get_vertices_count(), VERTEX_INFO);
                             break;
                         case SHOW_INITIAL_POSITIONS:
-                            physical_model->update_initial_vertices(vertices, display_model->get_vertices_count(), VERTEX_INFO);
+                            physical_model->update_initial_positions(vertices, display_model->get_vertices_count(), VERTEX_INFO);
                             break;
                         }
 
