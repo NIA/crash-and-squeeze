@@ -1,17 +1,18 @@
 #include "cylinder.h"
 
-const Index CYLINDER_EDGES_PER_BASE = 40;
-const Index CYLINDER_EDGES_PER_HEIGHT = 48;
-const Index CYLINDER_EDGES_PER_CAP = 5;
+Index cylinder_vertices_count(Index edges_per_base, Index edges_per_height, Index edges_per_cap)
+{
+    return (edges_per_base)*((edges_per_height + 1) + 2 + 2*(edges_per_cap -1)) // vertices per edges_per_height+1 levels plus last ans first levels again, plus edges_per_cap-1 levels per each of 2 caps
+           + 2 // plus centers of 2 caps
+           + edges_per_height; // plus jump between top and bottom
+}
 
-const Index CYLINDER_VERTICES_COUNT 
-    = (CYLINDER_EDGES_PER_BASE)*((CYLINDER_EDGES_PER_HEIGHT + 1) + 2 + 2*(CYLINDER_EDGES_PER_CAP -1)) // vertices per CYLINDER_EDGES_PER_HEIGHT+1 levels plus last ans first levels again, plus CYLINDER_EDGES_PER_CAP-1 levels per each of 2 caps
-    + 2 // plus centers of 2 caps
-    + CYLINDER_EDGES_PER_HEIGHT; // plus jump between top and bottom
-const DWORD CYLINDER_INDICES_COUNT
-    = 2*(CYLINDER_EDGES_PER_BASE + 1)*(CYLINDER_EDGES_PER_HEIGHT + 2*(CYLINDER_EDGES_PER_CAP - 1)) // indices per CYLINDER_EDGES_PER_HEIGHT levels plus CYLINDER_EDGES_PER_CAP-1 levels per each of 2 caps
-    + 2*(2*CYLINDER_EDGES_PER_BASE + 1) // plus 2 ends of caps
-    + CYLINDER_EDGES_PER_HEIGHT + 2;  // plus jump between top and bottom
+DWORD cylinder_indices_count(Index edges_per_base, Index edges_per_height, Index edges_per_cap)
+{
+    return 2*(edges_per_base + 1)*(edges_per_height + 2*(edges_per_cap - 1)) // indices per edges_per_height levels plus edges_per_cap-1 levels per each of 2 caps
+           + 2*(2*edges_per_base + 1) // plus 2 ends of caps
+           + edges_per_height + 2;  // plus jump between top and bottom
+}
 
 namespace
 {
@@ -24,6 +25,10 @@ namespace
         float radius;
         float height;
         D3DXVECTOR3 position;
+        // mesh dimensions
+        Index edges_per_base;
+        Index edges_per_height;
+        Index edges_per_cap;
         // colors
         const D3DCOLOR *colors;
         unsigned colors_count;
@@ -35,12 +40,12 @@ namespace
 
     void generate_levels(Index &vertex, DWORD &index, const GENERATION_PARAMS &params)
     {
-        const float STEP_ANGLE = 2*D3DX_PI/CYLINDER_EDGES_PER_BASE;
-        const float STEP_UP = params.height/CYLINDER_EDGES_PER_HEIGHT;
-        const float STEP_RADIAL = params.radius/CYLINDER_EDGES_PER_CAP;
+        const float STEP_ANGLE = 2*D3DX_PI/params.edges_per_base;
+        const float STEP_UP = params.height/params.edges_per_height;
+        const float STEP_RADIAL = params.radius/params.edges_per_cap;
 
-        Index levels_count = params.vertical ? CYLINDER_EDGES_PER_HEIGHT + 1 : CYLINDER_EDGES_PER_CAP;
-        Index levels_or_steps_count = params.radial_strips ? CYLINDER_EDGES_PER_BASE : levels_count;
+        Index levels_count = params.vertical ? params.edges_per_height + 1 : params.edges_per_cap;
+        Index levels_or_steps_count = params.radial_strips ? params.edges_per_base : levels_count;
         _ASSERT(params.colors_count != 0);
         Index part_size = (levels_or_steps_count + params.colors_count)/params.colors_count; // `+ colors_count' just for excluding a bound of interval [0, colors_count)
         
@@ -50,7 +55,7 @@ namespace
     
         for( Index level = 0; level < levels_count; ++level )
         {
-            for( Index step = 0; step < CYLINDER_EDGES_PER_BASE; ++step )
+            for( Index step = 0; step < params.edges_per_base; ++step )
             {
                 float radius = params.vertical ? params.radius : (params.radius - STEP_RADIAL*level);
                 float z, weight;
@@ -58,7 +63,7 @@ namespace
                 if (params.vertical)
                 {
                     z = level*STEP_UP;
-                    weight = static_cast<float>(level)/CYLINDER_EDGES_PER_HEIGHT;
+                    weight = static_cast<float>(level)/params.edges_per_height;
                     normal = D3DXVECTOR3( cos(step*STEP_ANGLE), sin(step*STEP_ANGLE), 0 );
                 }
                 else
@@ -78,7 +83,7 @@ namespace
                     // * last vertices (for top cap)
                     //    OR
                     // * first vertices (for bottom cap)
-                    unsigned copy_from = params.top ? vertex - CYLINDER_EDGES_PER_BASE : step;
+                    unsigned copy_from = params.top ? vertex - params.edges_per_base : step;
                     params.res_vertices[vertex] = params.res_vertices[copy_from];
                     params.res_vertices[vertex].set_normal( normal );
                     params.res_vertices[vertex].color = color;
@@ -88,12 +93,12 @@ namespace
                 params.res_vertices[vertex] = Vertex(position, color, normal);
                 if( level != 0 )
                 {
-                    params.res_indices[index++] = vertex - CYLINDER_EDGES_PER_BASE; // from previous level
+                    params.res_indices[index++] = vertex - params.edges_per_base; // from previous level
                     params.res_indices[index++] = vertex;                           // from current level
-                    if( step == CYLINDER_EDGES_PER_BASE - 1 ) // last step
+                    if( step == params.edges_per_base - 1 ) // last step
                     {
-                        params.res_indices[index++] = vertex - 2*CYLINDER_EDGES_PER_BASE + 1; // first from previuos level
-                        params.res_indices[index++] = vertex - CYLINDER_EDGES_PER_BASE + 1; // first from current level
+                        params.res_indices[index++] = vertex - 2*params.edges_per_base + 1; // first from previuos level
+                        params.res_indices[index++] = vertex - params.edges_per_base + 1; // first from current level
                     }
                 }
                 ++vertex;
@@ -104,12 +109,12 @@ namespace
             // for caps: add center vertex and triangles with it
             D3DXVECTOR3 position = D3DXVECTOR3( 0, 0, z_if_horisontal ) + params.position;
             params.res_vertices[vertex] = Vertex( position, params.colors[0], normal_if_horisontal );
-            for( Index step = 0; step < CYLINDER_EDGES_PER_BASE; ++step )
+            for( Index step = 0; step < params.edges_per_base; ++step )
             {
-                params.res_indices[index++] = vertex - CYLINDER_EDGES_PER_BASE + step;
+                params.res_indices[index++] = vertex - params.edges_per_base + step;
                 params.res_indices[index++] = vertex;
             }
-            params.res_indices[index++] = vertex - CYLINDER_EDGES_PER_BASE;
+            params.res_indices[index++] = vertex - params.edges_per_base;
             ++vertex;
         }
     }
@@ -117,6 +122,7 @@ namespace
 
 void cylinder( float radius, float height, D3DXVECTOR3 position,
                const D3DCOLOR *colors, unsigned colors_count,
+               Index edges_per_base, Index edges_per_height, Index edges_per_cap,
                Vertex *res_vertices, Index *res_indices)
 // Writes data into arrays given as `res_vertices' and `res_indices',
 {
@@ -136,6 +142,10 @@ void cylinder( float radius, float height, D3DXVECTOR3 position,
     params.radius = radius;
     params.height = height;
     params.position = position;
+    // mesh dimensions
+    params.edges_per_base = edges_per_base;
+    params.edges_per_height = edges_per_height;
+    params.edges_per_cap = edges_per_cap;
     // colors
     params.colors = colors;
     params.colors_count = colors_count;
@@ -152,8 +162,8 @@ void cylinder( float radius, float height, D3DXVECTOR3 position,
     generate_levels(vertex, index, params);
 
     // Go from last level to first inside cylinder
-    const float STEP_UP = params.height/CYLINDER_EDGES_PER_HEIGHT;
-    for( unsigned level = CYLINDER_EDGES_PER_HEIGHT; level != 0; --level )
+    const float STEP_UP = params.height/params.edges_per_height;
+    for( unsigned level = params.edges_per_height; level != 0; --level )
     {
         res_vertices[vertex] = Vertex( D3DXVECTOR3(0, 0, level*STEP_UP) + position,
                                        colors[0],

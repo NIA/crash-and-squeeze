@@ -37,6 +37,12 @@ namespace
 
     const Real      THRESHOLD_DISTANCE = 0.05;
 
+    const Index LOW_EDGES_PER_BASE = 40;
+    const Index LOW_EDGES_PER_HEIGHT = 48;
+    const Index LOW_EDGES_PER_CAP = 5;
+    const Index LOW_CYLINDER_VERTICES = cylinder_vertices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
+    const DWORD LOW_CYLINDER_INDICES = cylinder_indices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
+
     inline D3DXVECTOR3 math_vector_to_d3dxvector(const Vector &v)
     {
         return D3DXVECTOR3(static_cast<float>(v[0]),
@@ -205,12 +211,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     
     Vertex * cubic_vertices = NULL;
     Index * cubic_indices = NULL;
-    Vertex * plane_vertices = NULL;
-    Index * plane_indices = NULL;
-    Vertex * cylinder_vertices = NULL;
-    Index * cylinder_indices = NULL;
-    Vertex * cylinder_model_vertices = NULL;
-    Index * cylinder_model_indices = NULL;
+    Vertex * low_cylinder_model_vertices = NULL;
+    Index * low_cylinder_model_indices = NULL;
     
     Array<RepaintReaction*> reactions;
     try
@@ -238,24 +240,26 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         //           D3DXVECTOR3(0,0,0),
         //           D3DXVECTOR3(0,0,0));
         //app.add_model(cube, true);
-        cylinder_model_vertices = new Vertex[CYLINDER_VERTICES_COUNT];
-        cylinder_model_indices = new Index[CYLINDER_INDICES_COUNT];
+        low_cylinder_model_vertices = new Vertex[LOW_CYLINDER_VERTICES];
+        low_cylinder_model_indices = new Index[LOW_CYLINDER_INDICES];
         
         const float cylinder_radius = 0.25;
         const float cylinder_height = 2;
         const float cylinder_z = -cylinder_height/2;
 
         cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
-                 &CYLINDER_COLOR, 1, cylinder_model_vertices, cylinder_model_indices );
+                 &CYLINDER_COLOR, 1,
+                 LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP,
+                 low_cylinder_model_vertices, low_cylinder_model_indices );
 
         Model cylinder_model(app.get_device(),
                              D3DPT_TRIANGLESTRIP,
                              simple_shader,
-                             cylinder_model_vertices,
-                             CYLINDER_VERTICES_COUNT,
-                             cylinder_model_indices,
-                             CYLINDER_INDICES_COUNT,
-                             CYLINDER_INDICES_COUNT - 2,
+                             low_cylinder_model_vertices,
+                             LOW_CYLINDER_VERTICES,
+                             low_cylinder_model_indices,
+                             LOW_CYLINDER_INDICES,
+                             LOW_CYLINDER_INDICES - 2,
                              D3DXVECTOR3(0, 0, 0),
                              D3DXVECTOR3(0, 0, 0));
         
@@ -264,21 +268,21 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
             throw NullPointerError();
         
         IndexArray frame;
-        const Index CYLINDER_VERTICES_PER_SIDE = CYLINDER_EDGES_PER_BASE*CYLINDER_EDGES_PER_HEIGHT;
-        add_range(frame, CYLINDER_VERTICES_PER_SIDE/4, CYLINDER_VERTICES_PER_SIDE*3/4, CYLINDER_EDGES_PER_BASE); // vertical line layer
-        add_range(frame, CYLINDER_VERTICES_PER_SIDE/4 + 1, CYLINDER_VERTICES_PER_SIDE*3/4, CYLINDER_EDGES_PER_BASE); // vertical line layer
+        const Index LOW_VERTICES_PER_SIDE = LOW_EDGES_PER_BASE*LOW_EDGES_PER_HEIGHT;
+        add_range(frame, LOW_VERTICES_PER_SIDE/4, LOW_VERTICES_PER_SIDE*3/4, LOW_EDGES_PER_BASE); // vertical line layer
+        add_range(frame, LOW_VERTICES_PER_SIDE/4 + 1, LOW_VERTICES_PER_SIDE*3/4, LOW_EDGES_PER_BASE); // vertical line layer
         phys_mod->set_frame(frame);
         cylinder_model.repaint_vertices(frame, FRAME_COLOR);
 
         // -- shapes and shape callbacks definition --
 
-        const int SHAPE_SIZE = CYLINDER_EDGES_PER_BASE;
+        const int SHAPE_SIZE = LOW_EDGES_PER_BASE;
         const int SHAPE_LINES_OFFSET = 3;
         const int SHAPES_COUNT = 8;
         const int SHAPE_STEP = (SHAPES_COUNT > 1) ?
-                               ((CYLINDER_EDGES_PER_HEIGHT - 2*SHAPE_LINES_OFFSET)/(SHAPES_COUNT - 1))*CYLINDER_EDGES_PER_BASE :
+                               ((LOW_EDGES_PER_HEIGHT - 2*SHAPE_LINES_OFFSET)/(SHAPES_COUNT - 1))*LOW_EDGES_PER_BASE :
                                0;
-        const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*CYLINDER_EDGES_PER_BASE;
+        const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*LOW_EDGES_PER_BASE;
 
         const int SUBSHAPES_COUNT = 4;
         const int SUBSHAPE_SIZE = SHAPE_SIZE/SUBSHAPES_COUNT;
@@ -318,7 +322,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         CylindricalRegion outside(Vector(0,0,cylinder_z+cylinder_height), Vector(0,0,cylinder_z), cylinder_radius + 0.012);
 
         IndexArray shape;
-        add_range(shape, 9*CYLINDER_EDGES_PER_BASE, 10*CYLINDER_EDGES_PER_BASE);
+        add_range(shape, 9*LOW_EDGES_PER_BASE, 10*LOW_EDGES_PER_BASE);
 
         MessageBoxRegionReaction inside_reaction(shape, inside, true, _T("[OK] Entered inside!"));
         MessageBoxRegionReaction outside_reaction(shape, outside, false, _T("[OK] Left out!"));
@@ -340,12 +344,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         app.run();
         delete_array(&cubic_indices);
         delete_array(&cubic_vertices);
-        delete_array(&plane_indices);
-        delete_array(&plane_vertices);
-        delete_array(&cylinder_indices);
-        delete_array(&cylinder_vertices);
-        delete_array(&cylinder_model_indices);
-        delete_array(&cylinder_model_vertices);
+        delete_array(&low_cylinder_model_indices);
+        delete_array(&low_cylinder_model_vertices);
 
         for(int i = 0; i < reactions.size(); ++i)
             delete reactions[i];
@@ -356,12 +356,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     {
         delete_array(&cubic_indices);
         delete_array(&cubic_vertices);
-        delete_array(&plane_indices);
-        delete_array(&plane_vertices);
-        delete_array(&cylinder_indices);
-        delete_array(&cylinder_vertices);
-        delete_array(&cylinder_model_indices);
-        delete_array(&cylinder_model_vertices);
+        delete_array(&low_cylinder_model_indices);
+        delete_array(&low_cylinder_model_vertices);
         for(int i = 0; i < reactions.size(); ++i)
             delete reactions[i];
         
