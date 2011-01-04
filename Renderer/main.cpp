@@ -25,6 +25,7 @@ using CrashAndSqueeze::Collections::Array;
 namespace
 {
     const char *SIMPLE_SHADER_FILENAME = "simple.vsh";
+    const char *LIGHTING_SHADER_FILENAME = "lighting.vsh";
 
     const D3DCOLOR CYLINDER_COLOR = D3DCOLOR_XRGB(100, 150, 255);
     const D3DCOLOR OBSTACLE_COLOR = D3DCOLOR_XRGB(100, 100, 100);
@@ -42,6 +43,12 @@ namespace
     const Index LOW_EDGES_PER_CAP = 5;
     const Index LOW_CYLINDER_VERTICES = cylinder_vertices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
     const DWORD LOW_CYLINDER_INDICES = cylinder_indices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
+
+    const Index HIGH_EDGES_PER_BASE = 100; // 300
+    const Index HIGH_EDGES_PER_HEIGHT = 120; // 300
+    const Index HIGH_EDGES_PER_CAP = 40; // 50
+    const Index HIGH_CYLINDER_VERTICES = cylinder_vertices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
+    const DWORD HIGH_CYLINDER_INDICES = cylinder_indices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
 
     inline D3DXVECTOR3 math_vector_to_d3dxvector(const Vector &v)
     {
@@ -213,6 +220,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     Index * cubic_indices = NULL;
     Vertex * low_cylinder_model_vertices = NULL;
     Index * low_cylinder_model_indices = NULL;
+    Vertex * high_cylinder_model_vertices = NULL;
+    Index * high_cylinder_model_indices = NULL;
     
     Array<RepaintReaction*> reactions;
     try
@@ -220,6 +229,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         Application app(logger);
 
         VertexShader simple_shader(app.get_device(), VERTEX_DECL_ARRAY, SIMPLE_SHADER_FILENAME);
+        VertexShader lighting_shader(app.get_device(), VERTEX_DECL_ARRAY, LIGHTING_SHADER_FILENAME);
         
         // -------------------------- M o d e l -----------------------
 
@@ -242,6 +252,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         //app.add_model(cube, true);
         low_cylinder_model_vertices = new Vertex[LOW_CYLINDER_VERTICES];
         low_cylinder_model_indices = new Index[LOW_CYLINDER_INDICES];
+        high_cylinder_model_vertices = new Vertex[HIGH_CYLINDER_VERTICES];
+        high_cylinder_model_indices = new Index[HIGH_CYLINDER_INDICES];
         
         const float cylinder_radius = 0.25;
         const float cylinder_height = 2;
@@ -249,21 +261,35 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 
         cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
                  &CYLINDER_COLOR, 1,
+                 HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP,
+                 high_cylinder_model_vertices, high_cylinder_model_indices );
+        Model high_cylinder_model(app.get_device(),
+                                  D3DPT_TRIANGLESTRIP,
+                                  lighting_shader,
+                                  high_cylinder_model_vertices,
+                                  HIGH_CYLINDER_VERTICES,
+                                  high_cylinder_model_indices,
+                                  HIGH_CYLINDER_INDICES,
+                                  HIGH_CYLINDER_INDICES - 2,
+                                  D3DXVECTOR3(0, 0, 0),
+                                  D3DXVECTOR3(0, 0, 0));
+
+        cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
+                 &CYLINDER_COLOR, 1,
                  LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP,
                  low_cylinder_model_vertices, low_cylinder_model_indices );
-
-        Model cylinder_model(app.get_device(),
-                             D3DPT_TRIANGLESTRIP,
-                             simple_shader,
-                             low_cylinder_model_vertices,
-                             LOW_CYLINDER_VERTICES,
-                             low_cylinder_model_indices,
-                             LOW_CYLINDER_INDICES,
-                             LOW_CYLINDER_INDICES - 2,
-                             D3DXVECTOR3(0, 0, 0),
-                             D3DXVECTOR3(0, 0, 0));
+        Model low_cylinder_model(app.get_device(),
+                                 D3DPT_TRIANGLESTRIP,
+                                 simple_shader,
+                                 low_cylinder_model_vertices,
+                                 LOW_CYLINDER_VERTICES,
+                                 low_cylinder_model_indices,
+                                 LOW_CYLINDER_INDICES,
+                                 LOW_CYLINDER_INDICES - 2,
+                                 D3DXVECTOR3(0, 0, 0),
+                                 D3DXVECTOR3(0, 0, 0));
         
-        PhysicalModel * phys_mod = app.add_model(cylinder_model, true);
+        PhysicalModel * phys_mod = app.add_model(high_cylinder_model, true, &low_cylinder_model);
         if(NULL == phys_mod)
             throw NullPointerError();
         
@@ -272,7 +298,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         add_range(frame, LOW_VERTICES_PER_SIDE/4, LOW_VERTICES_PER_SIDE*3/4, LOW_EDGES_PER_BASE); // vertical line layer
         add_range(frame, LOW_VERTICES_PER_SIDE/4 + 1, LOW_VERTICES_PER_SIDE*3/4, LOW_EDGES_PER_BASE); // vertical line layer
         phys_mod->set_frame(frame);
-        cylinder_model.repaint_vertices(frame, FRAME_COLOR);
+        low_cylinder_model.repaint_vertices(frame, FRAME_COLOR);
 
         // -- shapes and shape callbacks definition --
 
@@ -300,7 +326,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                 // create reaction
                 RepaintReaction & reaction = * new RepaintReaction( vertex_indices[subshape_index],
                                                                     THRESHOLD_DISTANCE,
-                                                                    cylinder_model );
+                                                                    low_cylinder_model );
                 reactions.push_back(&reaction);
                 // register reaction
                 phys_mod->add_shape_deformation_reaction(reaction);
@@ -346,6 +372,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         delete_array(&cubic_vertices);
         delete_array(&low_cylinder_model_indices);
         delete_array(&low_cylinder_model_vertices);
+        delete_array(&high_cylinder_model_indices);
+        delete_array(&high_cylinder_model_vertices);
 
         for(int i = 0; i < reactions.size(); ++i)
             delete reactions[i];
@@ -358,6 +386,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         delete_array(&cubic_vertices);
         delete_array(&low_cylinder_model_indices);
         delete_array(&low_cylinder_model_vertices);
+        delete_array(&high_cylinder_model_indices);
+        delete_array(&high_cylinder_model_vertices);
         for(int i = 0; i < reactions.size(); ++i)
             delete reactions[i];
         

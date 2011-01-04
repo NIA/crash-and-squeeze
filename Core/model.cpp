@@ -34,17 +34,23 @@ namespace CrashAndSqueeze
         // 0 - no damping of vibrations, 1 - maximum damping, rigid body
         const Real Model::DEFAULT_DAMPING_CONSTANT = 0.7*Body::MAX_RIGIDITY_COEFF;
 
-        Model::Model( const void *source_vertices,
-                      int vertices_num,
-                      VertexInfo const &vertex_info,
+        Model::Model( const void *source_physical_vertices,
+                      int physical_vetrices_num,
+                      VertexInfo const &physical_vertex_info,
+
+                      const void *source_graphical_vertices,
+                      int graphical_vetrices_num,
+                      VertexInfo const &graphical_vertex_info,
+
                       const int clusters_by_axes[Math::VECTOR_SIZE],
                       Math::Real cluster_padding_coeff,
+                      
                       const MassFloat *masses,
                       const MassFloat constant_mass)
-            : vertices(vertices_num),
-              // TODO: different number of graphical vertices, different sources...
-              graphical_vertices(vertices_num),
-              initial_positions(vertices_num),
+            : vertices(physical_vetrices_num),
+              initial_positions(physical_vetrices_num),
+              
+              graphical_vertices(graphical_vetrices_num),
 
               cluster_padding_coeff(cluster_padding_coeff),
 
@@ -56,33 +62,36 @@ namespace CrashAndSqueeze
               body(NULL),
               frame(NULL),
 
-              hit_vertices_indices(vertices_num)
+              hit_vertices_indices(physical_vetrices_num)
         {
             // -- Finish initialization of arrays --
             // -- (create enought items and freeze or just forbid reallocations) --
             
-            make_fixed_size(vertices, vertices_num);
-            // TODO: different number of graphical vertices, different sources...
-            make_fixed_size(graphical_vertices, vertices_num);
-            make_fixed_size(initial_positions, vertices_num);
+            make_fixed_size(vertices,          physical_vetrices_num);
+            make_fixed_size(initial_positions, physical_vetrices_num);
+            
+            make_fixed_size(graphical_vertices, graphical_vetrices_num);
 
             hit_vertices_indices.forbid_reallocation(vertices.size());
 
-            // Init vertices
-            if( false != init_vertices(source_vertices, vertex_info, masses, constant_mass) )
+            // Init physical vertices
+            if( false != init_physical_vertices(source_physical_vertices, physical_vertex_info, masses, constant_mass) )
             {
+                // Init graphical vertices
+                init_graphical_vertices(source_graphical_vertices, graphical_vertex_info);
+
+                // Init clusters
                 for(int i = 0; i < VECTOR_SIZE; ++i)
                     this->clusters_by_axes[i] = clusters_by_axes[i];
                 
-                // Init clusters
                 init_clusters();
             }
         }
 
-        bool Model::init_vertices(const void *source_vertices,
-                                  VertexInfo const &vertex_info,
-                                  const MassFloat *masses,
-                                  const MassFloat constant_mass)
+        bool Model::init_physical_vertices(const void *source_vertices,
+                                           VertexInfo const &vertex_info,
+                                           const MassFloat *masses,
+                                           const MassFloat constant_mass)
         {
             const void *source_vertex = source_vertices;
             
@@ -129,6 +138,13 @@ namespace CrashAndSqueeze
                 source_vertex = add_to_pointer(source_vertex, vertex_info.get_vertex_size());
             }
             
+            body = new Body(vertices);
+            return true;
+        }
+        
+        void Model::init_graphical_vertices(const void *source_vertices,
+                                            VertexInfo const &vertex_info)
+        {
             const void * source_graphical_vertex = source_vertices;
             for(int i = 0; i < graphical_vertices.size(); ++i)
             {
@@ -136,9 +152,6 @@ namespace CrashAndSqueeze
                 
                 source_graphical_vertex = add_to_pointer(source_graphical_vertex, vertex_info.get_vertex_size());
             }
-
-            body = new Body(vertices);
-            return true;
         }
         
         bool Model::init_clusters()

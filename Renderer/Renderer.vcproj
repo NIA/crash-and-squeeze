@@ -308,6 +308,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\lighting.vsh"
+				>
+			</File>
+			<File
 				RelativePath=".\morphing.vsh"
 				>
 			</File>

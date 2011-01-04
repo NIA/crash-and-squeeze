@@ -10,4 +10,4 @@ const D3DVERTEXELEMENT9 VERTEX_DECL_ARRAY[] =
     D3DDECL_END()
 };
 
-const ::CrashAndSqueeze::Core::VertexInfo VERTEX_INFO( sizeof(Vertex), 0 );
+const ::CrashAndSqueeze::Core::VertexInfo VERTEX_INFO( sizeof(Vertex), 0, 12 );

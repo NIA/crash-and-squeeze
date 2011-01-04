@@ -15,7 +15,8 @@ typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
 
 struct ModelEntity
 {
-    Model               *display_model;
+    Model               *high_model;
+    Model               *low_model;
     PhysicalModel       *physical_model;
     PerformanceReporter *performance_reporter;
 };
@@ -39,6 +40,8 @@ private:
 
     bool emulation_enabled;
     bool emultate_one_step;
+
+    bool wireframe;
 
     bool vertices_update_needed;
     int show_mode;
@@ -90,6 +93,8 @@ private:
 
     void set_alpha_test();
 
+    void set_show_mode(int new_show_mode);
+
     void rotate_models(float phi);
     void process_key(unsigned code, bool shift, bool ctrl, bool alt);
 
@@ -107,12 +112,14 @@ public:
 
     // Adds given model to Application's list of models;
     // creates a physical model if `physical` is true (and returns it);
-    PhysicalModel * add_model(Model &model, bool physical = false);
+    PhysicalModel * add_model(Model &high_model, bool physical = false, Model *low_model = NULL);
     void set_forces(::CrashAndSqueeze::Core::ForcesArray & forces);
     void set_impact(const ::CrashAndSqueeze::Core::IRegion & region, const ::CrashAndSqueeze::Math::Vector &velocity);
     void run();
 
     void toggle_wireframe();
+    void set_wireframe();
+    void unset_wireframe();
 
     ~Application();
 

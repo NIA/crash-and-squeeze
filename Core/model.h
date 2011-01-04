@@ -50,10 +50,13 @@ namespace CrashAndSqueeze
 
             // -- initialization steps: all return false on failure --
             
-            bool init_vertices(const void *source_vertices,
-                               const VertexInfo &vertex_info,
-                               const MassFloat *masses,
-                               const MassFloat constant_mass);
+            bool init_physical_vertices(const void *source_vertices,
+                                        const VertexInfo &vertex_info,
+                                        const MassFloat *masses,
+                                        const MassFloat constant_mass);
+            
+            void init_graphical_vertices(const void *source_vertices,
+                                         const VertexInfo &vertex_info);
             
             bool init_clusters();
             
@@ -78,7 +81,6 @@ namespace CrashAndSqueeze
             typedef Math::Vector (Model::*PositionFunc)(int index) const;
             void update_any_positions(PositionFunc pos_func, /*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
 
-            // TODO: DisplayVertex display_vertices; int display_vertices_num;
         public:
             // Takes a pointer source_vertices to vetrices_num vertices of arbitrary
             // strucutre, described by vertex_info. Takes a pointer masses to vertices_num
@@ -86,12 +88,17 @@ namespace CrashAndSqueeze
             // and the mass should be given as constant_mass argument.
             // The model must have rigid frame, defined by frame_indices array of indices
             // of frame vertices.
-            // TODO: low-/hi-polygonal meshes
-            Model(const void *source_vertices,
-                  int vetrices_num,
-                  VertexInfo const &vertex_info,
+            Model(const void *source_physical_vertices,
+                  int physical_vetrices_num,
+                  VertexInfo const &physical_vertex_info,
+
+                  const void *source_graphical_vertices,
+                  int graphical_vetrices_num,
+                  VertexInfo const &graphical_vertex_info,
+
                   const int clusters_by_axes[Math::VECTOR_SIZE],
                   Math::Real cluster_padding_coeff,
+                  
                   const MassFloat *masses,
                   const MassFloat constant_mass = 0);
 

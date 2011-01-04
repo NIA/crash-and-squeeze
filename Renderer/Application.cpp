@@ -69,7 +69,7 @@ namespace
     const unsigned    SHADER_REG_VIEW_MX = 0;
     //    c12 is directional light vector
     const unsigned    SHADER_REG_DIRECTIONAL_VECTOR = 12;
-    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0, 1.0f, 0.8f);
+    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0, -1.0f, 0.8f);
     //    c13 is directional light color
     const unsigned    SHADER_REG_DIRECTIONAL_COLOR = 13;
     const D3DCOLOR    SHADER_VAL_DIRECTIONAL_COLOR = D3DCOLOR_XRGB(204, 178, 25);
@@ -98,13 +98,13 @@ namespace
     const unsigned    SHADER_REG_EYE = 21;
     //    c22 is spot light position
     const unsigned    SHADER_REG_SPOT_POSITION = 22;
-    const D3DXVECTOR3 SHADER_VAL_SPOT_POSITION  (1.5f, 1.5f, -1.3f);
+    const D3DXVECTOR3 SHADER_VAL_SPOT_POSITION  (1.5f, -1.5f, -1.3f);
     //    c23 is spot light color
     const unsigned    SHADER_REG_SPOT_COLOR = 23;
     const D3DCOLOR    SHADER_VAL_SPOT_COLOR = D3DCOLOR_XRGB(255, 0, 180);
     //    c24 is spot light direction
     const unsigned    SHADER_REG_SPOT_VECTOR = 24;
-    const D3DXVECTOR3 SHADER_VAL_SPOT_VECTOR  (1.0f, 1.0f, -0.5f);
+    const D3DXVECTOR3 SHADER_VAL_SPOT_VECTOR  (1.0f, -1.0f, -0.5f);
     D3DXVECTOR3 spot_vector(2.0f, -0.7f, -1.1f);
     //    c25 is 1/(IN - OUT)
     const float       SHADER_VAL_SPOT_INNER_ANGLE = D3DX_PI/16.0f;
@@ -118,15 +118,16 @@ namespace
 
 Application::Application(Logger &logger) :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(1.8f, 1.6f, -0.75f), // Constants selected for better view the scene
-    directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(true), ambient_light_enabled(true),
+    directional_light_enabled(false), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
-    vertices_update_needed(false), impact_region(NULL), impact_happened(false),
-    forces(NULL), logger(logger), font(NULL), show_mode(SHOW_GRAPHICAL_VERTICES), show_help(false)
+    vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
+    forces(NULL), logger(logger), font(NULL), show_help(false)
 {
 
     try
     {
         init_device();
+        set_show_mode(SHOW_GRAPHICAL_VERTICES);
         init_font();
     }
     // using catch(...) because every caught exception is rethrown
@@ -221,13 +222,15 @@ void Application::render()
     
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
-        // Set up
-        ( (*iter).display_model->get_shader() ).set();
+        Model * display_model = (SHOW_GRAPHICAL_VERTICES == show_mode) ? (*iter).high_model : (*iter).low_model;
 
-        set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, (*iter).display_model->get_rotation_and_position() );
+        // Set up
+        ( display_model->get_shader() ).set();
+
+        set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, display_model->get_rotation_and_position() );
         
         // Draw
-        (*iter).display_model->draw();
+        display_model->draw();
     }
 
     // Draw text info
@@ -276,35 +279,48 @@ IDirect3DDevice9 * Application::get_device()
     return device;
 }
 
-PhysicalModel * Application::add_model(Model &model, bool physical)
+PhysicalModel * Application::add_model(Model &high_model, bool physical, Model *low_model)
 {
-    ModelEntity model_entity = {NULL, NULL, NULL};
+    ModelEntity model_entity = {NULL};
 
-    model_entity.display_model = &model;
+    model_entity.high_model = &high_model;
 
     if(physical)
     {
-        Vertex * vertices = model.lock_vertex_buffer();
+        if(NULL == low_model)
+            throw NullPointerError();
+
+        Vertex * high_vertices = high_model.lock_vertex_buffer();
+        Vertex * low_vertices = low_model->lock_vertex_buffer();
         model_entity.physical_model =
-            new PhysicalModel(vertices,
-                              model.get_vertices_count(),
+            new PhysicalModel(low_vertices,
+                              low_model->get_vertices_count(),
                               VERTEX_INFO,
+                              
+                              high_vertices,
+                              high_model.get_vertices_count(),
+                              VERTEX_INFO,
+                              
                               CLUSTERS_BY_AXES,
                               CLUSTER_PADDING_COEFF,
                               NULL,
                               VERTEX_MASS);
         
-        model.unlock_vertex_buffer();
+        high_model.unlock_vertex_buffer();
+        low_model->unlock_vertex_buffer();
+
+        model_entity.low_model = low_model;
 
         static const int BUFFER_SIZE = 128;
         char description[BUFFER_SIZE];
         sprintf_s(description, BUFFER_SIZE, "%6i vertices in %4i=%ix%ix%i clusters",
-                                            model.get_vertices_count(), TOTAL_CLUSTERS_COUNT,
+                                            low_model->get_vertices_count(), TOTAL_CLUSTERS_COUNT,
                                             CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2]);
         model_entity.performance_reporter = new PerformanceReporter(logger, description);
     }
     else
     {
+        model_entity.low_model = NULL;
         model_entity.physical_model = NULL;
         model_entity.performance_reporter = NULL;
     }
@@ -329,8 +345,22 @@ void Application::rotate_models(float phi)
 {
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
-        (*iter).display_model->rotate(phi);
+        (*iter).high_model->rotate(phi);
+        
+        if(NULL != (*iter).low_model)
+            (*iter).low_model->rotate(phi);
     }
+}
+void Application::set_show_mode(int new_show_mode)
+{
+    show_mode = new_show_mode;
+    
+    if(SHOW_GRAPHICAL_VERTICES == show_mode)
+        unset_wireframe();
+    else
+        set_wireframe();
+    
+    vertices_update_needed = true;
 }
 
 void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
@@ -372,20 +402,16 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
         rotate_models(ROTATE_STEP);
         break;
     case '1':
-        show_mode = 0;
-        vertices_update_needed = true;
+        set_show_mode(0);
         break;
     case '2':
-        show_mode = 1;
-        vertices_update_needed = true;
+        set_show_mode(1);
         break;
     case '3':
-        show_mode = 2;
-        vertices_update_needed = true;
+        set_show_mode(2);
         break;
     case '4':
-        show_mode = 3;
-        vertices_update_needed = true;
+        set_show_mode(3);
         break;
     case VK_SPACE:
         emulation_enabled = !emulation_enabled;
@@ -408,8 +434,7 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
         set_alpha_test();
         break;
     case VK_TAB:
-        show_mode = ( show_mode + (shift ? - 1 : 1) + _SHOW_MODES_COUNT )%_SHOW_MODES_COUNT;
-        vertices_update_needed = true;
+        set_show_mode( ( show_mode + (shift ? - 1 : 1) + _SHOW_MODES_COUNT )%_SHOW_MODES_COUNT );
         break;
     case VK_RETURN:
         impact_happened = true;
@@ -507,29 +532,32 @@ void Application::run()
                 for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
                 {
                     PhysicalModel       * physical_model       = (*iter).physical_model;
-                    Model               * display_model        = (*iter).display_model;
+                    Model               * high_model           = (*iter).high_model;
+                    Model               * low_model            = (*iter).low_model;
                     
                     if( NULL != physical_model )
                     {
-                        Vertex *vertices = display_model->lock_vertex_buffer();
+                        Vertex *high_vertices = high_model->lock_vertex_buffer();
+                        Vertex *low_vertices = low_model->lock_vertex_buffer();
 
                         switch(show_mode)
                         {
                         case SHOW_GRAPHICAL_VERTICES:
-                            physical_model->update_vertices(vertices, display_model->get_vertices_count(), VERTEX_INFO);
+                            physical_model->update_vertices(high_vertices, high_model->get_vertices_count(), VERTEX_INFO);
                             break;
                         case SHOW_CURRENT_POSITIONS:
-                            physical_model->update_current_positions(vertices, display_model->get_vertices_count(), VERTEX_INFO);
+                            physical_model->update_current_positions(low_vertices, low_model->get_vertices_count(), VERTEX_INFO);
                             break;
                         case SHOW_EQUILIBRIUM_POSITIONS:
-                            physical_model->update_equilibrium_positions(vertices, display_model->get_vertices_count(), VERTEX_INFO);
+                            physical_model->update_equilibrium_positions(low_vertices, low_model->get_vertices_count(), VERTEX_INFO);
                             break;
                         case SHOW_INITIAL_POSITIONS:
-                            physical_model->update_initial_positions(vertices, display_model->get_vertices_count(), VERTEX_INFO);
+                            physical_model->update_initial_positions(low_vertices, low_model->get_vertices_count(), VERTEX_INFO);
                             break;
                         }
 
-                        display_model->unlock_vertex_buffer();
+                        high_model->unlock_vertex_buffer();
+                        low_model->unlock_vertex_buffer();
                     }
                 }
 
@@ -557,18 +585,28 @@ void Application::run()
 
 void Application::toggle_wireframe()
 {
-    static bool wireframe = !INITIAL_WIREFRAME_STATE;
-    wireframe = !wireframe;
-
     if( wireframe )
     {
-        check_state( device->SetRenderState( D3DRS_FILLMODE, D3DFILL_WIREFRAME ) );
+        unset_wireframe();
     }
     else
     {
-        check_state( device->SetRenderState( D3DRS_FILLMODE, D3DFILL_SOLID ) );
+        set_wireframe();
     }
 }
+
+void Application::set_wireframe()
+{
+    wireframe = true;
+    check_state( device->SetRenderState( D3DRS_FILLMODE, D3DFILL_WIREFRAME ) );
+}
+
+void Application::unset_wireframe()
+{
+    wireframe = false;
+    check_state( device->SetRenderState( D3DRS_FILLMODE, D3DFILL_SOLID ) );
+}
+
 void Application::delete_model_stuff()
 {
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
