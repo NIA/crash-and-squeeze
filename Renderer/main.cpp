@@ -4,6 +4,7 @@
 #include "cubic.h"
 #include "plane.h"
 #include "cylinder.h"
+#include "sphere.h"
 #include <ctime>
 
 #include "Logging/logger.h"
@@ -49,6 +50,11 @@ namespace
     const Index HIGH_EDGES_PER_CAP = 40; // 50
     const Index HIGH_CYLINDER_VERTICES = cylinder_vertices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
     const DWORD HIGH_CYLINDER_INDICES = cylinder_indices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
+
+    const Index SPHERE_EDGES_PER_DIAMETER = 9;
+    const Index SPHERE_VERTICES = sphere_vertices_count(SPHERE_EDGES_PER_DIAMETER);
+    const DWORD SPHERE_INDICES = sphere_indices_count(SPHERE_EDGES_PER_DIAMETER);
+    const D3DXCOLOR HIT_REGION_COLOR = D3DCOLOR_RGBA(255, 255, 0, 128);
 
     inline D3DXVECTOR3 math_vector_to_d3dxvector(const Vector &v)
     {
@@ -222,6 +228,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     Index * low_cylinder_model_indices = NULL;
     Vertex * high_cylinder_model_vertices = NULL;
     Index * high_cylinder_model_indices = NULL;
+    Vertex * sphere_vertices = NULL;
+    Index * sphere_indices = NULL;
     
     Array<RepaintReaction*> reactions;
     try
@@ -363,9 +371,29 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         forces.push_back(&force);
         app.set_forces(forces);
 
-        SphericalRegion region( Vector(0,-cylinder_radius,cylinder_z*2/3), 0.1 );
-        app.set_impact( region, Vector(0,45,0.0) );
-        
+        SphericalRegion hit_region( Vector(0,-cylinder_radius,cylinder_z*2/3), 0.1 );
+        app.set_impact( hit_region, Vector(0,45,0.0) );
+
+        // ------------------ V i s u a l i z a t i o n -----------------------
+        sphere_vertices = new Vertex[SPHERE_VERTICES];
+        sphere_indices = new Index[SPHERE_INDICES];
+
+        sphere(static_cast<float>(hit_region.get_radius()), D3DXVECTOR3(0,0,0), HIT_REGION_COLOR,
+               SPHERE_EDGES_PER_DIAMETER, sphere_vertices, sphere_indices);
+
+        Model hit_region_model(app.get_device(),
+                               D3DPT_TRIANGLELIST,
+                               simple_shader,
+                               sphere_vertices,
+                               SPHERE_VERTICES,
+                               sphere_indices,
+                               SPHERE_INDICES,
+                               SPHERE_INDICES/3,
+                               math_vector_to_d3dxvector(hit_region.get_center()),
+                               D3DXVECTOR3(0, 0, 0));
+
+        app.add_model(hit_region_model, false);
+
         // -------------------------- G O ! ! ! -----------------------
         app.run();
         delete_array(&cubic_indices);
@@ -374,6 +402,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         delete_array(&low_cylinder_model_vertices);
         delete_array(&high_cylinder_model_indices);
         delete_array(&high_cylinder_model_vertices);
+        delete_array(&sphere_indices);
+        delete_array(&sphere_vertices);
 
         for(int i = 0; i < reactions.size(); ++i)
             delete reactions[i];
@@ -388,6 +418,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         delete_array(&low_cylinder_model_vertices);
         delete_array(&high_cylinder_model_indices);
         delete_array(&high_cylinder_model_vertices);
+        delete_array(&sphere_indices);
+        delete_array(&sphere_vertices);
         for(int i = 0; i < reactions.size(); ++i)
             delete reactions[i];
         

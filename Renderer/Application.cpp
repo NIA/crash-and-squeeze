@@ -93,7 +93,7 @@ namespace
     const float       SHADER_VAL_SPECULAR_COEF = 0.4f;
     //    c20 is specular constant 'f'
     const unsigned    SHADER_REG_SPECULAR_F = 20;
-    const float       SHADER_VAL_SPECULAR_F = 15.0f;
+    const float       SHADER_VAL_SPECULAR_F = 25.0f;
     //    c21 is eye position
     const unsigned    SHADER_REG_EYE = 21;
     //    c22 is spot light position
@@ -119,7 +119,7 @@ namespace
 Application::Application(Logger &logger) :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(1.8f, 1.6f, -0.75f), // Constants selected for better view the scene
     directional_light_enabled(false), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
-    emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(true),
+    emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
     forces(NULL), logger(logger), font(NULL), show_help(false)
 {
@@ -159,8 +159,13 @@ void Application::init_device()
         throw D3DInitError();
     
     check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CW ) );
-	check_state( device->SetRenderState( D3DRS_ALPHAREF, (DWORD)0xffffffff ) );
+    // Configure alpha-test
+    check_state( device->SetRenderState( D3DRS_ALPHAREF, (DWORD)0xffffffff ) );
     check_state( device->SetRenderState( D3DRS_ALPHATESTENABLE, TRUE ) );
+    // Configure alpha-blending
+    check_state( device->SetRenderState( D3DRS_SRCBLEND, D3DBLEND_SRCALPHA ) );
+    check_state( device->SetRenderState( D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA ) );
+    check_state( device->SetRenderState( D3DRS_ALPHABLENDENABLE, TRUE ) );
 
     toggle_wireframe();
     set_alpha_test();
@@ -176,9 +181,13 @@ void Application::init_font()
 void  Application::set_alpha_test()
 {
     if(alpha_test_enabled)
+    {
         check_state( device->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL) );
+    }
     else
+    {
         check_state( device->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS) );
+    }
 }
 
 
@@ -222,7 +231,7 @@ void Application::render()
     
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
-        Model * display_model = (SHOW_GRAPHICAL_VERTICES == show_mode) ? (*iter).high_model : (*iter).low_model;
+        Model * display_model = (SHOW_GRAPHICAL_VERTICES == show_mode || NULL == (*iter).low_model) ? (*iter).high_model : (*iter).low_model;
 
         // Set up
         ( display_model->get_shader() ).set();
@@ -313,9 +322,9 @@ PhysicalModel * Application::add_model(Model &high_model, bool physical, Model *
 
         static const int BUFFER_SIZE = 128;
         char description[BUFFER_SIZE];
-        sprintf_s(description, BUFFER_SIZE, "%6i vertices in %4i=%ix%ix%i clusters",
-                                            low_model->get_vertices_count(), TOTAL_CLUSTERS_COUNT,
-                                            CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2]);
+        sprintf_s(description, BUFFER_SIZE, "%i low-vertices (mapped on %i hi-vertices)  in %i=%ix%ix%i clusters",
+                                            low_model->get_vertices_count(), high_model.get_vertices_count(),
+                                            TOTAL_CLUSTERS_COUNT, CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2]);
         model_entity.performance_reporter = new PerformanceReporter(logger, description);
     }
     else
@@ -432,6 +441,9 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
     case 'T':
         alpha_test_enabled = !alpha_test_enabled;
         set_alpha_test();
+        break;
+    case 'W':
+        toggle_wireframe();
         break;
     case VK_TAB:
         set_show_mode( ( show_mode + (shift ? - 1 : 1) + _SHOW_MODES_COUNT )%_SHOW_MODES_COUNT );

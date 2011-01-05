@@ -4,15 +4,6 @@ const int PLANE_STEPS_PER_HALF_SIDE = 10;
 const Index PLANE_VERTICES_COUNT = (2*PLANE_STEPS_PER_HALF_SIDE + 1)*(2*PLANE_STEPS_PER_HALF_SIDE + 1);
 const DWORD PLANE_INDICES_COUNT = 2*VERTICES_PER_TRIANGLE*(2*PLANE_STEPS_PER_HALF_SIDE)*(2*PLANE_STEPS_PER_HALF_SIDE);
 
-namespace
-{
-    inline void add_triangle( Index i1, Index i2, Index i3, Index *indices, DWORD &current_index, Index offset = 0 )
-    {
-        indices[current_index++] = i1 + offset;
-        indices[current_index++] = i2 + offset;
-        indices[current_index++] = i3 + offset;
-    }
-}
 void plane(float length, float width, Vertex *res_vertices, Index *res_indices, D3DCOLOR color)
 {
     Index vertex = 0; // current vertex

@@ -60,3 +60,13 @@ private:
     Logger(const Logger &logger);
     Logger & operator=(const Logger &logger);
 };
+
+typedef DWORD Index;
+
+// a helper for filling index buffers
+inline void add_triangle( Index i1, Index i2, Index i3, Index *indices, DWORD &current_index, Index offset = 0 )
+{
+    indices[current_index++] = i1 + offset;
+    indices[current_index++] = i2 + offset;
+    indices[current_index++] = i3 + offset;
+}
