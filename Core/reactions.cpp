@@ -60,7 +60,7 @@ namespace CrashAndSqueeze
             if( ! is_enabled() || hit_velocity.norm() < velocity_threshold )
                 return;
 
-            for(int i = 0; i < hit_vertices.size(); ++i)
+            for(int i = 0; i < shape_vertex_indices.size(); ++i)
             {
                 int vertex_index = shape_vertex_indices[i];
 
