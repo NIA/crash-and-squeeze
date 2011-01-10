@@ -26,10 +26,15 @@ namespace CrashAndSqueeze
 
         // -- EmptyRegion --
 
-        bool EmptyRegion::contains(const Math::Vector &point) const
+        bool EmptyRegion::contains(const Vector &point) const
         {
             ignore_unreferenced(point);
             return false;
+        }
+
+        void EmptyRegion::move(const Vector &vector)
+        {
+            ignore_unreferenced(vector);
         }
 
         // -- SphericalRegion --
@@ -48,6 +53,11 @@ namespace CrashAndSqueeze
         bool SphericalRegion::contains(const Vector &point) const
         {
             return less_or_equal( distance(point, center), radius );
+        }
+
+        void SphericalRegion::move(const Vector &vector)
+        {
+            center += vector;
         }
 
         // -- CylindricalRegion --
@@ -90,6 +100,11 @@ namespace CrashAndSqueeze
                    && less_or_equal( normal_component.norm(), radius );
         }
 
+        void CylindricalRegion::move(const Vector &vector)
+        {
+            set_axis(top_center + vector, bottom_center + vector);
+        }
+
         // -- BoxRegion --
 
         BoxRegion::BoxRegion(const Vector & min_corner, const Vector & max_corner)
@@ -124,6 +139,11 @@ namespace CrashAndSqueeze
                     return false;
             }
             return true;
+        }
+
+        void BoxRegion::move(const Vector &vector)
+        {
+            set_box(min_corner + vector, max_corner + vector);
         }
     }
 }

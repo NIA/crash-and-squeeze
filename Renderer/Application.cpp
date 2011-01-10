@@ -47,6 +47,8 @@ namespace
                                   _T("Enter: hit the model,\n")
                                   _T("Tab: switch between current, initial\n")
                                   _T("        and equilibrium state,\n")
+                                  _T("W: toggle wireframe on/off,\n")
+                                  _T("T: toggle alpha test,\n")
                                   _T("Esc: exit");
 
     inline bool is_key_pressed(int virtual_key)

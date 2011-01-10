@@ -41,6 +41,7 @@ public:
     
     const D3DXMATRIX &get_rotation_and_position() const;
     void rotate(float phi);
+    void move(D3DXVECTOR3 vector);
 
     unsigned get_vertices_count() { return vertices_count; }
     Vertex * lock_vertex_buffer();
