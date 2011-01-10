@@ -8,6 +8,7 @@
 #include <crtdbg.h>
 #include "Error.h"
 #include <fstream>
+#include "Math/vector.h"
 
 #define BONES_COUNT 2
 
@@ -69,4 +70,18 @@ inline void add_triangle( Index i1, Index i2, Index i3, Index *indices, DWORD &c
     indices[current_index++] = i1 + offset;
     indices[current_index++] = i2 + offset;
     indices[current_index++] = i3 + offset;
+}
+
+inline D3DXVECTOR3 math_vector_to_d3dxvector(const CrashAndSqueeze::Math::Vector &v)
+{
+    return D3DXVECTOR3(static_cast<float>(v[0]),
+                       static_cast<float>(v[1]),
+                       static_cast<float>(v[2]));
+}
+
+inline CrashAndSqueeze::Math::Vector d3dxvector_to_math_vector(const D3DXVECTOR3 &v)
+{
+    return CrashAndSqueeze::Math::Vector(static_cast<CrashAndSqueeze::Math::Real>(v.x),
+                                         static_cast<CrashAndSqueeze::Math::Real>(v.y),
+                                         static_cast<CrashAndSqueeze::Math::Real>(v.z));
 }

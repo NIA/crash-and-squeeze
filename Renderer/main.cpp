@@ -25,6 +25,8 @@ using CrashAndSqueeze::Collections::Array;
 
 namespace
 {
+    bool DISABLE_MESSAGE_BOXES = true;
+
     const char *SIMPLE_SHADER_FILENAME = "simple.vsh";
     const char *LIGHTING_SHADER_FILENAME = "lighting.vsh";
 
@@ -56,11 +58,12 @@ namespace
     const DWORD SPHERE_INDICES = sphere_indices_count(SPHERE_EDGES_PER_DIAMETER);
     const D3DXCOLOR HIT_REGION_COLOR = D3DCOLOR_RGBA(255, 255, 0, 128);
 
-    inline D3DXVECTOR3 math_vector_to_d3dxvector(const Vector &v)
+    inline void my_message_box(const TCHAR *message, const TCHAR *caption, UINT type, bool force = false)
     {
-        return D3DXVECTOR3(static_cast<float>(v[0]),
-                           static_cast<float>(v[1]),
-                           static_cast<float>(v[2]));
+        if( ! DISABLE_MESSAGE_BOXES || force )
+        {
+            MessageBox(NULL, message, caption, type);
+        }
     }
 
 #pragma warning( disable : 4512 )
@@ -89,7 +92,7 @@ namespace
         void invoke(const char * message, const char * file, int line)
         {
             logger.log("WARNING [Crash-And-Squeeze]", message, file, line);
-            MessageBox(NULL, _T("Physical subsystem warning! See log"), _T("Crash-And-Squeeze warning!"), MB_OK | MB_ICONEXCLAMATION);
+            my_message_box(_T("Physical subsystem warning! See log"), _T("Crash-And-Squeeze warning!"), MB_OK | MB_ICONEXCLAMATION, true);
         }
     };
 
@@ -152,7 +155,7 @@ namespace
         {
             UNREFERENCED_PARAMETER(vertex_index);
             UNREFERENCED_PARAMETER(velocity);
-            MessageBox(NULL, message, _T("Hit Reaction"), MB_OK | MB_ICONINFORMATION);
+            my_message_box(message, _T("Hit Reaction"), MB_OK | MB_ICONINFORMATION);
             this->disable();
         }
     };
@@ -173,7 +176,7 @@ namespace
         {
             UNREFERENCED_PARAMETER(vertex_index);
 
-            MessageBox(NULL, message, _T("Region Reaction"), MB_OK | MB_ICONINFORMATION);
+            my_message_box(message, _T("Region Reaction"), MB_OK | MB_ICONINFORMATION);
             this->disable();
         }
     };
@@ -425,7 +428,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         
         logger.log("ERROR!! [Renderer]", "application crash\n");
         const TCHAR *MESSAGE_BOX_TITLE = _T("Renderer error!");
-        MessageBox(NULL, e.message(), MESSAGE_BOX_TITLE, MB_OK | MB_ICONERROR);
+        my_message_box(e.message(), MESSAGE_BOX_TITLE, MB_OK | MB_ICONERROR, true);
         return -1;
     }
     return 0;
