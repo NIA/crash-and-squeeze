@@ -87,7 +87,7 @@ protected:
     template<int SIZE,class V>
     void test_creation(V (&vertices)[SIZE], const VertexInfo &vi, const MassFloat *masses, MassFloat constant_mass = 0)
     {
-        Model m(vertices, SIZE, vi, CLUSTERS_BY_AXES, PADDING, masses, constant_mass);
+        Model m(vertices, SIZE, vi, vertices, SIZE, vi, CLUSTERS_BY_AXES, PADDING, masses, constant_mass);
         int vnum = m.get_vertices_num();
         
         int cnum = m.get_clusters_num();
@@ -147,7 +147,7 @@ TEST_F(ModelTest, Creation1WithMasses)
 
 TEST_F(ModelTest, StepComputationShouldNotFail)
 {
-    Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
+    Model m(vertices1, VERTICES1_NUM, vi1, vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
     
     const int FORCES_NUM = 10;
     ForcesArray forces(FORCES_NUM);
@@ -168,7 +168,7 @@ TEST_F(ModelTest, StepComputationShouldNotFail)
 
 TEST_F(ModelTest, BadForces)
 {
-    Model m(vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
+    Model m(vertices1, VERTICES1_NUM, vi1, vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
     ForcesArray bad;
     bad.push_back(NULL);
     EXPECT_THROW( m.compute_next_step(bad, dt, linear_velocity_change, angular_velocity_change), CoreTesterException );
@@ -213,11 +213,11 @@ bool vectors_almost_equal(const Vector &v1, const Vector &v2, Real accuracy)
 
 TEST_F(ModelTest, Hit)
 {
-    Model m(stick, STICK_VERTICES_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
+    Model m(stick, STICK_VERTICES_NUM, vi1, stick, STICK_VERTICES_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
 
     const Vector hit_velocity(0, 1, 0);
-    const Vector exp_lin_velocity(0, 1, 0);
-    const Vector exp_ang_velocity(1, 0, 0);
+    const Vector exp_lin_velocity(0, 0.5, 0);
+    const Vector exp_ang_velocity(0.5, 0, 0);
 
     ForcesArray empty(0);
     m.hit( SphericalRegion( Vector(0,0,0), 0.1 ), hit_velocity);

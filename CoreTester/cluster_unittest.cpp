@@ -12,26 +12,25 @@ inline std::ostream &operator<<(std::ostream &stream, const Matrix &m)
 TEST(ClusterTest, Creation)
 {
     Cluster c;
-    EXPECT_EQ( 0, c.get_vertices_num() );
+    EXPECT_EQ( 0, c.get_physical_vertices_num() );
+    EXPECT_EQ( 0, c.get_graphical_vertices_num() );
     EXPECT_EQ( 0, c.get_total_mass() );
-    EXPECT_EQ( c.get_initial_center_of_mass(), c.get_center_of_mass() );
 }
 
 TEST(ClusterTest, AddOne)
 {
     Cluster c;
     PhysicalVertex v(Vector(1,2,3), 12);
-    c.add_vertex(v);
+    c.add_physical_vertex(v);
     EXPECT_EQ( 1, v.get_including_clusters_num() );
     
     c.compute_initial_characteristics();
 
-    EXPECT_EQ( 1, c.get_vertices_num() );
+    EXPECT_EQ( 1, c.get_physical_vertices_num() );
     EXPECT_EQ( v.get_mass(), c.get_total_mass() );
-    EXPECT_EQ( v.get_pos(), c.get_initial_center_of_mass() );
     EXPECT_EQ( v.get_pos(), c.get_center_of_mass() );
-    EXPECT_EQ( &v, &c.get_vertex(0) );
-    EXPECT_EQ( Vector(0,0,0), c.get_equilibrium_position(0) );
+    EXPECT_EQ( &v, &c.get_physical_vertex(0) );
+    EXPECT_EQ( Vector(0,0,0), c.get_equilibrium_offset_pos(0) );
 }
 
 TEST(ClusterTest, AddTwo)
@@ -39,22 +38,21 @@ TEST(ClusterTest, AddTwo)
     Cluster c;
     PhysicalVertex u(Vector(1,1,1), 10);
     PhysicalVertex v(Vector(4,7,10), 20);
-    c.add_vertex(u);
-    c.add_vertex(v);
+    c.add_physical_vertex(u);
+    c.add_physical_vertex(v);
 
     EXPECT_EQ( 1, u.get_including_clusters_num() );
     EXPECT_EQ( 1, v.get_including_clusters_num() );
 
     c.compute_initial_characteristics();
 
-    EXPECT_EQ( 2, c.get_vertices_num() );
+    EXPECT_EQ( 2, c.get_physical_vertices_num() );
     EXPECT_EQ( 30, c.get_total_mass() );
-    EXPECT_EQ( Vector(3, 5, 7), c.get_initial_center_of_mass() );
     EXPECT_EQ( Vector(3, 5, 7), c.get_center_of_mass() );
-    EXPECT_EQ( &u, &c.get_vertex(0) );
-    EXPECT_EQ( &v, &c.get_vertex(1) );
-    EXPECT_EQ( Vector(-2,-4,-6), c.get_equilibrium_position(0) );
-    EXPECT_EQ( Vector(1,2,3), c.get_equilibrium_position(1) );
+    EXPECT_EQ( &u, &c.get_physical_vertex(0) );
+    EXPECT_EQ( &v, &c.get_physical_vertex(1) );
+    EXPECT_EQ( Vector(-2,-4,-6), c.get_equilibrium_offset_pos(0) );
+    EXPECT_EQ( Vector(1,2,3), c.get_equilibrium_offset_pos(1) );
 }
 
 TEST(ClusterTest, AddSeveral)
@@ -64,24 +62,23 @@ TEST(ClusterTest, AddSeveral)
     PhysicalVertex v(Vector(0, 2, 0), 1);
     PhysicalVertex w(Vector(2, 0, 0), 1);
     PhysicalVertex z(Vector(2, 2, 0), 1);
-    c.add_vertex(u);
-    c.add_vertex(v);
-    c.add_vertex(w);
-    c.add_vertex(z);
+    c.add_physical_vertex(u);
+    c.add_physical_vertex(v);
+    c.add_physical_vertex(w);
+    c.add_physical_vertex(z);
     c.compute_initial_characteristics();
 
-    EXPECT_EQ( 4, c.get_vertices_num() );
+    EXPECT_EQ( 4, c.get_physical_vertices_num() );
     EXPECT_EQ( 4, c.get_total_mass() );
-    EXPECT_EQ( Vector(1, 1, 0), c.get_initial_center_of_mass() );
     EXPECT_EQ( Vector(1, 1, 0), c.get_center_of_mass() );
-    EXPECT_EQ( &u, &c.get_vertex(0) );
-    EXPECT_EQ( &v, &c.get_vertex(1) );
-    EXPECT_EQ( &w, &c.get_vertex(2) );
-    EXPECT_EQ( &z, &c.get_vertex(3) );
-    EXPECT_EQ( Vector(-1,-1,0), c.get_equilibrium_position(0) );
-    EXPECT_EQ( Vector(-1, 1,0), c.get_equilibrium_position(1) );
-    EXPECT_EQ( Vector( 1,-1,0), c.get_equilibrium_position(2) );
-    EXPECT_EQ( Vector( 1, 1,0), c.get_equilibrium_position(3) );
+    EXPECT_EQ( &u, &c.get_physical_vertex(0) );
+    EXPECT_EQ( &v, &c.get_physical_vertex(1) );
+    EXPECT_EQ( &w, &c.get_physical_vertex(2) );
+    EXPECT_EQ( &z, &c.get_physical_vertex(3) );
+    EXPECT_EQ( Vector(-1,-1,0), c.get_equilibrium_offset_pos(0) );
+    EXPECT_EQ( Vector(-1, 1,0), c.get_equilibrium_offset_pos(1) );
+    EXPECT_EQ( Vector( 1,-1,0), c.get_equilibrium_offset_pos(2) );
+    EXPECT_EQ( Vector( 1, 1,0), c.get_equilibrium_offset_pos(3) );
 }
 
 TEST(ClusterTest, AddToMoreThanOne)
@@ -90,8 +87,8 @@ TEST(ClusterTest, AddToMoreThanOne)
     Cluster c2;
     PhysicalVertex v;
 
-    c1.add_vertex(v);
-    c2.add_vertex(v);
+    c1.add_physical_vertex(v);
+    c2.add_physical_vertex(v);
 
     EXPECT_EQ(2, v.get_including_clusters_num());
 }
@@ -107,20 +104,19 @@ TEST(ClusterTest, AddMany)
     {
         v[i] = PhysicalVertex(Vector(0, 0, i),
                                abs( static_cast<Real>(MANY-1)/2 - i ) );
-        c.add_vertex(v[i]);
+        c.add_physical_vertex(v[i]);
         total_mass += v[i].get_mass();
     }
     c.compute_initial_characteristics();
     
     Vector cm(0, 0, static_cast<Real>(MANY-1)/2);
     
-    EXPECT_EQ( MANY, c.get_vertices_num() );
+    EXPECT_EQ( MANY, c.get_physical_vertices_num() );
     EXPECT_EQ( total_mass, c.get_total_mass() );
-    EXPECT_EQ( cm, c.get_initial_center_of_mass() );
     EXPECT_EQ( cm, c.get_center_of_mass() );
     for(int i = 0; i < MANY; ++i)
     {
-        EXPECT_EQ( &v[i], &c.get_vertex(i) );
-        ASSERT_EQ( Vector(0, 0, i - cm[2]), c.get_equilibrium_position(i) );
+        EXPECT_EQ( &v[i], &c.get_physical_vertex(i) );
+        ASSERT_EQ( Vector(0, 0, i - cm[2]), c.get_equilibrium_offset_pos(i) );
     }
 }
