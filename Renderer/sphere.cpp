@@ -2,42 +2,42 @@
 #include "sphere.h"
 #include <cmath>
 
-Index sphere_vertices_count(Index edges_per_diameter)
+Index sphere_vertices_count(Index edges_per_meridian)
 {
     return 2 // 2 poles
-           + (edges_per_diameter - 1)*edges_per_diameter; // (n - 1) layers of n vertices
+           + (edges_per_meridian - 1)*2*edges_per_meridian; // (n - 1) layers of 2*n vertices
 }
 
 // Calculated for TRIANGLELIST primitive type
-DWORD sphere_indices_count(Index edges_per_diameter)
+DWORD sphere_indices_count(Index edges_per_meridian)
 {
-    return 3*( 2*edges_per_diameter // 2*n triangles, n near each pole
-             + 2*(edges_per_diameter - 2)*edges_per_diameter ); // 2 triangles per cell, (n - 2) layers of n cells
+    return 3*( 4*edges_per_meridian // 4*n triangles, 2*n near each pole
+             + 2*(edges_per_meridian - 2)*2*edges_per_meridian ); // 2 triangles per cell, (n - 2) layers of 2*n cells
 }
 
-void sphere(float radius, D3DXVECTOR3 position, D3DCOLOR color, Index edges_per_diameter,
+void sphere(float radius, D3DXVECTOR3 position, D3DCOLOR color, Index edges_per_meridian,
             /*out*/ Vertex *res_vertices, /*out*/ Index *res_indices)
 {
     Index vertex = 0;
     DWORD index = 0;
 
     _ASSERT(0 != edges_per_diameter);
-    float phi_step = 2*static_cast<float>(M_PI)/edges_per_diameter;
-    float theta_step = static_cast<float>(M_PI)/edges_per_diameter;
+    float angle_step = static_cast<float>(M_PI)/edges_per_meridian;
 
+    Index edges_per_diameter = 2*edges_per_meridian;
 
-    for(Index theta_index = 0; theta_index <= edges_per_diameter; ++theta_index)
+    for(Index theta_index = 0; theta_index <= edges_per_meridian; ++theta_index)
     {
-        float theta = theta_index*theta_step;
+        float theta = theta_index*angle_step;
         
         for(Index phi_index = 0; phi_index < edges_per_diameter; ++ phi_index)
         {
-            float phi = phi_index*phi_step;
+            float phi = phi_index*angle_step;
 
             D3DXVECTOR3 normal(sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta));
 
             // add vertex only if not last layer: south pole
-            bool add_vertex = !(edges_per_diameter == theta_index && phi_index != 0);
+            bool add_vertex = !(edges_per_meridian == theta_index && phi_index != 0);
 
             if(add_vertex)
             {
@@ -55,7 +55,7 @@ void sphere(float radius, D3DXVECTOR3 position, D3DCOLOR color, Index edges_per_
                 vertex_over = 0;
                 add_triangle(vertex_back, vertex_over, last_vertex, res_indices, index);
             }
-            else if(edges_per_diameter == theta_index)
+            else if(edges_per_meridian == theta_index)
             {
                 // last layer: connect to south pole (south pole is vertex)
                 add_triangle(vertex_over_back, vertex_over, last_vertex, res_indices, index);
