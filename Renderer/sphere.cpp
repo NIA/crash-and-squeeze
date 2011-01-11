@@ -21,7 +21,7 @@ void sphere(float radius, D3DXVECTOR3 position, D3DCOLOR color, Index edges_per_
     Index vertex = 0;
     DWORD index = 0;
 
-    _ASSERT(0 != edges_per_diameter);
+    _ASSERT(0 != edges_per_meridian);
     float angle_step = static_cast<float>(M_PI)/edges_per_meridian;
 
     Index edges_per_diameter = 2*edges_per_meridian;
