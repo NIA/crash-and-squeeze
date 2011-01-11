@@ -37,6 +37,11 @@ namespace CrashAndSqueeze
             ignore_unreferenced(vector);
         }
 
+        Vector EmptyRegion::get_center() const
+        {
+            return Vector::ZERO;
+        }
+
         // -- SphericalRegion --
 
         SphericalRegion::SphericalRegion(Vector center, Real radius)
@@ -58,6 +63,11 @@ namespace CrashAndSqueeze
         void SphericalRegion::move(const Vector &vector)
         {
             center += vector;
+        }
+
+        Vector SphericalRegion::get_center() const
+        {
+            return center;
         }
 
         // -- CylindricalRegion --
@@ -105,6 +115,11 @@ namespace CrashAndSqueeze
             set_axis(top_center + vector, bottom_center + vector);
         }
 
+        Vector CylindricalRegion::get_center() const
+        {
+            return (top_center + bottom_center)/2;
+        }
+
         // -- BoxRegion --
 
         BoxRegion::BoxRegion(const Vector & min_corner, const Vector & max_corner)
@@ -144,6 +159,11 @@ namespace CrashAndSqueeze
         void BoxRegion::move(const Vector &vector)
         {
             set_box(min_corner + vector, max_corner + vector);
+        }
+
+        Vector BoxRegion::get_center() const
+        {
+            return (min_corner + max_corner)/2;
         }
     }
 }

@@ -10,6 +10,7 @@ namespace CrashAndSqueeze
         class IRegion
         {
         public:
+            virtual Math::Vector get_center() const = 0;
             virtual bool contains(const Math::Vector &point) const = 0;
             virtual void move(const Math::Vector &vector) = 0;
         };
@@ -17,6 +18,7 @@ namespace CrashAndSqueeze
         class EmptyRegion : public IRegion
         {
         public:
+            virtual Math::Vector get_center() const;
             virtual bool contains(const Math::Vector &point) const;
             virtual void move(const Math::Vector &vector);
         };
@@ -30,13 +32,13 @@ namespace CrashAndSqueeze
             SphericalRegion(Math::Vector center, Math::Real radius);
 
             // -- properties --
-            const Math::Vector & get_center() const { return center; }
             void set_center(const Math::Vector & point) { center = point; }
 
             Math::Real get_radius() const { return radius; }
             void set_radius(Math::Real value);
 
             // -- implement Region --
+            virtual Math::Vector get_center() const;
             virtual bool contains(const Math::Vector &point) const;
             virtual void move(const Math::Vector &vector);
         };
@@ -64,6 +66,7 @@ namespace CrashAndSqueeze
             void set_radius(Math::Real value);
 
             // -- implement Region --
+            virtual Math::Vector get_center() const;
             virtual bool contains(const Math::Vector &point) const;
             virtual void move(const Math::Vector &vector);
         };
@@ -81,7 +84,10 @@ namespace CrashAndSqueeze
             const Math::Vector & get_max_corner() const { return max_corner; }
             void set_box(const Math::Vector & min_corner, const Math::Vector & max_corner);
 
+            Math::Real get_dimension(int index) const { return max_corner[index] - min_corner[index]; }
+
             // -- implement Region --
+            Math::Vector get_center() const;
             virtual bool contains(const Math::Vector &point) const;
             virtual void move(const Math::Vector &vector);
         };

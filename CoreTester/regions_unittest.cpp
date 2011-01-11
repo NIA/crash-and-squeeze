@@ -58,6 +58,7 @@ TEST(RegionsTest, CylindricalRegionProperties)
     EXPECT_EQ( top, region.get_top_center() );
     EXPECT_EQ( bottom, region.get_bottom_center() );
     EXPECT_EQ( top - bottom, region.get_axis() );
+    EXPECT_EQ( (top+bottom)/2, region.get_center());
     EXPECT_EQ( radius, region.get_radius() );
 }
 
