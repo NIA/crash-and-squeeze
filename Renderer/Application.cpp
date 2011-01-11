@@ -23,6 +23,7 @@ namespace
     const bool        INITIAL_WIREFRAME_STATE = true;
     const D3DCOLOR    BLACK = D3DCOLOR_XRGB( 0, 0, 0 );
     const float       ROTATE_STEP = D3DX_PI/30.0f;
+    const float       MOVE_STEP = 0.1f;
     const float       VERTEX_MASS = 1;
     const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 8};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
@@ -71,28 +72,28 @@ namespace
     const unsigned    SHADER_REG_VIEW_MX = 0;
     //    c12 is directional light vector
     const unsigned    SHADER_REG_DIRECTIONAL_VECTOR = 12;
-    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0, -1.0f, 0.8f);
+    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (-0.2f, -1.0f, 0.3f);
     //    c13 is directional light color
     const unsigned    SHADER_REG_DIRECTIONAL_COLOR = 13;
-    const D3DCOLOR    SHADER_VAL_DIRECTIONAL_COLOR = D3DCOLOR_XRGB(204, 178, 25);
+    const D3DCOLOR    SHADER_VAL_DIRECTIONAL_COLOR = D3DCOLOR_XRGB(150, 150, 150);
     //    c14 is diffuse coefficient
     const unsigned    SHADER_REG_DIFFUSE_COEF = 14;
-    const float       SHADER_VAL_DIFFUSE_COEF = 0.7f;
+    const float       SHADER_VAL_DIFFUSE_COEF = 0.8f;
     //    c15 is ambient color
     const unsigned    SHADER_REG_AMBIENT_COLOR = 15;
-    const D3DCOLOR    SHADER_VAL_AMBIENT_COLOR = D3DCOLOR_XRGB(13, 33, 13);
+    const D3DCOLOR    SHADER_VAL_AMBIENT_COLOR = D3DCOLOR_XRGB(33, 63, 33);
     //    c16 is point light color
     const unsigned    SHADER_REG_POINT_COLOR = 16;
-    const D3DCOLOR    SHADER_VAL_POINT_COLOR = D3DCOLOR_XRGB(25, 153, 153);
+    const D3DCOLOR    SHADER_VAL_POINT_COLOR = D3DCOLOR_XRGB(120, 250, 250);
     //    c17 is point light position
     const unsigned    SHADER_REG_POINT_POSITION = 17;
-    const D3DXVECTOR3 SHADER_VAL_POINT_POSITION  (0.2f, -0.91f, -1.1f);
+    const D3DXVECTOR3 SHADER_VAL_POINT_POSITION  (0.2f, -0.51f, -1.1f);
     //    c18 are attenuation constants
     const unsigned    SHADER_REG_ATTENUATION = 18;
-    const D3DXVECTOR3 SHADER_VAL_ATTENUATION  (1.0f, 0, 0.5f);
+    const D3DXVECTOR3 SHADER_VAL_ATTENUATION  (1.0f, 0, 0.8f);
     //    c19 is specular coefficient
     const unsigned    SHADER_REG_SPECULAR_COEF = 19;
-    const float       SHADER_VAL_SPECULAR_COEF = 0.4f;
+    const float       SHADER_VAL_SPECULAR_COEF = 0.3f;
     //    c20 is specular constant 'f'
     const unsigned    SHADER_REG_SPECULAR_F = 20;
     const float       SHADER_VAL_SPECULAR_F = 25.0f;
@@ -120,10 +121,10 @@ namespace
 
 Application::Application(Logger &logger) :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(1.8f, 1.6f, -0.75f), // Constants selected for better view the scene
-    directional_light_enabled(false), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
+    directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
-    forces(NULL), logger(logger), font(NULL), show_help(false)
+    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL)
 {
 
     try
@@ -160,7 +161,6 @@ void Application::init_device()
                                       &present_parameters, &device ) ) )
         throw D3DInitError();
     
-    check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CW ) );
     // Configure alpha-test
     check_state( device->SetRenderState( D3DRS_ALPHAREF, (DWORD)0xffffffff ) );
     check_state( device->SetRenderState( D3DRS_ALPHATESTENABLE, TRUE ) );
@@ -240,7 +240,14 @@ void Application::render()
 
         set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, display_model->get_rotation_and_position() );
         
-        // Draw
+        if( ! wireframe )
+        {
+            // Draw back side
+            check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW ) );
+            display_model->draw();
+        }
+        // Draw front side
+        check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CW ) );
         display_model->draw();
     }
 
@@ -345,11 +352,26 @@ void Application::set_forces(ForcesArray & forces)
     this->forces = & forces;
 }
 
-void Application::set_impact(const ::CrashAndSqueeze::Core::IRegion & region,
-                             const ::CrashAndSqueeze::Math::Vector &velocity)
+void Application::set_impact(::CrashAndSqueeze::Core::IRegion & region,
+                             const ::CrashAndSqueeze::Math::Vector &velocity,
+                             Model & model)
 {
-    impact_region = & region;
-    impact_velocity = velocity;
+    if(NULL == impact_model)
+    {
+        impact_region = & region;
+        impact_velocity = velocity;
+        add_model(model);
+        impact_model = & model;
+    }
+}
+
+void Application::move_impact(const D3DXVECTOR3 &vector)
+{
+    if(NULL != impact_model)
+    {
+        impact_model->move(vector);
+        impact_region->move(d3dxvector_to_math_vector(vector));
+    }
 }
 
 void Application::rotate_models(float phi)
@@ -406,11 +428,17 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
     case VK_RIGHT:
         camera.move_counterclockwise();
         break;
-    case 'A':
-        rotate_models(-ROTATE_STEP);
+    case 'I':
+        move_impact(D3DXVECTOR3(0,0,MOVE_STEP));
         break;
-    case 'D':
-        rotate_models(ROTATE_STEP);
+    case 'K':
+        move_impact(D3DXVECTOR3(0,0,-MOVE_STEP));
+        break;
+    case 'J':
+        move_impact(D3DXVECTOR3(0,0,MOVE_STEP));
+        break;
+    case 'L':
+        move_impact(D3DXVECTOR3(0,0,-MOVE_STEP));
         break;
     case '1':
         set_show_mode(0);

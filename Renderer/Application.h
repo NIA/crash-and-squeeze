@@ -55,9 +55,11 @@ private:
     ::CrashAndSqueeze::Core::ForcesArray * forces;
     bool forces_enabled;
 
-    const ::CrashAndSqueeze::Core::IRegion * impact_region;
+    ::CrashAndSqueeze::Core::IRegion * impact_region;
     ::CrashAndSqueeze::Math::Vector impact_velocity;
+    Model * impact_model;
     bool impact_happened;
+    void move_impact(const D3DXVECTOR3 &vector);
 
     Camera camera;
 
@@ -114,7 +116,9 @@ public:
     // creates a physical model if `physical` is true (and returns it);
     PhysicalModel * add_model(Model &high_model, bool physical = false, Model *low_model = NULL);
     void set_forces(::CrashAndSqueeze::Core::ForcesArray & forces);
-    void set_impact(const ::CrashAndSqueeze::Core::IRegion & region, const ::CrashAndSqueeze::Math::Vector &velocity);
+    void set_impact(::CrashAndSqueeze::Core::IRegion & region,
+                    const ::CrashAndSqueeze::Math::Vector &velocity,
+                    Model &model);
     void run();
 
     void toggle_wireframe();

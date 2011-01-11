@@ -53,7 +53,7 @@ namespace
     const Index HIGH_CYLINDER_VERTICES = cylinder_vertices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
     const DWORD HIGH_CYLINDER_INDICES = cylinder_indices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
 
-    const Index SPHERE_EDGES_PER_DIAMETER = 9;
+    const Index SPHERE_EDGES_PER_DIAMETER = 8;
     const Index SPHERE_VERTICES = sphere_vertices_count(SPHERE_EDGES_PER_DIAMETER);
     const DWORD SPHERE_INDICES = sphere_indices_count(SPHERE_EDGES_PER_DIAMETER);
     const D3DXCOLOR HIT_REGION_COLOR = D3DCOLOR_RGBA(255, 255, 0, 128);
@@ -375,7 +375,6 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         app.set_forces(forces);
 
         SphericalRegion hit_region( Vector(0,-cylinder_radius,cylinder_z*2/3), 0.1 );
-        app.set_impact( hit_region, Vector(0,45,0.0) );
 
         // ------------------ V i s u a l i z a t i o n -----------------------
         sphere_vertices = new Vertex[SPHERE_VERTICES];
@@ -395,7 +394,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                math_vector_to_d3dxvector(hit_region.get_center()),
                                D3DXVECTOR3(0, 0, 0));
 
-        app.add_model(hit_region_model, false);
+        app.set_impact( hit_region, Vector(0,45,0.0), hit_region_model );
 
         // -------------------------- G O ! ! ! -----------------------
         app.run();

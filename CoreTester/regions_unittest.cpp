@@ -3,9 +3,11 @@
 
 TEST(RegionsTest, EmptyRegion)
 {
-    const EmptyRegion empty;
+    const EmptyRegion region_instance;
+    const IRegion & region = region_instance;
+
     Vector point(0,1,2);
-    EXPECT_FALSE( empty.contains(point) );
+    EXPECT_FALSE( region.contains(point) );
 }
 
 TEST(RegionsTest, SphericalRegionProperties)
@@ -34,6 +36,16 @@ TEST(RegionsTest, SphericalRegionContainsPoint)
     EXPECT_TRUE( region.contains( Vector(0.5, 0.5, 0.5) ) ); // inside
     EXPECT_TRUE( region.contains( Vector(2, 0, 0) ) );       // border
     EXPECT_FALSE( region.contains( Vector(2, 2, 2) ) );      // outside
+}
+
+TEST(RegionsTest, SphericalRegionMove)
+{
+    SphericalRegion region_instance( Vector(1,2,3), 2 );
+    IRegion & region = region_instance;
+
+    region.move(Vector(1,2,1));
+    EXPECT_EQ(Vector(2,4,4), region_instance.get_center());
+    EXPECT_EQ(2, region_instance.get_radius());
 }
 
 TEST(RegionsTest, CylindricalRegionProperties)
@@ -77,6 +89,17 @@ TEST(RegionsTest, CylindricalRegionContainsPoint)
     EXPECT_FALSE( region.contains( Vector(2, 2, 2) ) );      // outside
 }
 
+TEST(RegionsTest, CylindricalRegionMove)
+{
+    CylindricalRegion region_instance( Vector(1,2,4), Vector(1,2,3), 2 );
+    IRegion & region = region_instance;
+
+    region.move(Vector(1,2,1));
+    EXPECT_EQ(Vector(2,4,5), region_instance.get_top_center());
+    EXPECT_EQ(Vector(2,4,4), region_instance.get_bottom_center());
+    EXPECT_EQ(2, region_instance.get_radius());
+}
+
 TEST(RegionsTest, BoxRegionProperties)
 {
     Vector min(1,2,2);
@@ -85,6 +108,10 @@ TEST(RegionsTest, BoxRegionProperties)
     
     EXPECT_EQ( min, region.get_min_corner() );
     EXPECT_EQ( max, region.get_max_corner() );
+    EXPECT_EQ( 2, region.get_dimension(0) );
+    EXPECT_EQ( 1, region.get_dimension(1) );
+    EXPECT_EQ( 1, region.get_dimension(2) );
+    EXPECT_EQ( Vector(2, 2.5, 2.5), region.get_center() );
 }
 
 TEST(RegionsTest, BoxRegionLittleMax)
@@ -110,4 +137,14 @@ TEST(RegionsTest, BoxRegionContainsPoint)
     EXPECT_TRUE( region.contains( Vector(0.3, 0, 0) ) );     // edge
     EXPECT_TRUE( region.contains( Vector(1, 1, 1) ) );       // corner
     EXPECT_FALSE( region.contains( Vector(-1, -1, -1) ) );   // outside
+}
+
+TEST(RegionsTest, BoxRegionMove)
+{
+    BoxRegion region_instance( Vector(0,0,0), Vector(1,1,1) );
+    IRegion & region = region_instance;
+
+    region.move(Vector(1,2,1));
+    EXPECT_EQ(Vector(1,2,1), region_instance.get_min_corner());
+    EXPECT_EQ(Vector(2,3,2), region_instance.get_max_corner());
 }
