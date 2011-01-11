@@ -59,7 +59,8 @@ private:
     ::CrashAndSqueeze::Math::Vector impact_velocity;
     Model * impact_model;
     bool impact_happened;
-    void move_impact(const D3DXVECTOR3 &vector);
+    void move_impact(const ::CrashAndSqueeze::Math::Vector & vector);
+    void rotate_impact(const ::CrashAndSqueeze::Math::Vector & rotation_axis);
 
     Camera camera;
 

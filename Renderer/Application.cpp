@@ -22,8 +22,8 @@ namespace
     const int         TEXT_LINE_HEIGHT = TEXT_HEIGHT + TEXT_SPACING;
     const bool        INITIAL_WIREFRAME_STATE = true;
     const D3DCOLOR    BLACK = D3DCOLOR_XRGB( 0, 0, 0 );
-    const float       ROTATE_STEP = D3DX_PI/30.0f;
-    const float       MOVE_STEP = 0.1f;
+    const Real        ROTATE_STEP = D3DX_PI/30.0;
+    const Real        MOVE_STEP = 0.02;
     const float       VERTEX_MASS = 1;
     const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 8};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
@@ -353,7 +353,7 @@ void Application::set_forces(ForcesArray & forces)
 }
 
 void Application::set_impact(::CrashAndSqueeze::Core::IRegion & region,
-                             const ::CrashAndSqueeze::Math::Vector &velocity,
+                             const Vector &velocity,
                              Model & model)
 {
     if(NULL == impact_model)
@@ -365,13 +365,33 @@ void Application::set_impact(::CrashAndSqueeze::Core::IRegion & region,
     }
 }
 
-void Application::move_impact(const D3DXVECTOR3 &vector)
+void Application::move_impact(const Vector &vector)
 {
     if(NULL != impact_model)
     {
-        impact_model->move(vector);
-        impact_region->move(d3dxvector_to_math_vector(vector));
+        impact_model->move(math_vector_to_d3dxvector(vector));
+        impact_region->move(vector);
     }
+}
+
+Vector rotate_vector(const Vector & vector, const Vector & rotation_axis, Real angle)
+{
+    Vector axis = rotation_axis.normalized();
+    Vector direction = vector.normalized();
+    Vector normal = ::CrashAndSqueeze::Math::cross_product(direction, axis).normalized();
+    Vector direction_radial = ::CrashAndSqueeze::Math::cross_product(axis, normal).normalized();
+    Real v_radial = vector.project_to(direction_radial);
+
+    Real step = 2*v_radial*sin(angle/2);
+    return vector - step*sin(angle/2)*direction_radial + step*cos(angle/2)*normal;
+}
+
+void Application::rotate_impact(const Vector & rotation_axis)
+{
+    Vector old_pos = impact_region->get_center();
+    Vector new_pos = rotate_vector(old_pos, rotation_axis, ROTATE_STEP);
+    move_impact(new_pos - old_pos);
+    impact_velocity = rotate_vector(impact_velocity, rotation_axis, ROTATE_STEP);
 }
 
 void Application::rotate_models(float phi)
@@ -384,6 +404,7 @@ void Application::rotate_models(float phi)
             (*iter).low_model->rotate(phi);
     }
 }
+
 void Application::set_show_mode(int new_show_mode)
 {
     show_mode = new_show_mode;
@@ -429,16 +450,16 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
         camera.move_counterclockwise();
         break;
     case 'I':
-        move_impact(D3DXVECTOR3(0,0,MOVE_STEP));
+        move_impact(Vector(0,0,MOVE_STEP));
         break;
     case 'K':
-        move_impact(D3DXVECTOR3(0,0,-MOVE_STEP));
+        move_impact(Vector(0,0,-MOVE_STEP));
         break;
     case 'J':
-        move_impact(D3DXVECTOR3(0,0,MOVE_STEP));
+        rotate_impact(Vector(0,0,-1));
         break;
     case 'L':
-        move_impact(D3DXVECTOR3(0,0,-MOVE_STEP));
+        rotate_impact(Vector(0,0,1));
         break;
     case '1':
         set_show_mode(0);
