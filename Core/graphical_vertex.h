@@ -15,6 +15,7 @@ namespace CrashAndSqueeze
             int points_num;
 
             Math::Vector vectors[VertexInfo::MAX_COMPONENT_NUM];
+            bool vectors_orthogonality[VertexInfo::MAX_COMPONENT_NUM];
             int vectors_num;
 
             bool check_point_index(int index) const;
@@ -31,6 +32,7 @@ namespace CrashAndSqueeze
             
             int get_vectors_num() const { return vectors_num; }
             const Math::Vector & get_vector(int index) const;
+            bool is_vector_orthogonal(int index) const;
             void set_vector(int index, const Math::Vector & value);
             void add_part_to_vector(int index, const Math::Vector & addition);
 

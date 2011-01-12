@@ -49,9 +49,10 @@ namespace CrashAndSqueeze
             add_offset(points_offsets, offset);
         }
 
-        void VertexInfo::add_vector(int offset)
+        void VertexInfo::add_vector(int offset, bool orthogonal)
         {
             add_offset(vectors_offsets, offset);
+            vectors_orthogonality.push_back(orthogonal);
         }
 
         int VertexInfo::get_point_offset(int index) const
@@ -62,6 +63,11 @@ namespace CrashAndSqueeze
         int VertexInfo::get_vector_offset(int index) const
         {
             return vectors_offsets[index];
+        }
+
+        bool VertexInfo::is_vector_orthogonal(int index) const
+        {
+            return vectors_orthogonality[index];
         }
     }
 }

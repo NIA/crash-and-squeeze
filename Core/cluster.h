@@ -34,6 +34,8 @@ namespace CrashAndSqueeze
             // initial state of graphical vertex, with all points re-computed as
             // offsets from the center of mass
             GraphicalVertex initial_offset_state;
+            // state after plastic deformation: plasticity_state*initial_offset_state
+            GraphicalVertex deformed_offset_state;
             // previous state, used to find difference between it and current state
             GraphicalVertex previous_state;
 
@@ -84,6 +86,8 @@ namespace CrashAndSqueeze
             Math::Vector center_of_mass;
             // plastic deformation applied to initial shape
             Math::Matrix plasticity_state;
+            // plasticity_state.inverted().transposed()
+            Math::Matrix plasticity_state_inv_trans;
             // measure of plasticity_state
             Math::Real plastic_deformation_measure;
             // optimal linear transformation satisfying shape matching (A)

@@ -37,6 +37,7 @@ namespace CrashAndSqueeze
             for(int i = 0; i < vectors_num; ++i)
             {
                 get_by_offset(src_vertex, vertex_info.get_vector_offset(i), vectors[i]);
+                vectors_orthogonality[i] = vertex_info.is_vector_orthogonal(i);
             }
         }
 
@@ -64,7 +65,7 @@ namespace CrashAndSqueeze
         const Vector & GraphicalVertex::get_point(int index) const
         {
             if(false == check_point_index(index))
-                return points[0];
+                return Vector::ZERO;
             else
                 return points[index];
         }
@@ -88,9 +89,17 @@ namespace CrashAndSqueeze
         const Vector & GraphicalVertex::get_vector(int index) const
         {
             if(false == check_vector_index(index))
-                return vectors[0];
+                return Vector::ZERO;
             else
                 return vectors[index];
+        }
+
+        bool GraphicalVertex::is_vector_orthogonal(int index) const
+        {
+            if(false == check_vector_index(index))
+                return false;
+            else
+                return vectors_orthogonality[index];
         }
 
         void GraphicalVertex::set_vector(int index, const Math::Vector & value)
