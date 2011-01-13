@@ -39,18 +39,20 @@ namespace
 
     const TCHAR *     HELP_TEXT = _T("Welcome to Crash-And-Squeeze Demo!\n\n")
                                   _T("Keys:\n\n")
-                                  _T("F1: display/hide this help,\n")
-                                  _T("Space: pause/continue emulation,\n")
-                                  _T("S: emulate one step (when paused),\n")
+                                  _T("Enter: hit the model,\n")
+                                  _T("I/J/K/L: move hit area (yellow sphere),\n")
                                   _T("Arrows: rotate camera,\n")
                                   _T("+/-, PgUp/PgDn: zoom in/out,\n")
-                                  _T("F: toggle forces on/off,\n")
-                                  _T("Enter: hit the model,\n")
+                                  _T("F1: display/hide this help,\n")
+                                  _T("Esc: exit.\n\n")
+                                  _T("Advanced:\n\n")
                                   _T("Tab: switch between current, initial\n")
                                   _T("        and equilibrium state,\n")
+                                  _T("Space: pause/continue emulation,\n")
+                                  _T("S: emulate one step (when paused),\n")
+                                  _T("F: toggle forces on/off,\n")
                                   _T("W: toggle wireframe on/off,\n")
-                                  _T("T: toggle alpha test,\n")
-                                  _T("Esc: exit");
+                                  _T("T: toggle alpha test of/off.\n");
 
     inline bool is_key_pressed(int virtual_key)
     {
