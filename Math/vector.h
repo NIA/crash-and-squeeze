@@ -24,7 +24,7 @@ namespace CrashAndSqueeze
                 return true;
             }
         public:
-            Vector() { values[0] = 0; values[1] = 0; values[2] = 0; }
+            Vector() {}
             Vector(Real x, Real y, Real z) { values[0] = x; values[1] = y; values[2] = z; }
 
             static const Vector ZERO;
@@ -34,44 +34,52 @@ namespace CrashAndSqueeze
             // indices in vector: 0 to 2
             Real operator[](int index) const
             {
-                if(check_index(index))
-                    return values[index];
-                else
+            #ifndef NDEBUG
+                if(false == check_index(index))
                     return values[0];
+                else
+            #endif //ifndef NDEBUG
+                    return values[index];
             }
             Real & operator[](int index)
             {
-                if(check_index(index))
-                    return values[index];
-                else
+            #ifndef NDEBUG
+                if(false == check_index(index))
                     return values[0];
+                else
+            #endif //ifndef NDEBUG
+                    return values[index];
             }
 
             // -- assignment operators --
 
             Vector & operator+=(const Vector &another)
             {
-                for(int i = 0; i < VECTOR_SIZE; ++i)
-                    values[i] += another[i];
+                values[0] += another[0];
+                values[1] += another[1];
+                values[2] += another[2];
                 return *this;
             }
             Vector & operator-=(const Vector &another)
             {
-                for(int i = 0; i < VECTOR_SIZE; ++i)
-                    values[i] -= another[i];
+                values[0] -= another[0];
+                values[1] -= another[1];
+                values[2] -= another[2];
                 return *this;
             }
 
             Vector & operator*=(const Real &scalar)
             {
-                for(int i = 0; i < VECTOR_SIZE; ++i)
-                    values[i] *= scalar;
+                values[0] *= scalar;
+                values[1] *= scalar;
+                values[2] *= scalar;
                 return *this;
             }
             Vector & operator/=(const Real &scalar)
             {
-                for(int i = 0; i < VECTOR_SIZE; ++i)
-                    values[i] /= scalar;
+                values[0] /= scalar;
+                values[1] /= scalar;
+                values[2] /= scalar;
                 return *this;
             }
 
@@ -101,10 +109,9 @@ namespace CrashAndSqueeze
 
             bool operator==(const Vector &another) const
             {
-                for(int i = 0; i < VECTOR_SIZE; ++i)
-                    if( ! equal(values[i], another[i]) )
-                        return false;
-                return true;
+                return equal(values[0], another[0]) &&
+                       equal(values[1], another[1]) &&
+                       equal(values[2], another[2]);
             }
             bool operator!=(const Vector &another) const
             {
@@ -125,10 +132,9 @@ namespace CrashAndSqueeze
             // scalar multiplication
             Real operator*(const Vector &another) const
             {
-                Real result = 0;
-                for(int i = 0; i < VECTOR_SIZE; ++i)
-                    result += values[i]*another[i];
-                return result;
+                return values[0]*another[0] +
+                       values[1]*another[1] +
+                       values[2]*another[2];
             }
             
             // -- methods --

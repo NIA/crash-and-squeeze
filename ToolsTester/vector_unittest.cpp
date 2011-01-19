@@ -1,14 +1,8 @@
 #include "tools_tester.h"
 #include "Math/vector.h"
 
-TEST(VectorTest, DefaultConstruct)
-{
-    const Point p;
-    EXPECT_EQ( 0, p[0] );
-    EXPECT_EQ( 0, p[1] );
-    EXPECT_EQ( 0, p[2] );
-}
-
+#ifndef NDEBUG
+// checks enabled only in debug
 TEST(VectorTest, BadAccess)
 {
     const Vector v;
@@ -18,6 +12,7 @@ TEST(VectorTest, BadAccess)
     EXPECT_THROW( p[-1], ToolsTesterException );
     unset_tester_err_callback();
 }
+#endif // #ifndef NDEBUG
 
 TEST(VectorTest, Construct)
 {

@@ -4,7 +4,7 @@ namespace CrashAndSqueeze
 {
     namespace Math
     {
-        const Vector Vector::ZERO;
+        const Vector Vector::ZERO(0, 0, 0);
 
         // returns projection to `direction'. Second parameter is optional, and when
         // it is not null, the normal component is returned through it.
