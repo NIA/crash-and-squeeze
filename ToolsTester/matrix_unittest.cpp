@@ -13,7 +13,6 @@ inline std::ostream &operator<<(std::ostream &stream, const Matrix &m)
 class MatrixTest : public ::testing::Test
 {
 protected:
-    Matrix empty_mx;
     Matrix m1;
     Matrix m2;
     Matrix m3;
@@ -78,10 +77,12 @@ protected:
 
         I = Matrix::IDENTITY;
 
+        diagonal = Matrix::ZERO;
         diagonal.set_at(0, 0, 8);
         diagonal.set_at(1, 1, -1.94);
         diagonal.set_at(2, 2, 2.65);
 
+        exp_diagonal = Matrix::ZERO;
         for(int i = 0; i < VECTOR_SIZE; ++i)
             exp_diagonal.set_at(i, i, exp( diagonal.get_at(i, i)));
 
@@ -107,19 +108,23 @@ protected:
     }
 };
 
-TEST_F(MatrixTest, DefaultConstructAndRead)
-{
-    EXPECT_EQ( 0, empty_mx.get_at(0,0) );
-    EXPECT_EQ( 0, empty_mx.get_at(0,1) );
-    EXPECT_EQ( 0, empty_mx.get_at(2,2) );
-}
-
 TEST_F(MatrixTest, ConstructAndRead)
 {
     EXPECT_EQ( 9, m1.get_at(0,0) );
     EXPECT_EQ( 8, m1.get_at(0,1) );
     EXPECT_EQ( 1, m1.get_at(2,2) );
 }
+
+#ifndef NDEBUG
+// checks enabled only in debug
+TEST_F(MatrixTest, BadAccess)
+{
+    set_tester_err_callback();
+    EXPECT_THROW( m1.get_at(0,40), ToolsTesterException );
+    EXPECT_THROW( m2.get_at(-1,0), ToolsTesterException );
+    unset_tester_err_callback();
+}
+#endif // #ifndef NDEBUG
 
 TEST_F(MatrixTest, Write)
 {

@@ -35,16 +35,18 @@ namespace CrashAndSqueeze
 
             int element_index(int row, int column) const
             {
-                if(check_index(row) || check_index(column))
-                    return VECTOR_SIZE*row + column;
-                else
+            #ifndef NDEBUG
+                if(false == check_index(row) || false == check_index(column))
                     return 0;
+                else
+            #endif //ifndef NDEBUG
+                    return VECTOR_SIZE*row + column;
             }
 
         public:
             // -- constructors --
 
-            Matrix();
+            Matrix() {}
             
             Matrix(const Real values[MATRIX_ELEMENTS_NUM]);
             

@@ -9,12 +9,6 @@ namespace CrashAndSqueeze
     {
         // -- constructors --
 
-        Matrix::Matrix()
-        {
-            for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
-                values[i] = 0;
-        }
-
         Matrix::Matrix(const Real values[MATRIX_ELEMENTS_NUM])
         {
             memcpy(this->values, values, sizeof(this->values));
@@ -47,6 +41,7 @@ namespace CrashAndSqueeze
             return result;
         }
 
+        // TODO: optimize this horror
         // -- assignment operators --
 
         Matrix & Matrix::assigment_operation(const Matrix &another, Operation operation)
@@ -327,8 +322,12 @@ namespace CrashAndSqueeze
                 { 1, 0, 0,
                   0, 1, 0,
                   0, 0, 1 };
+            const Real ZERO_VALUES[MATRIX_ELEMENTS_NUM] =
+                { 0, 0, 0,
+                  0, 0, 0,
+                  0, 0, 0 };
         }
         const Matrix Matrix::IDENTITY(IDENTITY_VALUES);
-        const Matrix Matrix::ZERO;
+        const Matrix Matrix::ZERO(ZERO_VALUES);
     };
 };
