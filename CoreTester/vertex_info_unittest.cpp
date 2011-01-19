@@ -12,7 +12,7 @@ TEST(VertexInfoTest, Creation1)
 
 TEST(VertexInfoTest, Creation2)
 {
-    const VertexInfo vi(30, 3, 16);
+    const VertexInfo vi(30, 3, 16, true);
     EXPECT_EQ(30, vi.get_vertex_size());
     EXPECT_EQ(1, vi.get_points_num());
     EXPECT_EQ(1, vi.get_vectors_num());
@@ -24,7 +24,7 @@ TEST(VertexInfoTest, BadSizeCreation)
 {
     set_tester_err_callback();
     EXPECT_THROW( VertexInfo(-10, 1), CoreTesterException );
-    EXPECT_THROW( VertexInfo(-10, 1, 1), CoreTesterException );
+    EXPECT_THROW( VertexInfo(-10, 1, 1, true), CoreTesterException );
     unset_tester_err_callback();
 }
 
@@ -33,8 +33,8 @@ TEST(VertexInfoTest, BadOffsetsCreation)
     set_tester_err_callback();
     EXPECT_THROW( VertexInfo(20, -1), CoreTesterException );
     EXPECT_THROW( VertexInfo(20, 19), CoreTesterException );
-    EXPECT_THROW( VertexInfo(20, 0, -1), CoreTesterException );
-    EXPECT_THROW( VertexInfo(20, 0, 19), CoreTesterException );
+    EXPECT_THROW( VertexInfo(20, 0, -1, true), CoreTesterException );
+    EXPECT_THROW( VertexInfo(20, 0, 19, true), CoreTesterException );
     unset_tester_err_callback();
 }
 
@@ -50,7 +50,7 @@ TEST(VertexInfoTest, AddPoint)
 TEST(VertexInfoTest, AddFirstVector)
 {
     VertexInfo vi(40, 0);
-    vi.add_vector(15);
+    vi.add_vector(15, true);
     EXPECT_EQ(1, vi.get_vectors_num());
     EXPECT_EQ(1, vi.get_points_num());
     EXPECT_EQ(15, vi.get_vector_offset(0));
@@ -58,8 +58,8 @@ TEST(VertexInfoTest, AddFirstVector)
 
 TEST(VertexInfoTest, AddSecondVector)
 {
-    VertexInfo vi(60, 0, 15);
-    vi.add_vector(30);
+    VertexInfo vi(60, 0, 15, true);
+    vi.add_vector(30, false);
     EXPECT_EQ(2, vi.get_vectors_num());
     EXPECT_EQ(1, vi.get_points_num());
     EXPECT_EQ(30, vi.get_vector_offset(1));
@@ -79,12 +79,12 @@ TEST(VertexInfoTest, AddBadlyManyPoints)
 
 TEST(VertexInfoTest, AddBadlyManyVectors)
 {
-    VertexInfo vi(512, 450, 0);
-    for(int i = 0; i < 9; ++i)
+    VertexInfo vi(512, 450);
+    for(int i = 0; i < VertexInfo::MAX_COMPONENT_NUM; ++i)
     {
-        vi.add_vector(20*i);
+        vi.add_vector(20*i, false);
     }
     set_tester_err_callback();
-    EXPECT_THROW( vi.add_vector(400), CoreTesterException );
+    EXPECT_THROW( vi.add_vector(400, true), CoreTesterException );
     unset_tester_err_callback();
 }
