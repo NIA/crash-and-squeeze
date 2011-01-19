@@ -64,56 +64,70 @@ namespace CrashAndSqueeze
 
         const Vector & GraphicalVertex::get_point(int index) const
         {
+        #ifndef NDEBUG
             if(false == check_point_index(index))
                 return Vector::ZERO;
             else
+        #endif //ifndef NDEBUG
                 return points[index];
         }
 
         void GraphicalVertex::set_point(int index, const Math::Vector & value)
         {
+        #ifndef NDEBUG
             if(false == check_point_index(index))
                 return;
+        #endif //ifndef NDEBUG
             
             points[index] = value;
         }
 
         void GraphicalVertex::add_part_to_point(int index, const Math::Vector & addition)
         {
+        #ifndef NDEBUG
             if(false == check_point_index(index) || false == check_in_cluster())
                 return;
+        #endif //ifndef NDEBUG
 
             points[index] += addition/get_including_clusters_num();
         }
 
         const Vector & GraphicalVertex::get_vector(int index) const
         {
+        #ifndef NDEBUG
             if(false == check_vector_index(index))
                 return Vector::ZERO;
             else
+        #endif //ifndef NDEBUG
                 return vectors[index];
         }
 
         bool GraphicalVertex::is_vector_orthogonal(int index) const
         {
+        #ifndef NDEBUG
             if(false == check_vector_index(index))
                 return false;
             else
+        #endif //ifndef NDEBUG
                 return vectors_orthogonality[index];
         }
 
         void GraphicalVertex::set_vector(int index, const Math::Vector & value)
         {
+        #ifndef NDEBUG
             if(false == check_vector_index(index))
                 return;
+        #endif //ifndef NDEBUG
 
             vectors[index] = value;
         }
 
         void GraphicalVertex::add_part_to_vector(int index, const Math::Vector & addition)
         {
+        #ifndef NDEBUG
             if(false == check_vector_index(index) || false == check_in_cluster())
                 return;
+        #endif //ifndef NDEBUG
 
             vectors[index] += addition/get_including_clusters_num();
         }
