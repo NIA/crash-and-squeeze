@@ -6,8 +6,12 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
+        // floating type for storing graphical vertex components in vertex buffer
         typedef float VertexFloat;
+        // floating type for defining mass of physical vertex
         typedef double MassFloat;
+        // integer type for storing cluster index of graphical vertex in vertex buffer
+        typedef unsigned char ClusterIndex;
 
         typedef Collections::Array<int> IndexArray;
 

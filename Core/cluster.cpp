@@ -113,6 +113,7 @@ namespace CrashAndSqueeze
             physical_vertex_infos.freeze();
 
             update_center_of_mass();
+            initial_center_of_mass = center_of_mass;
 
             for(int i = 0; i < get_physical_vertices_num(); ++i)
             {

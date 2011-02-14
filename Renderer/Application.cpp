@@ -3,6 +3,7 @@
 #include <time.h>
 
 using CrashAndSqueeze::Core::ForcesArray;
+using CrashAndSqueeze::Math::Matrix;
 using CrashAndSqueeze::Math::Vector;
 using CrashAndSqueeze::Math::VECTOR_SIZE;
 using CrashAndSqueeze::Math::Real;
@@ -25,7 +26,7 @@ namespace
     const Real        ROTATE_STEP = D3DX_PI/30.0;
     const Real        MOVE_STEP = 0.02;
     const float       VERTEX_MASS = 1;
-    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 8};
+    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 4};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.2;
 
@@ -65,6 +66,27 @@ namespace
         LONG width() { return right - left; }
         LONG height() { return bottom - top; }
     };
+
+    void build_d3d_matrix(Matrix transformation, Vector pos, /*out*/ D3DXMATRIX &out_matrix)
+    {
+        const int LAST = VECTORS_IN_MATRIX - 1; // index of last row/col in D3DXMATRIX
+
+        // copy transformation
+        for(int i = 0; i < VECTOR_SIZE; ++i)
+            for(int j = 0; j < VECTOR_SIZE; ++j)
+                out_matrix.m[i][j] = static_cast<float>(transformation.get_at(i, j));
+
+        // copy position
+        for(int i = 0; i < VECTOR_SIZE; ++i)
+            out_matrix.m[i][LAST] = static_cast<float>(pos[i]);
+
+        // fill last line
+        for(int j = 0; j < VECTOR_SIZE; ++j)
+            out_matrix.m[LAST][j] = 0;
+        
+        out_matrix.m[LAST][LAST] = 1;
+
+    }
 }
 
 namespace
@@ -119,6 +141,10 @@ namespace
     const unsigned    SHADER_REG_SPOT_CONST_COEF = 26;
     //    c27-c30 is position and rotation of model matrix
     const unsigned    SHADER_REG_POS_AND_ROT_MX = 27;
+    //    c31-c46 are 16 initial centers of mass for 16 clusters
+    const unsigned    SHADER_REG_CLUSTER_INIT_CENTER = 31;
+    //    c47-c94 are 16 4x4 cluster matrices => 48 vectors
+    const unsigned    SHADER_REG_CLUSTER_MATRIX = 31;
 }
 
 Application::Application(Logger &logger) :
@@ -236,11 +262,28 @@ void Application::render()
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
         Model * display_model = (SHOW_GRAPHICAL_VERTICES == show_mode || NULL == (*iter).low_model) ? (*iter).high_model : (*iter).low_model;
+        PhysicalModel       * physical_model       = (*iter).physical_model;
 
         // Set up
         ( display_model->get_shader() ).set();
 
         set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, display_model->get_rotation_and_position() );
+        
+        if(NULL != physical_model)
+        {
+            // for each cluster...
+            for(int i = 0; i < physical_model->get_clusters_num(); ++i)
+            {
+                // ...set initial center of mass...
+                D3DXVECTOR3 init_pos = math_vector_to_d3dxvector(physical_model->get_cluster_initial_center(i));
+                set_shader_vector( SHADER_REG_CLUSTER_INIT_CENTER + i, init_pos);
+                
+                // ...and transformation matrix
+                D3DXMATRIX cluster_matrix;
+                build_d3d_matrix(physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i), cluster_matrix);
+                set_shader_matrix( SHADER_REG_CLUSTER_MATRIX, cluster_matrix);
+            }
+        }
         
         if( ! wireframe )
         {

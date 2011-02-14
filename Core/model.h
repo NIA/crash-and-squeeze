@@ -92,7 +92,7 @@ namespace CrashAndSqueeze
                   int physical_vetrices_num,
                   VertexInfo const &physical_vertex_info,
 
-                  const void *source_graphical_vertices,
+                  void *source_graphical_vertices,
                   int graphical_vetrices_num,
                   VertexInfo const &graphical_vertex_info,
 
@@ -105,6 +105,7 @@ namespace CrashAndSqueeze
             // -- Initial configuration --
             
             void set_frame(const IndexArray &frame_indices);
+            void update_cluster_indices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
 
             // -- Reactions --
             
@@ -124,6 +125,10 @@ namespace CrashAndSqueeze
             bool compute_next_step(const ForcesArray & forces, Math::Real dt,
                                    /*out*/ Math::Vector & linear_velocity_change,
                                    /*out*/ Math::Vector & angular_velocity_change);
+
+            Math::Matrix get_cluster_transformation(int cluster_index) const;
+            const Math::Vector & get_cluster_initial_center(int cluster_index) const;
+            const Math::Vector & get_cluster_center(int cluster_index) const;
 
             void update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
             

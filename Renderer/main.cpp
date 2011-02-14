@@ -267,7 +267,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         high_cylinder_model_indices = new Index[HIGH_CYLINDER_INDICES];
         
         const float cylinder_radius = 0.25;
-        const float cylinder_height = 2;
+        const float cylinder_height = 1;
         const float cylinder_z = -cylinder_height/2;
 
         cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),

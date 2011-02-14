@@ -52,6 +52,9 @@ namespace CrashAndSqueeze
             Collections::Array<GraphicalVertexMappingInfo> graphical_vertex_infos;
 
             Math::Real total_mass;
+            
+            // center of mass of vertices in initial state (before deformations)
+            Math::Vector initial_center_of_mass;
 
             bool initial_characteristics_computed;
             bool valid;
@@ -172,6 +175,7 @@ namespace CrashAndSqueeze
             Math::Real get_creep_constant() const { return creep_constant; }
 
             const Math::Vector & get_center_of_mass() const { return center_of_mass; }
+            const Math::Vector & get_initial_center_of_mass() const { return initial_center_of_mass; }
             const Math::Matrix & get_rotation() const { return rotation; }
             const Math::Matrix & get_total_deformation() const { return total_deformation; }
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }

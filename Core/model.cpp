@@ -38,7 +38,7 @@ namespace CrashAndSqueeze
                       int physical_vetrices_num,
                       VertexInfo const &physical_vertex_info,
 
-                      const void *source_graphical_vertices,
+                      void *source_graphical_vertices,
                       int graphical_vetrices_num,
                       VertexInfo const &graphical_vertex_info,
 
@@ -84,7 +84,11 @@ namespace CrashAndSqueeze
                 for(int i = 0; i < VECTOR_SIZE; ++i)
                     this->clusters_by_axes[i] = clusters_by_axes[i];
                 
-                init_clusters();
+                if( false != init_clusters() )
+                {
+                    // Update cluster indices for graphical vertices
+                    update_cluster_indices(source_graphical_vertices, graphical_vetrices_num, graphical_vertex_info);
+                }
             }
         }
 
@@ -439,6 +443,22 @@ namespace CrashAndSqueeze
             return true;
         }
 
+        Matrix Model::get_cluster_transformation(int cluster_index) const
+        {
+            const Cluster &c = clusters[cluster_index];
+            return c.get_rotation() * c.get_plasticity_state();
+        }
+
+        const Vector & Model::get_cluster_center(int cluster_index) const
+        {
+            return clusters[cluster_index].get_center_of_mass();
+        }
+
+        const Vector & Model::get_cluster_initial_center(int cluster_index) const
+        {
+            return clusters[cluster_index].get_initial_center_of_mass();
+        }
+
         void Model::update_any_positions(PositionFunc pos_func, /*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
             if(vertices_num > vertices.size())
@@ -456,6 +476,25 @@ namespace CrashAndSqueeze
                 const Vector src_position = (this->*pos_func)(i);
 
                 VertexInfo::vector_to_vertex_floats(src_position, out_position);
+
+                out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
+            }
+        }
+
+        void Model::update_cluster_indices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
+        {
+            if(vertices_num > graphical_vertices.size())
+            {
+                Logger::warning("in Model::update_vertices: requested to update too many vertices, probably wrong vertices given?", __FILE__, __LINE__);
+                vertices_num = vertices.size();
+            }
+            void *out_vertex = out_vertices;
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                ClusterIndex *out_cluster_index =
+                        reinterpret_cast<ClusterIndex*>( add_to_pointer(out_vertex, vertex_info.get_cluster_indices_offset()) );
+
+                *out_cluster_index = static_cast<ClusterIndex>(graphical_vertices[i].get_nearest_cluster_index());
 
                 out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
             }
