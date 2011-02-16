@@ -18,7 +18,7 @@ Model::Model(   IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, Verte
         const unsigned vertices_size = vertices_count*sizeof(vertices[0]);
         const unsigned indices_size = indices_count*sizeof(indices[0]);
 
-        if(FAILED( device->CreateVertexBuffer( vertices_size, D3DUSAGE_DYNAMIC, 0, D3DPOOL_DEFAULT, &vertex_buffer, NULL ) ))
+        if(FAILED( device->CreateVertexBuffer( vertices_size, D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &vertex_buffer, NULL ) ))
             throw VertexBufferInitError();
         
 

@@ -142,6 +142,13 @@ namespace
         }
     };
 
+    class DummyReaction : public ShapeDeformationReaction
+    {
+    public:
+        DummyReaction(const IndexArray &shape_vertex_indices, Real threshold_distance, Model &model) : ShapeDeformationReaction(shape_vertex_indices, threshold_distance) {UNREFERENCED_PARAMETER(model);}
+        virtual void invoke(int vertex_index, Real distance) { UNREFERENCED_PARAMETER(vertex_index); UNREFERENCED_PARAMETER(distance);}
+    };
+
     class MessageBoxHitReaction : public HitReaction
     {
     private:
@@ -234,7 +241,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     Vertex * sphere_vertices = NULL;
     Index * sphere_indices = NULL;
     
-    Array<RepaintReaction*> reactions;
+    Array<ShapeDeformationReaction*> reactions;
     try
     {
         Application app(logger);
@@ -335,9 +342,9 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                 int subshape_start = SHAPE_OFFSET + i*SHAPE_STEP + j*SUBSHAPE_SIZE;
                 add_range(vertex_indices[subshape_index], subshape_start, subshape_start + SUBSHAPE_SIZE);
                 // create reaction
-                RepaintReaction & reaction = * new RepaintReaction( vertex_indices[subshape_index],
-                                                                    THRESHOLD_DISTANCE,
-                                                                    low_cylinder_model );
+                ShapeDeformationReaction & reaction = * new   DummyReaction( vertex_indices[subshape_index],
+                                                                             THRESHOLD_DISTANCE,
+                                                                             low_cylinder_model );
                 reactions.push_back(&reaction);
                 // register reaction
                 phys_mod->add_shape_deformation_reaction(reaction);
