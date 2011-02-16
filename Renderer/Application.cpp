@@ -85,7 +85,6 @@ namespace
             out_matrix.m[LAST][j] = 0;
         
         out_matrix.m[LAST][LAST] = 1;
-
     }
 }
 
@@ -143,8 +142,8 @@ namespace
     const unsigned    SHADER_REG_POS_AND_ROT_MX = 27;
     //    c31-c46 are 16 initial centers of mass for 16 clusters
     const unsigned    SHADER_REG_CLUSTER_INIT_CENTER = 31;
-    //    c47-c94 are 16 4x4 cluster matrices => 48 vectors
-    const unsigned    SHADER_REG_CLUSTER_MATRIX = 31;
+    //    c47-c110 are 16 4x4 cluster matrices => 48 vectors
+    const unsigned    SHADER_REG_CLUSTER_MATRIX = 47;
 }
 
 Application::Application(Logger &logger) :
@@ -221,12 +220,14 @@ void  Application::set_alpha_test()
 }
 
 
-void Application::render()
+void Application::render(PerformanceReporter &internal_reporter)
 {
+    Stopwatch stopwatch;
     check_render( device->Clear( 0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, BACKGROUND_COLOR, 1.0f, 0 ) );
     
     // Begin the scene
     check_render( device->BeginScene() );
+    stopwatch.start();
     // Setting constants
     D3DXVECTOR3 directional_vector;
     D3DXVec3Normalize(&directional_vector, &SHADER_VAL_DIRECTIONAL_VECTOR);
@@ -281,7 +282,7 @@ void Application::render()
                 // ...and transformation matrix
                 D3DXMATRIX cluster_matrix;
                 build_d3d_matrix(physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i), cluster_matrix);
-                set_shader_matrix( SHADER_REG_CLUSTER_MATRIX, cluster_matrix);
+                set_shader_matrix( SHADER_REG_CLUSTER_MATRIX + VECTORS_IN_MATRIX*i, cluster_matrix);
             }
         }
         
@@ -299,6 +300,7 @@ void Application::render()
     // Draw text info
     draw_text_info();
 
+    internal_reporter.add_measurement(stopwatch.stop());
     // End the scene
     check_render( device->EndScene() );
     
@@ -562,6 +564,7 @@ void Application::run()
     Stopwatch total_stopwatch;
     PerformanceReporter render_performance_reporter(logger, "rendering");
     PerformanceReporter total_performance_reporter(logger, "total");
+    PerformanceReporter internal_render_performance_reporter(logger, "inside (rendering)");
 
     int physics_frames = 0;
     
@@ -631,7 +634,8 @@ void Application::run()
                 ++physics_frames;
                 emultate_one_step = false;
 
-                vertices_update_needed = true;
+                if(SHOW_GRAPHICAL_VERTICES != show_mode)
+                    vertices_update_needed = true;
             }
 
             if(vertices_update_needed)
@@ -674,7 +678,7 @@ void Application::run()
             
             // graphics
             stopwatch.start();
-            render();
+            render(internal_render_performance_reporter);
             render_performance_reporter.add_measurement(stopwatch.stop());
             total_performance_reporter.add_measurement(total_stopwatch.stop());
         }
@@ -688,6 +692,7 @@ void Application::run()
             (*iter).performance_reporter->report_results();
     }
     render_performance_reporter.report_results();
+    internal_render_performance_reporter.report_results();
     total_performance_reporter.report_results();
 }
 

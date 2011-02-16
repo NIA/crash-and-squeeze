@@ -103,7 +103,7 @@ private:
 
     void draw_text(const TCHAR * text, RECT rect, D3DCOLOR color, bool align_right = false);
     void draw_text_info();
-    void render();
+    void render(PerformanceReporter &internal_reporter);
 
     // Deinitialization steps:
     void delete_model_stuff();

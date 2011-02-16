@@ -171,37 +171,6 @@ namespace CrashAndSqueeze
                 get_physical_vertex(i).change_equilibrium_pos(new_equil_pos - equil_pos);
                 equil_pos = new_equil_pos;
             }
-
-            for(int i = 0; i < get_graphical_vertices_num(); ++i)
-            {
-                GraphicalVertex & v = *graphical_vertex_infos[i].vertex;
-                const GraphicalVertex & initial = graphical_vertex_infos[i].initial_offset_state;
-                GraphicalVertex & deformed = graphical_vertex_infos[i].deformed_offset_state;
-                GraphicalVertex & previous = graphical_vertex_infos[i].previous_state;
-                
-                for(int j = 0; j < v.get_points_num(); ++j)
-                {
-                    if(plasticity_state_changed)
-                    {
-                        deformed.set_point(j, plasticity_state*initial.get_point(j));
-                    }
-                    Vector new_point = center_of_mass + rotation*(deformed.get_point(j));
-                    v.add_part_to_point(j, new_point - previous.get_point(j));
-                    previous.set_point(j, new_point);
-                }
-
-                for(int j = 0; j < v.get_vectors_num(); ++j)
-                {
-                    if(plasticity_state_changed)
-                    {
-                        const Matrix & transformation = v.is_vector_orthogonal(j) ? plasticity_state_inv_trans : plasticity_state;
-                        deformed.set_vector(j, transformation*initial.get_vector(j));
-                    }
-                    Vector new_vector = rotation*deformed.get_vector(j);
-                    v.add_part_to_vector(j, new_vector - previous.get_vector(j));
-                    previous.set_vector(j, new_vector);
-                }
-            }
         }
 
         void Cluster::compute_asymmetric_term()
