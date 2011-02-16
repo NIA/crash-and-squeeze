@@ -41,6 +41,7 @@ TEST(ArrayTest, BadCreate)
     unset_tester_err_callback();
 }
 
+#ifndef NDEBUG
 TEST(ArrayTest, BoundaryCheck)
 {
     set_tester_err_callback();
@@ -55,6 +56,7 @@ TEST(ArrayTest, BoundaryCheck)
 
     unset_tester_err_callback();
 }
+#endif //#ifndef NDEBUG
 
 TEST(ArrayTest, AddOne)
 {
@@ -229,24 +231,6 @@ TEST(ArrayTest, ShouldNotBreakLifeCycleWithClear)
     CheckLifeCycle::reset();
     delete a;
     EXPECT_EQ( 0, CheckLifeCycle::get_destructed() );
-}
-
-TEST(ArrayTest, OutOfRange)
-{
-    Array a;
-    Item item = {0};
-
-    set_tester_err_callback();
-
-    EXPECT_THROW( a[0], ToolsTesterException);
-    EXPECT_THROW( a[-2], ToolsTesterException);
-
-    a.push_back(item);
-
-    EXPECT_THROW( a[1], ToolsTesterException);
-    EXPECT_THROW( a[-2], ToolsTesterException);
-
-    unset_tester_err_callback();
 }
 
 TEST(ArrayTest, IndexOfInEmpty)
