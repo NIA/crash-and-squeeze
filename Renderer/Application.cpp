@@ -182,10 +182,28 @@ void Application::init_device()
     present_parameters.BackBufferFormat = D3DFMT_UNKNOWN;
     present_parameters.EnableAutoDepthStencil = TRUE;
     present_parameters.AutoDepthStencilFormat = D3DFMT_D16;
+    // Set default adapter and device settings
+    UINT adapter_to_use = D3DADAPTER_DEFAULT;
+    D3DDEVTYPE device_type = D3DDEVTYPE_HAL;
+    // Look for 'NVIDIA PerfHUD' adapter
+    // If it is present, override default settings
+    for (UINT adapter = 0; adapter < d3d->GetAdapterCount(); ++adapter)
+    {
+        D3DADAPTER_IDENTIFIER9 identifier;
+        if( FAILED( d3d->GetAdapterIdentifier(adapter, 0, &identifier) ) )
+            throw D3DInitError();
+        
+        if (strstr(identifier.Description,"PerfHUD") != 0)
+        {
+            adapter_to_use = adapter;
+            device_type = D3DDEVTYPE_REF;
+            break;
+        }
+    }
     // Create the device
-    if( FAILED( d3d->CreateDevice( D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, window,
-                                      D3DCREATE_HARDWARE_VERTEXPROCESSING,
-                                      &present_parameters, &device ) ) )
+    if( FAILED( d3d->CreateDevice( adapter_to_use, device_type, window,
+                                   D3DCREATE_HARDWARE_VERTEXPROCESSING,
+                                   &present_parameters, &device ) ) )
         throw D3DInitError();
     
     // Configure alpha-test
