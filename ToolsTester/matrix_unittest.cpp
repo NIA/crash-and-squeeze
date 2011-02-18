@@ -115,6 +115,13 @@ TEST_F(MatrixTest, ConstructAndRead)
     EXPECT_EQ( 1, m1.get_at(2,2) );
 }
 
+TEST_F(MatrixTest, GetAtIndex)
+{
+    EXPECT_EQ( 9, m1.get_at_index(0) );
+    EXPECT_EQ( 8, m1.get_at_index(1) );
+    EXPECT_EQ( 1, m1.get_at_index(8) );
+}
+
 #ifndef NDEBUG
 // checks enabled only in debug
 TEST_F(MatrixTest, BadAccess)
@@ -122,6 +129,13 @@ TEST_F(MatrixTest, BadAccess)
     set_tester_err_callback();
     EXPECT_THROW( m1.get_at(0,40), ToolsTesterException );
     EXPECT_THROW( m2.get_at(-1,0), ToolsTesterException );
+    unset_tester_err_callback();
+}
+TEST_F(MatrixTest, BadGetAtIndex)
+{
+    set_tester_err_callback();
+    EXPECT_THROW( m1.get_at_index(40), ToolsTesterException );
+    EXPECT_THROW( m2.get_at_index(-1), ToolsTesterException );
     unset_tester_err_callback();
 }
 #endif // #ifndef NDEBUG
