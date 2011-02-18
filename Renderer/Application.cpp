@@ -245,7 +245,6 @@ void Application::render(PerformanceReporter &internal_reporter)
     
     // Begin the scene
     check_render( device->BeginScene() );
-    stopwatch.start();
     // Setting constants
     D3DXVECTOR3 directional_vector;
     D3DXVec3Normalize(&directional_vector, &SHADER_VAL_DIRECTIONAL_VECTOR);
@@ -318,12 +317,13 @@ void Application::render(PerformanceReporter &internal_reporter)
     // Draw text info
     draw_text_info();
 
-    internal_reporter.add_measurement(stopwatch.stop());
     // End the scene
     check_render( device->EndScene() );
     
+    stopwatch.start();
     // Present the backbuffer contents to the display
     check_render( device->Present( NULL, NULL, NULL, NULL ) );
+    internal_reporter.add_measurement(stopwatch.stop());
 }
 
 void Application::draw_text_info()
@@ -582,7 +582,7 @@ void Application::run()
     Stopwatch total_stopwatch;
     PerformanceReporter render_performance_reporter(logger, "rendering");
     PerformanceReporter total_performance_reporter(logger, "total");
-    PerformanceReporter internal_render_performance_reporter(logger, "inside (rendering)");
+    PerformanceReporter internal_render_performance_reporter(logger, "device->Present");
 
     int physics_frames = 0;
     
