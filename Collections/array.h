@@ -244,19 +244,23 @@ namespace CrashAndSqueeze
         template<class T>
         T & Array<T>::operator[](int index)
         {
-            if(check_index(index))
-                return items[index];
-            else
+            #ifndef NDEBUG
+            if(false == check_index(index))
                 return items[0];
+            else
+            #endif //ifndef NDEBUG
+                return items[index];
         }
         
         template<class T>
         const T & Array<T>::operator[](int index) const
         {
-            if(check_index(index))
-                return items[index];
-            else
+            #ifndef NDEBUG
+            if(false == check_index(index))
                 return items[0];
+            else
+            #endif //ifndef NDEBUG
+                return items[index];
         }
 
         template<class T>

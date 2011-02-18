@@ -22,6 +22,18 @@ namespace CrashAndSqueeze
         }
         
         // -- getters/setters --
+        Real Matrix::get_at_index(int index) const
+        {
+            #ifndef NDEBUG
+                if(index < 0 || index >= MATRIX_ELEMENTS_NUM)
+                {
+                    Logging::Logger::error("Matrix index out of range", __FILE__, __LINE__);
+                    return 0;
+                }
+                else
+            #endif //ifndef NDEBUG
+                    return values[index];
+        }
 
         Vector Matrix::get_row(int row) const
         {
@@ -41,78 +53,38 @@ namespace CrashAndSqueeze
             return result;
         }
 
-        // TODO: optimize this horror
         // -- assignment operators --
-
-        Matrix & Matrix::assigment_operation(const Matrix &another, Operation operation)
-        {
-            if(NULL == operation)
-            {
-                Logger::error("internal error: null pointer `operation` in matrix-matrix assigment operation", __FILE__, __LINE__);
-                return *this;
-            }
-            
-
-            Real result;
-            for(int i = 0; i < VECTOR_SIZE; ++i)
-            {
-                for(int j = 0; j < VECTOR_SIZE; ++j)
-                {
-                    result = operation( get_at(i, j), another.get_at(i, j) );
-                    set_at(i, j, result);
-                }
-            }
-                    
-            return *this;
-        }
-
-        Matrix & Matrix::assigment_operation(const Real &scalar, Operation operation)
-        {
-            if(NULL == operation)
-            {
-                Logger::error("internal error: null pointer `operation` in matrix-scalar assigment operation", __FILE__, __LINE__);
-                return *this;
-            }
-
-            Real result;
-            for(int i = 0; i < VECTOR_SIZE; ++i)
-            {
-                for(int j = 0; j < VECTOR_SIZE; ++j)
-                {
-                    result = operation( get_at(i, j), scalar );
-                    set_at(i, j, result);
-                }
-            }
-                    
-            return *this;
-        }
-
-        namespace
-        {
-            Real add(Real a, Real b) { return a + b; }
-            Real sub(Real a, Real b) { return a - b; }
-            Real mul(Real a, Real b) { return a * b; }
-            Real div(Real a, Real b) { return a / b; }
-        }
 
         Matrix & Matrix::operator +=(const Matrix &another)
         {
-            return assigment_operation(another, add);
+            for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
+                values[i] += another.get_at_index(i);
+
+            return *this;
         }
         
         Matrix & Matrix::operator -=(const Matrix &another)
         {
-            return assigment_operation(another, sub);
+            for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
+                values[i] -= another.get_at_index(i);
+
+            return *this;
         }
         
         Matrix & Matrix::operator *=(const Real &scalar)
         {
-            return assigment_operation(scalar, mul);
+            for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
+                values[i] *= scalar;
+
+            return *this;
         }
         
         Matrix & Matrix::operator /=(const Real &scalar)
         {
-            return assigment_operation(scalar, div);
+            for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
+                values[i] /= scalar;
+
+            return *this;
         }
 
         // -- binary arithmetic operators --

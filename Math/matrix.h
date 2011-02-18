@@ -20,14 +20,11 @@ namespace CrashAndSqueeze
             // matrix represented in memory in row-major order ("C-like arrays")
             Real values[MATRIX_ELEMENTS_NUM];
             
-            Matrix & assigment_operation(const Matrix &another, Operation operation);
-            Matrix & assigment_operation(const Real &scalar, Operation operation);
-
             bool check_index(int index) const
             {
                 if(index < 0 || index >= VECTOR_SIZE)
                 {
-                    Logging::Logger::error("Matrix index out of range", __FILE__, __LINE__);
+                    Logging::Logger::error("Matrix row/column index out of range", __FILE__, __LINE__);
                     return false;
                 }
                 return true;
@@ -63,6 +60,9 @@ namespace CrashAndSqueeze
             {
                 return values[ element_index(row, column) ];
             }
+
+            // index: 0 to 8
+            Real Matrix::get_at_index(int index) const;
             
             // indices in matrix: 0,0 to 2,2
             void Matrix::set_at(int row, int column, Real value)
