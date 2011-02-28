@@ -182,6 +182,7 @@ void Application::init_device()
     present_parameters.BackBufferFormat = D3DFMT_UNKNOWN;
     present_parameters.EnableAutoDepthStencil = TRUE;
     present_parameters.AutoDepthStencilFormat = D3DFMT_D16;
+    present_parameters.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
     // Set default adapter and device settings
     UINT adapter_to_use = D3DADAPTER_DEFAULT;
     D3DDEVTYPE device_type = D3DDEVTYPE_HAL;
