@@ -3,44 +3,48 @@
 
 TEST(VertexInfoTest, Creation1)
 {
-    const VertexInfo vi(20, 3);
-    EXPECT_EQ(20, vi.get_vertex_size());
+    const VertexInfo vi(28, 3, 20);
+    EXPECT_EQ(28, vi.get_vertex_size());
     EXPECT_EQ(1, vi.get_points_num());
     EXPECT_EQ(0, vi.get_vectors_num());
     EXPECT_EQ(3, vi.get_point_offset(0));
+    EXPECT_EQ(20, vi.get_cluster_indices_offset());
 }
 
 TEST(VertexInfoTest, Creation2)
 {
-    const VertexInfo vi(30, 3, 16, true);
-    EXPECT_EQ(30, vi.get_vertex_size());
+    const VertexInfo vi(38, 3, 16, true, 30);
+    EXPECT_EQ(38, vi.get_vertex_size());
     EXPECT_EQ(1, vi.get_points_num());
     EXPECT_EQ(1, vi.get_vectors_num());
     EXPECT_EQ(3, vi.get_point_offset(0));
     EXPECT_EQ(16, vi.get_vector_offset(0));
+    EXPECT_EQ(30, vi.get_cluster_indices_offset());
 }
 
 TEST(VertexInfoTest, BadSizeCreation)
 {
     set_tester_err_callback();
-    EXPECT_THROW( VertexInfo(-10, 1), CoreTesterException );
-    EXPECT_THROW( VertexInfo(-10, 1, 1, true), CoreTesterException );
+    EXPECT_THROW( VertexInfo(-10, 1, 1), CoreTesterException );
+    EXPECT_THROW( VertexInfo(-10, 1, 1, true, 1), CoreTesterException );
     unset_tester_err_callback();
 }
 
 TEST(VertexInfoTest, BadOffsetsCreation)
 {
     set_tester_err_callback();
-    EXPECT_THROW( VertexInfo(20, -1), CoreTesterException );
-    EXPECT_THROW( VertexInfo(20, 19), CoreTesterException );
-    EXPECT_THROW( VertexInfo(20, 0, -1, true), CoreTesterException );
-    EXPECT_THROW( VertexInfo(20, 0, 19, true), CoreTesterException );
+    EXPECT_THROW( VertexInfo(28, -1, 20), CoreTesterException );
+    EXPECT_THROW( VertexInfo(28, 27, 20), CoreTesterException ); // no room for point
+    EXPECT_THROW( VertexInfo(28, 20, 27), CoreTesterException ); // no room for cluster indices
+    EXPECT_THROW( VertexInfo(28, 0, -1, true, 20), CoreTesterException );
+    EXPECT_THROW( VertexInfo(28, 0, 27, true, 20), CoreTesterException ); // no room for vector
+    EXPECT_THROW( VertexInfo(28, 0, 20, true, 27), CoreTesterException ); // no room for cluster indices
     unset_tester_err_callback();
 }
 
 TEST(VertexInfoTest, AddPoint)
 {
-    VertexInfo vi(40, 0);
+    VertexInfo vi(48, 0, 40);
     vi.add_point(15);
     EXPECT_EQ(2, vi.get_points_num());
     EXPECT_EQ(0, vi.get_vectors_num());
@@ -49,7 +53,7 @@ TEST(VertexInfoTest, AddPoint)
 
 TEST(VertexInfoTest, AddFirstVector)
 {
-    VertexInfo vi(40, 0);
+    VertexInfo vi(48, 0, 40);
     vi.add_vector(15, true);
     EXPECT_EQ(1, vi.get_vectors_num());
     EXPECT_EQ(1, vi.get_points_num());
@@ -58,7 +62,7 @@ TEST(VertexInfoTest, AddFirstVector)
 
 TEST(VertexInfoTest, AddSecondVector)
 {
-    VertexInfo vi(60, 0, 15, true);
+    VertexInfo vi(68, 0, 15, true, 60);
     vi.add_vector(30, false);
     EXPECT_EQ(2, vi.get_vectors_num());
     EXPECT_EQ(1, vi.get_points_num());
@@ -67,8 +71,8 @@ TEST(VertexInfoTest, AddSecondVector)
 
 TEST(VertexInfoTest, AddBadlyManyPoints)
 {
-    VertexInfo vi(512, 0);
-    for(int i = 0; i < 9; ++i)
+    VertexInfo vi(512, 0, 500);
+    for(int i = 0; i < VertexInfo::MAX_COMPONENT_NUM - 1; ++i)
     {
         vi.add_point(20*i);
     }
@@ -79,7 +83,7 @@ TEST(VertexInfoTest, AddBadlyManyPoints)
 
 TEST(VertexInfoTest, AddBadlyManyVectors)
 {
-    VertexInfo vi(512, 450);
+    VertexInfo vi(512, 450, 500);
     for(int i = 0; i < VertexInfo::MAX_COMPONENT_NUM; ++i)
     {
         vi.add_vector(20*i, false);

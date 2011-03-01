@@ -12,6 +12,7 @@ namespace
     struct TestVertex1
     {
         VertexFloat x, y, z;
+        ClusterIndex ci[VertexInfo::CLUSTER_INDICES_NUM];
     } vertices1[] =
         {
             { 1,    2,    3},
@@ -39,6 +40,7 @@ namespace
     {
         int dummy;
         VertexFloat x, y, z;
+        ClusterIndex ci[VertexInfo::CLUSTER_INDICES_NUM];
     } vertices2[] = 
         {
             { 0xBADF00D, 6, 5, 4},
@@ -67,7 +69,10 @@ protected:
 
     Real dt;
 
-    ModelTest() : vi1( sizeof(vertices1[0]), 0 ), vi2( sizeof(vertices2[0]), sizeof(vertices2[0].dummy) ) {}
+    ModelTest()
+        : vi1( sizeof(vertices1[0]), 0, 3*sizeof(vertices1[0].x) ),
+          vi2( sizeof(vertices2[0]), sizeof(vertices2[0].dummy), sizeof(vertices2[0].dummy) + 3*sizeof(vertices2[0].x) )
+    {}
 
     virtual void SetUp()
     {
@@ -104,8 +109,7 @@ protected:
             else
                 ASSERT_EQ(masses[i], v.get_mass());
 
-            ASSERT_GE( v.get_nearest_cluster_index(), 0 );
-            ASSERT_LT( v.get_nearest_cluster_index(), cnum );
+            ASSERT_GE( v.get_including_clusters_num(), 0 );
         }
 
         for(int i = 0; i < cnum; ++i)
