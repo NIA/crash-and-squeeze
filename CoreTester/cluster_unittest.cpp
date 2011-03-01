@@ -22,7 +22,6 @@ TEST(ClusterTest, AddOne)
     Cluster c;
     PhysicalVertex v(Vector(1,2,3), 12);
     c.add_physical_vertex(v);
-    EXPECT_EQ( 1, v.get_including_clusters_num() );
     
     c.compute_initial_characteristics();
 
@@ -40,9 +39,6 @@ TEST(ClusterTest, AddTwo)
     PhysicalVertex v(Vector(4,7,10), 20);
     c.add_physical_vertex(u);
     c.add_physical_vertex(v);
-
-    EXPECT_EQ( 1, u.get_including_clusters_num() );
-    EXPECT_EQ( 1, v.get_including_clusters_num() );
 
     c.compute_initial_characteristics();
 
@@ -79,18 +75,6 @@ TEST(ClusterTest, AddSeveral)
     EXPECT_EQ( Vector(-1, 1,0), c.get_equilibrium_offset_pos(1) );
     EXPECT_EQ( Vector( 1,-1,0), c.get_equilibrium_offset_pos(2) );
     EXPECT_EQ( Vector( 1, 1,0), c.get_equilibrium_offset_pos(3) );
-}
-
-TEST(ClusterTest, AddToMoreThanOne)
-{
-    Cluster c1;
-    Cluster c2;
-    PhysicalVertex v;
-
-    c1.add_physical_vertex(v);
-    c2.add_physical_vertex(v);
-
-    EXPECT_EQ(2, v.get_including_clusters_num());
 }
 
 TEST(ClusterTest, AddMany)

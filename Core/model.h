@@ -36,6 +36,8 @@ namespace CrashAndSqueeze
             // -- fields used in initialization --
             int clusters_by_axes[Math::VECTOR_SIZE];
             Math::Real cluster_padding_coeff;
+            // index of zero cluster matrix
+            ClusterIndex null_cluster_index;
             
             // minimum values of coordinates of vertices
             Math::Vector min_pos;
@@ -61,7 +63,7 @@ namespace CrashAndSqueeze
             bool init_clusters();
             
             bool get_nearest_cluster_indices(const Math::Vector position, /*out*/ int cluster_indices[Math::VECTOR_SIZE]);
-            bool find_clusters_for_vertex(AbstractVertex &vertex, /*out*/ Collections::Array<Cluster *> & found_clusters);
+            bool find_clusters_for_vertex(IVertex &vertex, /*out*/ Collections::Array<Cluster *> & found_clusters);
 
             // -- fields used in step computation --
 

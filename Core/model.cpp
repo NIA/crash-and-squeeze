@@ -49,6 +49,7 @@ namespace CrashAndSqueeze
                       const MassFloat constant_mass)
             : vertices(physical_vetrices_num),
               initial_positions(physical_vetrices_num),
+              hit_vertices_indices(physical_vetrices_num),
               
               graphical_vertices(graphical_vetrices_num),
 
@@ -62,7 +63,7 @@ namespace CrashAndSqueeze
               body(NULL),
               frame(NULL),
 
-              hit_vertices_indices(physical_vetrices_num)
+              null_cluster_index(0)
         {
             // -- Finish initialization of arrays --
             // -- (create enought items and freeze or just forbid reallocations) --
@@ -164,6 +165,9 @@ namespace CrashAndSqueeze
             for(int i = 0; i < VECTOR_SIZE; ++i)
                 clusters_num *= clusters_by_axes[i];
 
+            // after last cluster
+            null_cluster_index = static_cast<ClusterIndex>(clusters_num);
+
             clusters.create_items(clusters_num);
             clusters.freeze();
 
@@ -247,7 +251,7 @@ namespace CrashAndSqueeze
             return true;
         }
 
-        bool Model::find_clusters_for_vertex(AbstractVertex &vertex, /*out*/ Collections::Array<Cluster *> & found_clusters)
+        bool Model::find_clusters_for_vertex(IVertex &vertex, /*out*/ Collections::Array<Cluster *> & found_clusters)
         {
             const Vector padding = cluster_sizes*cluster_padding_coeff;
 
@@ -263,7 +267,7 @@ namespace CrashAndSqueeze
 
             found_clusters.clear();
             found_clusters.push_back( &clusters[cluster_index] );
-            vertex.set_nearest_cluster_index(cluster_index);
+            vertex.include_to_one_more_cluster(cluster_index);
 
             // -- and, probably, to his neighbours --
             for(int j = 0; j < VECTOR_SIZE; ++j)
@@ -276,6 +280,7 @@ namespace CrashAndSqueeze
                     --cluster_indices[j];
                     int cluster_index = axis_indices_to_index(cluster_indices, clusters_by_axes);
                     found_clusters.push_back( &clusters[cluster_index] );
+                    vertex.include_to_one_more_cluster(cluster_index);
                     ++cluster_indices[j];
                 }
 
@@ -287,6 +292,7 @@ namespace CrashAndSqueeze
                     ++cluster_indices[j];
                     int cluster_index = axis_indices_to_index(cluster_indices, clusters_by_axes);
                     found_clusters.push_back( &clusters[cluster_index] );
+                    vertex.include_to_one_more_cluster(cluster_index);
                     --cluster_indices[j];
                 }
             }
@@ -491,10 +497,16 @@ namespace CrashAndSqueeze
             void *out_vertex = out_vertices;
             for(int i = 0; i < vertices_num; ++i)
             {
-                ClusterIndex *out_cluster_index =
+                ClusterIndex *out_cluster_indices =
                         reinterpret_cast<ClusterIndex*>( add_to_pointer(out_vertex, vertex_info.get_cluster_indices_offset()) );
 
-                *out_cluster_index = static_cast<ClusterIndex>(graphical_vertices[i].get_nearest_cluster_index());
+                for(int j = 0; j < VertexInfo::CLUSTER_INDICES_NUM; ++j)
+                {
+                    if(j < graphical_vertices[i].get_including_clusters_num())
+                        out_cluster_indices[j] = graphical_vertices[i].get_including_cluster_index(j);
+                    else
+                        out_cluster_indices[j] = null_cluster_index;
+                }
 
                 out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
             }

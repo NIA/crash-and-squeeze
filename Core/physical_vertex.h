@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/core.h"
 #include "Core/force.h"
-#include "Core/abstract_vertex.h"
+#include "Core/ivertex.h"
 #include "Math/vector.h"
 #include "Collections/array.h"
 
@@ -9,7 +9,7 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
-        class PhysicalVertex : public AbstractVertex
+        class PhysicalVertex : public IVertex
         {
         private:
             // position of vertex in global coordinate system
@@ -20,12 +20,14 @@ namespace CrashAndSqueeze
             Math::Vector velocity_addition;
             Math::Vector equilibrium_pos;
             
+            // Number of clusters which include current vertex
+            int including_clusters_num;
         public:
             PhysicalVertex( Math::Vector pos = Math::Vector::ZERO,
                             Math::Real mass = 0,
                             Math::Vector velocity = Math::Vector(0,0,0) )
                 : pos(pos), mass(mass), velocity(velocity), velocity_addition(Math::Vector::ZERO),
-                  equilibrium_pos(pos) {}
+                  equilibrium_pos(pos), including_clusters_num(0) {}
 
             // -- properties --
             
@@ -58,6 +60,11 @@ namespace CrashAndSqueeze
             // step integration
             bool integrate_velocity(const ForcesArray & forces, Math::Real dt);
             void integrate_position(Math::Real dt);
+
+            // implement IVertex
+            virtual void include_to_one_more_cluster(int cluster_index);
+            virtual int get_including_clusters_num() const { return including_clusters_num; }
+            virtual bool check_in_cluster();
         };
 
         typedef Collections::Array<PhysicalVertex> PhysicalVertexArray;

@@ -62,5 +62,21 @@ namespace CrashAndSqueeze
         {
             return cross_product(body_angular_velocity, pos - body_center);
         }
+
+        void PhysicalVertex::include_to_one_more_cluster(int cluster_index)
+        {
+            ignore_unreferenced(cluster_index);
+            ++including_clusters_num;
+        }
+
+        bool PhysicalVertex::check_in_cluster()
+        {
+            if(0 == including_clusters_num)
+            {
+                Logger::error("internal error: PhysicalVertex doesn't belong to any cluster", __FILE__, __LINE__);
+                return false;
+            }
+            return true;
+        }
     }
 }

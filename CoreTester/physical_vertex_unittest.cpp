@@ -33,12 +33,9 @@ TEST(PhysicalVertexTest, InterfaceForCluster)
     PhysicalVertex vertex(pos, mass, velocity);
     const PhysicalVertex &v = vertex;
     
-    vertex.include_to_one_more_cluster();
-    vertex.include_to_one_more_cluster();
+    vertex.include_to_one_more_cluster(0);
+    vertex.include_to_one_more_cluster(1);
     EXPECT_EQ( 2, v.get_including_clusters_num() );
-    
-    vertex.set_nearest_cluster_index(5);
-    EXPECT_EQ( 5, v.get_nearest_cluster_index() );
     
     // addition is divided by 2 here because vertex belons to 2 clusters
     vertex.add_to_average_velocity_addition(addition);

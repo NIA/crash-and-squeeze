@@ -90,9 +90,6 @@ namespace CrashAndSqueeze
             // add new vertex
             physical_vertex_infos.create_item().vertex = &vertex;
 
-            // increment vertex's cluster counter
-            vertex.include_to_one_more_cluster();
-
             // invalidate initial characteristics
             initial_characteristics_computed = false;
         }
@@ -103,9 +100,6 @@ namespace CrashAndSqueeze
             GraphicalVertexMappingInfo & mapping_info = graphical_vertex_infos.create_item();
             mapping_info.vertex = &vertex;
             mapping_info.setup_initial_values(center_of_mass);
-
-            // increment vertex's cluster counter
-            vertex.include_to_one_more_cluster();
         }
 
         void Cluster::compute_initial_characteristics()
