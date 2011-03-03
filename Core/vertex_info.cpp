@@ -30,6 +30,11 @@ namespace CrashAndSqueeze
             return vertex_size - CLUSTER_INDICES_NUM*sizeof(ClusterIndex);
         }
 
+        int VertexInfo::get_max_valid_clusters_num_offset() const
+        {
+            return vertex_size - sizeof(int);
+        }
+
         void VertexInfo::add_offset(Collections::Array<int> & arr, int offset)
         {
             if( MAX_COMPONENT_NUM == arr.size() )
@@ -51,14 +56,18 @@ namespace CrashAndSqueeze
 
         void VertexInfo::set_cluster_indices_offset(int offset)
         {
-            if( offset < 0 || offset > get_max_valid_cluster_indices_offset()  )
-            {
+            if( offset < 0 || offset > get_max_valid_cluster_indices_offset() )
                 Logger::error("in VertexInfo::set_cluster_indices_offset: invalid offset: it should be >= 0 and leave enough space for CLUSTER_INDICES_NUM ClusterIndex values", __FILE__, __LINE__);
-            }
             else
-            {
                 cluster_indices_offset = offset;
-            }
+        }
+
+        void VertexInfo::set_clusters_num_offset(int offset)
+        {
+            if( offset < 0 || offset > get_max_valid_clusters_num_offset() )
+                Logger::error("in VertexInfo::set_clusters_num_offset: invalid offset: it should be >= 0 and leave enough space for CLUSTER_INDICES_NUM ClusterIndex values", __FILE__, __LINE__);
+            else
+                clusters_num_offset = offset;
         }
 
         void VertexInfo::add_point(int offset)

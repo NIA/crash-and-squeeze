@@ -3,6 +3,7 @@ dcl_position v0
 dcl_color0 v1
 dcl_color1 v2 ; cluster index
 dcl_normal v3
+dcl_color3 v4 ; clusters number
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; c0 - c3 is view matrix           ;;
@@ -16,17 +17,13 @@ dcl_normal v3
 ;; c19 is specular coefficient      ;;
 ;; c20 is specular constant 'f'     ;;
 ;; c21 is eye position              ;;
-;; c22 is spot light position       ;;
-;; c23 is spot light color          ;;
-;; c24 is spot light direction      ;;
-;; c25 is 1/(IN - OUT)              ;;
-;; c26 is OUT/(IN - OUT)            ;;
-;; c27 - c30 is pos.*rot. matrix    ;;
-;; c31-c46 are initial cluster c.m. ;;
-;; c47-c110 are cluster matrices    ;;
+;; c22 - c25 is pos.*rot. matrix    ;;
+;; c26-c41 are initial cluster c.m. ;;
+;; c42-c105 are cluster matrices    ;;
+;; c106-c110 are 4x4 zero matrix    ;;
 ;;                                  ;;
-;; c127 is constant 0.0f            ;;
 ;; c111 is constant 1.0f            ;;
+;; c127 is constant 0.0f            ;;
 ;;                                  ;;
 ; ?r0  is attenuation               ;;
 ; !r1  is transformed vertex        ;;
@@ -63,15 +60,44 @@ def c127, 0.0, 0.0, 0.0, 0.0
 def c111, 1.0, 1.0, 1.0, 1.0 ;constant one
 def c114, 4.0, 4.0, 4.0, 4.0 ;constant 4
 
+def c115, 0.5, 0.5, 0.5, 0.5
+def c144, 0.125, 0.125, 0.125, 0.125 ;constant 1/8
+
 ; - - - - - - - - - -  position  - - - - - - - - - - - - - -;
-mov a0.x, v2.x          ; a0.x = cluster index
-add r1, v0, -c[31+a0.x] ; r1 = vertex.pos - cluster.center
-mul r3.x, v2.x, c114
-mov a0.x, r3.x          ; a0.x = 4 * cluster index
-m4x4 r2, r1, c[47+a0.x] ; r2 = [cluster.matrix] * r1
-m4x4 r1, r2, c27        ; r1 = [position and rotation] * r2
+; #1 -> r1
+mov a0.x, v2.x          ; a0.x = cluster #1 index
+add r4, v0, -c[26+a0.x] ; r1 = vertex.pos - cluster.center
+mul r3.x, v2.x, c114    ; a0.x = 4 * cluster #1 index
+mov a0.x, r3.x
+m4x4 r1, r4, c[42+a0.x] ; r1 = [cluster.matrix] * r4
+; #2 -> r2, r1 += r2
+mov a0.x, v2.y          ; a0.x = cluster #2 index
+add r4, v0, -c[26+a0.x] ; r4 = vertex.pos - cluster.center
+mul r3.x, v2.y, c114    ; a0.x = 4 * cluster #2 index
+mov a0.x, r3.x
+m4x4 r2, r4, c[42+a0.x] ; r2 = [cluster.matrix] * r4
+add r1, r1, r2
+; #3 -> r2, r1 += r2
+mov a0.x, v2.z          ; a0.x = cluster #3 index
+add r4, v0, -c[26+a0.x] ; r4 = vertex.pos - cluster.center
+mul r3.x, v2.z, c114    ; a0.x = 4 * cluster #3 index
+mov a0.x, r3.x
+m4x4 r2, r4, c[42+a0.x] ; r2 = [cluster.matrix] * r4
+add r1, r1, r2
+; #4 -> r2, r1 += r2
+mov a0.x, v2.w          ; a0.x = cluster #4 index
+add r4, v0, -c[26+a0.x] ; r4 = vertex.pos - cluster.center
+mul r3.x, v2.w, c114    ; a0.x = 4 * cluster #4 index
+mov a0.x, r3.x
+m4x4 r2, r4, c[42+a0.x] ; r2 = [cluster.matrix] * r4
+add r1, r1, r2
+; sum -> average
+rsq r3, v4.x            ; r3 = 1/clusters_num
+mul r2, r1, r3          ; r2 = r1 / clusters_num
+; shift and rotation
+m4x4 r1, r2, c22        ; r1 = [position and rotation] * r2
 ; - - - - - - - - - -  normals  - - - - - - - - - - - - - - ;
-m4x4 r10, v3, c27       ; position and rotation
+m4x4 r10, v3, c22       ; position and rotation
 dp3 r2, r10, r10        ; r2 = |normal|**2
 rsq r7, r2              ; r7 = 1/|normal|
 mul r10, r10, r7.x      ; normalize r10
@@ -146,6 +172,10 @@ add r6, r6, r4
 
 ;;;;;;;;;;;;;;;;;;;;;;; Ambient ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 add r6, r6, c15         ; r6 += I(ambient)
+
+mul r6, v4.x, c144
+add r6, r6, c115
+mov r6.a, c111
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Results ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 m4x4 oPos, r1, c0

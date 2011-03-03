@@ -13,6 +13,7 @@ namespace
     {
         VertexFloat x, y, z;
         ClusterIndex ci[VertexInfo::CLUSTER_INDICES_NUM];
+        unsigned cn;
     } vertices1[] =
         {
             { 1,    2,    3},
@@ -41,6 +42,7 @@ namespace
         int dummy;
         VertexFloat x, y, z;
         ClusterIndex ci[VertexInfo::CLUSTER_INDICES_NUM];
+        unsigned cn;
     } vertices2[] = 
         {
             { 0xBADF00D, 6, 5, 4},
@@ -70,8 +72,8 @@ protected:
     Real dt;
 
     ModelTest()
-        : vi1( sizeof(vertices1[0]), 0, 3*sizeof(vertices1[0].x) ),
-          vi2( sizeof(vertices2[0]), sizeof(vertices2[0].dummy), sizeof(vertices2[0].dummy) + 3*sizeof(vertices2[0].x) )
+        : vi1( sizeof(vertices1[0]), 0, 3*sizeof(vertices1[0].x),  sizeof(vertices1[0]) - sizeof(vertices1[0].cn)),
+          vi2( sizeof(vertices2[0]), sizeof(vertices2[0].dummy), sizeof(vertices2[0].dummy) + 3*sizeof(vertices2[0].x),  sizeof(vertices2[0]) - sizeof(vertices2[0].cn) )
     {}
 
     virtual void SetUp()

@@ -497,16 +497,20 @@ namespace CrashAndSqueeze
             void *out_vertex = out_vertices;
             for(int i = 0; i < vertices_num; ++i)
             {
-                ClusterIndex *out_cluster_indices =
-                        reinterpret_cast<ClusterIndex*>( add_to_pointer(out_vertex, vertex_info.get_cluster_indices_offset()) );
+                int including_clusters_num = graphical_vertices[i].get_including_clusters_num();
 
+                ClusterIndex *out_cluster_indices =
+                    reinterpret_cast<ClusterIndex*>( add_to_pointer(out_vertex, vertex_info.get_cluster_indices_offset()) );
                 for(int j = 0; j < VertexInfo::CLUSTER_INDICES_NUM; ++j)
                 {
-                    if(j < graphical_vertices[i].get_including_clusters_num())
+                    if(j < including_clusters_num)
                         out_cluster_indices[j] = graphical_vertices[i].get_including_cluster_index(j);
                     else
                         out_cluster_indices[j] = null_cluster_index;
                 }
+                int *out_clusters_num =
+                    reinterpret_cast<int*>(add_to_pointer(out_vertex, vertex_info.get_clusters_num_offset()));
+                *out_clusters_num = including_clusters_num;
 
                 out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
             }

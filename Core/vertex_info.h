@@ -36,12 +36,16 @@ namespace CrashAndSqueeze
 
             int cluster_indices_offset;
 
+            int clusters_num_offset;
+
             int get_max_valid_offset() const;
             int get_max_valid_cluster_indices_offset() const;
+            int get_max_valid_clusters_num_offset() const;
 
             // Common initialization for all constructors
             void set_vertex_size(int vertex_size);
             void set_cluster_indices_offset(int offset);
+            void set_clusters_num_offset(int offset);
             
             // Common code for adding offset either to points_offsets or vectors_offsets
             void add_offset(Collections::Array<int> & arr, int offset);
@@ -52,20 +56,24 @@ namespace CrashAndSqueeze
             // with VertexInfo::add_point and VertexInfo::add_vector
 
             // constructor for one point and no vectors associated with vertex
-            VertexInfo(int vertex_size, int position_offset, int cluster_indices_offset)
+            VertexInfo(int vertex_size, int position_offset, int cluster_indices_offset, int clusters_num_offset)
                 : points_offsets(MAX_COMPONENT_NUM), vectors_offsets(MAX_COMPONENT_NUM)
             {
                 set_vertex_size(vertex_size);
                 set_cluster_indices_offset(cluster_indices_offset);
+                set_clusters_num_offset(clusters_num_offset);
+                
                 add_point(position_offset);
             }
             
             // constructor for one point and one vector associated with vertex
-            VertexInfo(int vertex_size, int position_offset, int vector_offset, bool is_vector_orthogonal, int cluster_indices_offset)
+            VertexInfo(int vertex_size, int position_offset, int vector_offset, bool is_vector_orthogonal, int cluster_indices_offset, int clusters_num_offset)
                 : points_offsets(MAX_COMPONENT_NUM), vectors_offsets(MAX_COMPONENT_NUM)
             {
                 set_vertex_size(vertex_size);
                 set_cluster_indices_offset(cluster_indices_offset);
+                set_clusters_num_offset(clusters_num_offset);
+                
                 add_point(position_offset);
                 add_vector(vector_offset, is_vector_orthogonal);
             }
@@ -76,6 +84,7 @@ namespace CrashAndSqueeze
 
             int get_vertex_size() const { return vertex_size; }
             int get_cluster_indices_offset() const { return cluster_indices_offset; }
+            int get_clusters_num_offset() const { return clusters_num_offset; }
             
             int get_points_num() const { return points_offsets.size(); }
             int get_point_offset(int index) const;

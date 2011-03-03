@@ -122,28 +122,13 @@ namespace
     const float       SHADER_VAL_SPECULAR_F = 25.0f;
     //    c21 is eye position
     const unsigned    SHADER_REG_EYE = 21;
-    //    c22 is spot light position
-    const unsigned    SHADER_REG_SPOT_POSITION = 22;
-    const D3DXVECTOR3 SHADER_VAL_SPOT_POSITION  (1.5f, -1.5f, -1.3f);
-    //    c23 is spot light color
-    const unsigned    SHADER_REG_SPOT_COLOR = 23;
-    const D3DCOLOR    SHADER_VAL_SPOT_COLOR = D3DCOLOR_XRGB(255, 0, 180);
-    //    c24 is spot light direction
-    const unsigned    SHADER_REG_SPOT_VECTOR = 24;
-    const D3DXVECTOR3 SHADER_VAL_SPOT_VECTOR  (1.0f, -1.0f, -0.5f);
-    D3DXVECTOR3 spot_vector(2.0f, -0.7f, -1.1f);
-    //    c25 is 1/(IN - OUT)
-    const float       SHADER_VAL_SPOT_INNER_ANGLE = D3DX_PI/16.0f;
-    const float       SHADER_VAL_SPOT_OUTER_ANGLE = D3DX_PI/12.0f;
-    const unsigned    SHADER_REG_SPOT_X_COEF = 25;
-    //    c26 is OUT/(IN - OUT)
-    const unsigned    SHADER_REG_SPOT_CONST_COEF = 26;
-    //    c27-c30 is position and rotation of model matrix
-    const unsigned    SHADER_REG_POS_AND_ROT_MX = 27;
-    //    c31-c46 are 16 initial centers of mass for 16 clusters
-    const unsigned    SHADER_REG_CLUSTER_INIT_CENTER = 31;
-    //    c47-c110 are 16 4x4 cluster matrices => 48 vectors
-    const unsigned    SHADER_REG_CLUSTER_MATRIX = 47;
+    //    c22-c25 is position and rotation of model matrix
+    const unsigned    SHADER_REG_POS_AND_ROT_MX = 22;
+    //    c26-c41 are 16 initial centers of mass for 16 clusters
+    const unsigned    SHADER_REG_CLUSTER_INIT_CENTER = 26;
+    //    c42-c105 are 16 4x4 cluster matrices => 64 vectors
+    const unsigned    SHADER_REG_CLUSTER_MATRIX = 42;
+    //    c106-c110 are ZEROS! (4x4 zero matrix)
 }
 
 Application::Application(Logger &logger) :
@@ -249,17 +234,10 @@ void Application::render(PerformanceReporter &internal_reporter)
     // Setting constants
     D3DXVECTOR3 directional_vector;
     D3DXVec3Normalize(&directional_vector, &SHADER_VAL_DIRECTIONAL_VECTOR);
-    D3DXVECTOR3 spot_vector;
-    D3DXVec3Normalize(&spot_vector, &SHADER_VAL_SPOT_VECTOR);
 
     D3DCOLOR ambient_color = ambient_light_enabled ? SHADER_VAL_AMBIENT_COLOR : BLACK;
     D3DCOLOR directional_color = directional_light_enabled ? SHADER_VAL_DIRECTIONAL_COLOR : BLACK;
     D3DCOLOR point_color = point_light_enabled ? SHADER_VAL_POINT_COLOR : BLACK;
-    D3DCOLOR spot_color = spot_light_enabled ? SHADER_VAL_SPOT_COLOR : BLACK;
-
-    float in_cos = cos(SHADER_VAL_SPOT_INNER_ANGLE);
-    float out_cos = cos(SHADER_VAL_SPOT_OUTER_ANGLE);
-    _ASSERT( in_cos - out_cos != 0.0f );
 
     set_shader_matrix( SHADER_REG_VIEW_MX,            camera.get_matrix());
     set_shader_vector( SHADER_REG_DIRECTIONAL_VECTOR, directional_vector);
@@ -272,11 +250,6 @@ void Application::render(PerformanceReporter &internal_reporter)
     set_shader_float(  SHADER_REG_SPECULAR_COEF,      SHADER_VAL_SPECULAR_COEF);
     set_shader_float(  SHADER_REG_SPECULAR_F,         SHADER_VAL_SPECULAR_F);
     set_shader_point(  SHADER_REG_EYE,                camera.get_eye());
-    set_shader_point(  SHADER_REG_SPOT_POSITION,      SHADER_VAL_SPOT_POSITION);
-    set_shader_color(  SHADER_REG_SPOT_COLOR,         spot_color);
-    set_shader_vector( SHADER_REG_SPOT_VECTOR,        spot_vector);
-    set_shader_float(  SHADER_REG_SPOT_X_COEF,        1/(in_cos - out_cos));
-    set_shader_float(  SHADER_REG_SPOT_CONST_COEF,    out_cos/(in_cos - out_cos));
     
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {

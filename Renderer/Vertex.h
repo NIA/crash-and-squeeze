@@ -25,6 +25,7 @@ public:
     D3DCOLOR color;             // The vertex color
     // 8 BYTE cluster indices = 2 UBYTE4s
     BYTE cluster_indices[CrashAndSqueeze::Core::VertexInfo::CLUSTER_INDICES_NUM];
+    DWORD clusters_num;
     
     void set_normal(D3DXVECTOR3 tri_normal)
     {
