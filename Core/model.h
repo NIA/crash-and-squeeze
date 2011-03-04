@@ -129,6 +129,7 @@ namespace CrashAndSqueeze
                                    /*out*/ Math::Vector & angular_velocity_change);
 
             Math::Matrix get_cluster_transformation(int cluster_index) const;
+            Math::Matrix get_cluster_normal_transformation(int cluster_index) const;
             const Math::Vector & get_cluster_initial_center(int cluster_index) const;
             const Math::Vector & get_cluster_center(int cluster_index) const;
 

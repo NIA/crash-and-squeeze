@@ -179,6 +179,7 @@ namespace CrashAndSqueeze
             const Math::Matrix & get_rotation() const { return rotation; }
             const Math::Matrix & get_total_deformation() const { return total_deformation; }
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
+            const Math::Matrix & get_plasticity_state_inv_tr() const { return plasticity_state_inv_trans; }
             Math::Real get_relative_plastic_deformation() const;
 
             static const int INITIAL_ALLOCATED_VERTICES_NUM = 100;

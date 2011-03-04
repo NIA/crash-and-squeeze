@@ -98,7 +98,7 @@ namespace
     const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (-0.2f, -1.0f, 0.3f);
     //    c13 is directional light color
     const unsigned    SHADER_REG_DIRECTIONAL_COLOR = 13;
-    const D3DCOLOR    SHADER_VAL_DIRECTIONAL_COLOR = D3DCOLOR_XRGB(150, 150, 150);
+    const D3DCOLOR    SHADER_VAL_DIRECTIONAL_COLOR = D3DCOLOR_XRGB(230, 230, 230);
     //    c14 is diffuse coefficient
     const unsigned    SHADER_REG_DIFFUSE_COEF = 14;
     const float       SHADER_VAL_DIFFUSE_COEF = 0.8f;
@@ -129,6 +129,10 @@ namespace
     //    c42-c105 are 16 4x4 cluster matrices => 64 vectors
     const unsigned    SHADER_REG_CLUSTER_MATRIX = 42;
     //    c106-c110 are ZEROS! (4x4 zero matrix)
+    //    c111-c119 are RESERVED (for internal shader use)
+    //    c120-c183 are 16 4x4 cluster matrices for normal transformation
+    const unsigned    SHADER_REG_CLUSTER_NORMAL_MATRIX = 120;
+    //    c184-c187 are ZEROS! (4x4 zero matrix)
 }
 
 Application::Application(Logger &logger) :
@@ -270,10 +274,14 @@ void Application::render(PerformanceReporter &internal_reporter)
                 D3DXVECTOR3 init_pos = math_vector_to_d3dxvector(physical_model->get_cluster_initial_center(i));
                 set_shader_vector( SHADER_REG_CLUSTER_INIT_CENTER + i, init_pos);
                 
-                // ...and transformation matrix
+                // ...and transformation matrices for positions...
                 D3DXMATRIX cluster_matrix;
                 build_d3d_matrix(physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i), cluster_matrix);
                 set_shader_matrix( SHADER_REG_CLUSTER_MATRIX + VECTORS_IN_MATRIX*i, cluster_matrix);
+
+                // ...and normals
+                build_d3d_matrix(physical_model->get_cluster_normal_transformation(i), Vector::ZERO, cluster_matrix);
+                set_shader_matrix( SHADER_REG_CLUSTER_NORMAL_MATRIX + VECTORS_IN_MATRIX*i, cluster_matrix);
             }
         }
         

@@ -455,6 +455,12 @@ namespace CrashAndSqueeze
             return c.get_rotation() * c.get_plasticity_state();
         }
 
+        Matrix Model::get_cluster_normal_transformation(int cluster_index) const
+        {
+            const Cluster &c = clusters[cluster_index];
+            return c.get_rotation() * c.get_plasticity_state_inv_tr();
+        }
+
         const Vector & Model::get_cluster_center(int cluster_index) const
         {
             return clusters[cluster_index].get_center_of_mass();
