@@ -27,8 +27,8 @@ namespace
 {
     bool DISABLE_MESSAGE_BOXES = true;
 
-    const char *SIMPLE_SHADER_FILENAME = "simple.vsh";
-    const char *LIGHTING_SHADER_FILENAME = "lighting.vsh";
+    const TCHAR *SIMPLE_SHADER_FILENAME = _T("simple.vsh");
+    const TCHAR *LIGHTING_SHADER_FILENAME = _T("lighting.vsh");
 
     const D3DCOLOR CYLINDER_COLOR = D3DCOLOR_XRGB(100, 150, 255);
     const D3DCOLOR OBSTACLE_COLOR = D3DCOLOR_XRGB(100, 100, 100);
@@ -211,6 +211,13 @@ void Logger::log(const char *prefix, const char * message, const char * file, in
         if(0 != line)
             log_file << "(" << line << ")";
     }
+    newline();
+}
+void Logger::newline()
+{
+    if(!log_file.is_open())
+        return;
+
     log_file << std::endl;
     log_file.flush();
 }
@@ -218,6 +225,7 @@ void Logger::log(const char *prefix, const char * message, const char * file, in
 INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 {
     Logger logger("renderer.log");
+    logger.newline();
     logger.log("        [Renderer]", "application startup");
     
     PhysicsLogger & phys_logger = PhysicsLogger::get_instance();
@@ -417,7 +425,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         for(int i = 0; i < reactions.size(); ++i)
             delete reactions[i];
         
-        logger.log("        [Renderer]", "application shutdown\n");
+        logger.log("        [Renderer]", "application shutdown");
     }
     catch(RuntimeError &e)
     {
@@ -432,9 +440,9 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         for(int i = 0; i < reactions.size(); ++i)
             delete reactions[i];
         
-        logger.log("ERROR!! [Renderer]", "application crash\n");
+        logger.log("ERROR!! [Renderer]", e.get_log_entry());
         const TCHAR *MESSAGE_BOX_TITLE = _T("Renderer error!");
-        my_message_box(e.message(), MESSAGE_BOX_TITLE, MB_OK | MB_ICONERROR, true);
+        my_message_box(e.get_message(), MESSAGE_BOX_TITLE, MB_OK | MB_ICONERROR, true);
         return -1;
     }
     return 0;

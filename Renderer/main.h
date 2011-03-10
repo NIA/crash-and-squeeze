@@ -49,6 +49,7 @@ public:
     }
 
     void log(const char *prefix, const char * message, const char * file = "", int line = 0);
+    void newline();
 
     ~Logger()
     {

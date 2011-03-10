@@ -1,14 +1,18 @@
 #pragma once
 #include <exception>
 #include <tchar.h>
+#include <cstring>
+#include <d3dx9.h>
 
 class RuntimeError : public std::exception
 {
 private:
-    const TCHAR * msg;
+    const TCHAR * message;
 public:
-    RuntimeError(const TCHAR *msg) :  msg(msg) {}
-    const TCHAR *message() const { return msg; }
+    RuntimeError(const TCHAR *message) :  message(message) {}
+    const TCHAR *get_message() const { return message; }
+    virtual const char *get_log_entry() const { return "application crash"; }
+    virtual ~RuntimeError() {}
 };
 
 class WindowInitError : public RuntimeError
@@ -26,10 +30,35 @@ class VertexDeclarationInitError : public RuntimeError
 public:
     VertexDeclarationInitError() : RuntimeError( _T("Error while creating vertex declaration") ) {}
 };
-class VertexShaderAssemblyError : public RuntimeError
+class VertexShaderCompileError : public RuntimeError
 {
+private:
+    char *log_entry;
 public:
-    VertexShaderAssemblyError() : RuntimeError( _T("Error while assembling vertex shader") ) {}
+    VertexShaderCompileError(ID3DXBuffer *errors)
+        : RuntimeError( _T("Error while compiling vertex shader") ), log_entry(NULL)
+    {
+        if(NULL != errors)
+        {
+            const char* header = "Cannot compile vertex shader. Errors:\n";
+            int total_size = strlen(header) + errors->GetBufferSize();
+            log_entry = new char[total_size];
+            strcpy_s(log_entry, total_size, header);
+            strcat_s(log_entry, total_size, reinterpret_cast<char*>(errors->GetBufferPointer()));
+            errors->Release();
+        }
+    }
+    virtual const char *get_log_entry() const
+    {
+        if(NULL != log_entry)
+            return log_entry;
+        else
+            return RuntimeError::get_log_entry();
+    }
+    virtual ~VertexShaderCompileError()
+    {
+        delete log_entry;
+    }
 };
 class VertexShaderInitError : public RuntimeError
 {
@@ -96,6 +125,7 @@ class D3DXFontError : public RuntimeError
 public:
     D3DXFontError() : RuntimeError( _T("Error while creating D3DX font") ) {}
 };
+
 inline void check_render( HRESULT res )
 {
     if( FAILED(res) )

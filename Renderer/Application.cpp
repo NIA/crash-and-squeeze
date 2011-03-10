@@ -110,7 +110,7 @@ namespace
     const D3DCOLOR    SHADER_VAL_POINT_COLOR = D3DCOLOR_XRGB(120, 250, 250);
     //    c17 is point light position
     const unsigned    SHADER_REG_POINT_POSITION = 17;
-    const D3DXVECTOR3 SHADER_VAL_POINT_POSITION  (0.2f, -0.51f, -1.1f);
+    const D3DXVECTOR3 SHADER_VAL_POINT_POSITION  (0.2f, -0.51f, -0.55f);
     //    c18 are attenuation constants
     const unsigned    SHADER_REG_ATTENUATION = 18;
     const D3DXVECTOR3 SHADER_VAL_ATTENUATION  (1.0f, 0, 0.8f);

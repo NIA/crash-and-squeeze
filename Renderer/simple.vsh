@@ -1,23 +1,25 @@
-vs_1_1
-dcl_position v0
-dcl_color v1
-dcl_normal v3
+struct VS_INPUT
+{
+    float4 pos : POSITION;
+    float4 color : COLOR;
+};
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; c0 - c3 is view matrix           ;;
-;; c22 - c25 is pos.*rot. matrix    ;;
-;;                                  ;;
-;; c100 is constant 0.0f            ;;
-;; c111 is constant 1.0f            ;;
-;;                                  ;;
-; !r1  is transformed vertex        ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+struct VS_OUTPUT
+{
+    float4  pos : POSITION;
+    float4  color : COLOR;
+};
 
-def c100, 0.0, 0.0, 0.0, 0.0
-def c111, 1.0, 1.0, 1.0, 1.0 ;constant one
+const float4x4 view : register(c0);
+const float4x4 pos_and_rot : register(c22);
 
-m4x4 r1, v0, c22        ; position and rotation
-
-;;;;;;;;;;;;;;;;;;;;;;;; Results ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-m4x4 oPos, r1, c0
-mov oD0, v1
+VS_OUTPUT main(const VS_INPUT src)
+{
+    // transformed pos
+    float4 pos = mul(src.pos, pos_and_rot);
+    
+    VS_OUTPUT res;
+    res.pos   = mul(pos, view);
+    res.color = src.color;
+    return res;
+}

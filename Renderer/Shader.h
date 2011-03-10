@@ -13,7 +13,7 @@ private:
     // Deinitialization steps:
     void release_interfaces();
 public:
-    VertexShader(IDirect3DDevice9 *device, const D3DVERTEXELEMENT9* vertex_declaration, const char *shader_filename);
+    VertexShader(IDirect3DDevice9 *device, const D3DVERTEXELEMENT9* vertex_declaration, const TCHAR *shader_filename);
     void set();
     ~VertexShader();
 };

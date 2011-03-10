@@ -1,6 +1,12 @@
 #include "Shader.h"
 
-VertexShader::VertexShader(IDirect3DDevice9 *device, const D3DVERTEXELEMENT9* vertex_declaration, const char *shader_filename)
+namespace
+{
+    const char *ENTRY_POINT = "main";
+    const char *PROFILE = "vs_2_0";
+}
+
+VertexShader::VertexShader(IDirect3DDevice9 *device, const D3DVERTEXELEMENT9* vertex_declaration, const TCHAR *shader_filename)
 : device(device), vertex_decl(NULL), shader(NULL)
 {
     try
@@ -9,20 +15,18 @@ VertexShader::VertexShader(IDirect3DDevice9 *device, const D3DVERTEXELEMENT9* ve
             throw VertexDeclarationInitError();
 
         ID3DXBuffer * shader_buffer = NULL;
-        try
+        ID3DXBuffer * shader_errors = NULL;
+        if( FAILED( D3DXCompileShaderFromFile( shader_filename, NULL, NULL, ENTRY_POINT, PROFILE, NULL, &shader_buffer, &shader_errors, NULL ) ) )
+            throw VertexShaderCompileError(shader_errors);
+        
+        if( FAILED( device->CreateVertexShader( (DWORD*) shader_buffer->GetBufferPointer(), &shader ) ) )
         {
-            if( FAILED( D3DXAssembleShaderFromFileA( shader_filename, NULL, NULL, NULL, &shader_buffer, NULL ) ) )
-                throw VertexShaderAssemblyError();
-            if( FAILED( device->CreateVertexShader( (DWORD*) shader_buffer->GetBufferPointer(), &shader ) ) )
-                throw VertexShaderInitError();
-        }
-        // using catch(...) because every caught exception is rethrown
-        catch(...)
-        {
+            release_interface(shader_errors);
             release_interface(shader_buffer);
-            throw;
+            throw VertexShaderInitError();
         }
         release_interface(shader_buffer);
+        release_interface(shader_errors);
     }
     // using catch(...) because every caught exception is rethrown
     catch(...)
