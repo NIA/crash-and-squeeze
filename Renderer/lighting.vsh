@@ -30,11 +30,11 @@ const float3    point_pos   : register(c17); // point light position
 const float4    point_col   : register(c16); // point light color
 const float3    atten_coefs : register(c18); // attenuation coeffs (a, b, c)
 
+const float4    ambient_col : register(c15);
+
 const float4    clus_cm[16] : register(c26); // initial clusters' centers of mass 
 const float4x4  clus_mx[17] : register(c42); // cluster matrices PLUS last zero matrix
 const float4x4  clus_nrm_mx[17] : register(c120); // cluster normal matrices PLUS last zero matrix
-
-const float4    ambient_col : register(c15);
 
 float4 directional_light(const float3 pos, const float3 normal, const float3 v)
 {
@@ -120,6 +120,5 @@ VS_OUTPUT main(const VS_INPUT src)
     VS_OUTPUT res;
     res.pos   = mul(pos, view);
     res.color = src.color*light((float3)pos, normal);
-    //res.color.a = 1;
     return res;
 }
