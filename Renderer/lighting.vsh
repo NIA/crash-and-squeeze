@@ -3,6 +3,10 @@ struct VS_INPUT
     float4 pos : POSITION;
     float3 normal : NORMAL;
     float4 color : COLOR;
+    
+    int4 ci_0_3 : COLOR1; // cluster indices 0..3
+    int4 ci_4_7 : COLOR2; // cluster indices 4..7
+    int4 clus_num : COLOR3; // clusters num
 };
 
 struct VS_OUTPUT
@@ -25,6 +29,10 @@ const float4    direct_col  : register(c13); // directional light color
 const float3    point_pos   : register(c17); // point light position
 const float4    point_col   : register(c16); // point light color
 const float3    atten_coefs : register(c18); // attenuation coeffs (a, b, c)
+
+const float4    clus_cm[16] : register(c26); // initial clusters' centers of mass 
+const float4x4  clus_mx[17] : register(c42); // cluster matrices PLUS last zero matrix
+const float4x4  clus_nrm_mx[17] : register(c120); // cluster normal matrices PLUS last zero matrix
 
 const float4    ambient_col : register(c15);
 
@@ -80,18 +88,38 @@ float4 light(const float3 pos, const float3 normal)
            + ambient_col;
 }
 
+void deform(inout float4 pos, inout float3 normal, int4 ci, int clus_num)
+{
+    float4 sum_pos = 0;
+    float3 sum_normal = 0;
+
+    for(int i = 0; i < 4; ++i)
+    {
+        float4 offset = pos - clus_cm[ci[i]];
+        sum_pos += mul(offset, clus_mx[ci[i]]);
+        sum_normal += mul(normal, (float3x3)clus_nrm_mx[ci[i]]);
+    }
+    pos = sum_pos/clus_num;
+    pos.w = 1;
+    normal = sum_normal/clus_num;
+}
+
 VS_OUTPUT main(const VS_INPUT src)
 {
-    VS_OUTPUT res;
+    float4 pos = src.pos;
+    float3 normal = src.normal;
+    
+    deform(pos, normal, src.ci_0_3, src.clus_num);
     
     // transformed pos
-    float4 pos = mul(src.pos, pos_and_rot);
+    pos = mul(pos, pos_and_rot);
     
     // transformed normal
-    float3 normal = mul(src.normal, (float3x3)pos_and_rot);
-    normal = normalize(normal);
+    normal = normalize( mul(normal, (float3x3)pos_and_rot) );
     
+    VS_OUTPUT res;
     res.pos   = mul(pos, view);
     res.color = src.color*light((float3)pos, normal);
+    //res.color.a = 1;
     return res;
 }
