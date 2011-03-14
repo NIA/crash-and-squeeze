@@ -104,7 +104,7 @@ namespace
     const float       SHADER_VAL_DIFFUSE_COEF = 0.8f;
     //    c15 is ambient color
     const unsigned    SHADER_REG_AMBIENT_COLOR = 15;
-    const D3DCOLOR    SHADER_VAL_AMBIENT_COLOR = D3DCOLOR_XRGB(33, 63, 33);
+    const D3DCOLOR    SHADER_VAL_AMBIENT_COLOR = D3DCOLOR_XRGB(80, 80, 80);
     //    c16 is point light color
     const unsigned    SHADER_REG_POINT_COLOR = 16;
     const D3DCOLOR    SHADER_VAL_POINT_COLOR = D3DCOLOR_XRGB(120, 250, 250);

@@ -88,17 +88,30 @@ float4 light(const float3 pos, const float3 normal)
            + ambient_col;
 }
 
-void deform(inout float4 pos, inout float3 normal, int4 ci, int clus_num)
+void sum_iter(float4 pos, float3 normal, inout float3 sum_pos, inout float3 sum_normal, int ci)
+{
+    float4 offset = pos - clus_cm[ci];
+    sum_pos += mul(offset, clus_mx[ci]);
+    sum_normal += mul(normal, (float3x3)clus_nrm_mx[ci]);
+}
+
+void deform(inout float4 pos, inout float3 normal, int4 ci_0_3, int4 ci_4_7, int clus_num)
 {
     float3 sum_pos = 0;
     float3 sum_normal = 0;
-
+    
     for(int i = 0; i < 4; ++i)
     {
-        float4 offset = pos - clus_cm[ci[i]];
-        sum_pos += mul(offset, clus_mx[ci[i]]);
-        sum_normal += mul(normal, (float3x3)clus_nrm_mx[ci[i]]);
+        sum_iter(pos, normal, sum_pos, sum_normal, ci_0_3[i]);
+        
+        // WTF: if next line is commented, summing will be done
+        //      only for first 4 cluster indices. Strange is that
+        //      rendering will also be MORE than 2 times faster
+        //      (but only the half of the summing is not supposed
+        //      to take more the half of shader execution time!)
+        sum_iter(pos, normal, sum_pos, sum_normal, ci_4_7[i]);
     }
+    
     pos = float4(sum_pos/clus_num, 1);
     normal = sum_normal/clus_num;
 }
@@ -108,7 +121,7 @@ VS_OUTPUT main(const VS_INPUT src)
     float4 pos = src.pos;
     float3 normal = src.normal;
     
-    deform(pos, normal, src.ci_0_3, src.clus_num);
+    deform(pos, normal, src.ci_0_3, src.ci_4_7, src.clus_num);
     
     // transformed pos
     pos = mul(pos, pos_and_rot);
