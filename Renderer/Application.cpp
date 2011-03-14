@@ -126,13 +126,13 @@ namespace
     const unsigned    SHADER_REG_POS_AND_ROT_MX = 22;
     //    c26-c41 are 16 initial centers of mass for 16 clusters
     const unsigned    SHADER_REG_CLUSTER_INIT_CENTER = 26;
-    //    c42-c105 are 16 4x4 cluster matrices => 64 vectors
+    //    c42-c89 are 16 3x4 cluster matrices => 48 vectors
     const unsigned    SHADER_REG_CLUSTER_MATRIX = 42;
-    //    c106-c110 are ZEROS! (4x4 zero matrix)
-    //    c111-c119 are RESERVED (for internal shader use)
-    //    c120-c183 are 16 4x4 cluster matrices for normal transformation
-    const unsigned    SHADER_REG_CLUSTER_NORMAL_MATRIX = 120;
-    //    c184-c187 are ZEROS! (4x4 zero matrix)
+    //    c90-c92 are ZEROS! (3x4 zero matrix)
+    const D3DMATRIX   ZEROS = {0};
+    //    c93-c140 are 16 4x4 cluster matrices for normal transformation
+    const unsigned    SHADER_REG_CLUSTER_NORMAL_MATRIX = 93;
+    //    c141-c143 are ZEROS! (3x4 zero matrix)
 }
 
 Application::Application(Logger &logger) :
@@ -267,8 +267,11 @@ void Application::render(PerformanceReporter &internal_reporter)
         
         if(NULL != physical_model)
         {
+            // step of 3 vectors between consequent 3x4 matrices
+            int step = VECTORS_IN_MATRIX-1;
+            int clusters_num = physical_model->get_clusters_num();
             // for each cluster...
-            for(int i = 0; i < physical_model->get_clusters_num(); ++i)
+            for(int i = 0; i < clusters_num; ++i)
             {
                 // ...set initial center of mass...
                 D3DXVECTOR3 init_pos = math_vector_to_d3dxvector(physical_model->get_cluster_initial_center(i));
@@ -277,12 +280,14 @@ void Application::render(PerformanceReporter &internal_reporter)
                 // ...and transformation matrices for positions...
                 D3DXMATRIX cluster_matrix;
                 build_d3d_matrix(physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i), cluster_matrix);
-                set_shader_matrix( SHADER_REG_CLUSTER_MATRIX + VECTORS_IN_MATRIX*i, cluster_matrix);
+                set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*i, cluster_matrix);
 
                 // ...and normals
                 build_d3d_matrix(physical_model->get_cluster_normal_transformation(i), Vector::ZERO, cluster_matrix);
-                set_shader_matrix( SHADER_REG_CLUSTER_NORMAL_MATRIX + VECTORS_IN_MATRIX*i, cluster_matrix);
+                set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*i, cluster_matrix);
             }
+            set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*clusters_num, ZEROS );
+            set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*clusters_num, ZEROS );
         }
         
         if( ! wireframe )

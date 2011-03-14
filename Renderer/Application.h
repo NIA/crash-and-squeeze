@@ -89,6 +89,10 @@ private:
     {
         set_shader_const(reg, matrix, VECTORS_IN_MATRIX);
     }
+    void set_shader_matrix3x4(unsigned reg, const D3DXMATRIX &matrix)
+    {
+        set_shader_const(reg, matrix, VECTORS_IN_MATRIX-1);
+    }
     void set_shader_color(unsigned reg, D3DCOLOR color)
     {
         set_shader_const(reg, D3DXCOLOR(color), 1);

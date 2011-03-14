@@ -33,8 +33,8 @@ const float3    atten_coefs : register(c18); // attenuation coeffs (a, b, c)
 const float4    ambient_col : register(c15);
 
 const float4    clus_cm[16] : register(c26); // initial clusters' centers of mass 
-const float4x4  clus_mx[17] : register(c42); // cluster matrices PLUS last zero matrix
-const float4x4  clus_nrm_mx[17] : register(c120); // cluster normal matrices PLUS last zero matrix
+const float4x3  clus_mx[17] : register(c42); // cluster matrices PLUS last zero matrix
+const float4x3  clus_nrm_mx[17] : register(c93); // cluster normal matrices PLUS last zero matrix
 
 float4 directional_light(const float3 pos, const float3 normal, const float3 v)
 {
@@ -90,7 +90,7 @@ float4 light(const float3 pos, const float3 normal)
 
 void deform(inout float4 pos, inout float3 normal, int4 ci, int clus_num)
 {
-    float4 sum_pos = 0;
+    float3 sum_pos = 0;
     float3 sum_normal = 0;
 
     for(int i = 0; i < 4; ++i)
@@ -99,8 +99,7 @@ void deform(inout float4 pos, inout float3 normal, int4 ci, int clus_num)
         sum_pos += mul(offset, clus_mx[ci[i]]);
         sum_normal += mul(normal, (float3x3)clus_nrm_mx[ci[i]]);
     }
-    pos = sum_pos/clus_num;
-    pos.w = 1;
+    pos = float4(sum_pos/clus_num, 1);
     normal = sum_normal/clus_num;
 }
 
