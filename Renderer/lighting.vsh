@@ -6,7 +6,7 @@ struct VS_INPUT
     
     int4 ci_0_3 : COLOR1; // cluster indices 0..3
     int4 ci_4_7 : COLOR2; // cluster indices 4..7
-    int4 clus_num : COLOR3; // clusters num
+    int clus_num : COLOR3; // clusters num
 };
 
 struct VS_OUTPUT
