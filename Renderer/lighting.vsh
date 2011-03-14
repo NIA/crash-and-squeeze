@@ -95,40 +95,39 @@ void sum_iter(float4 pos, float3 normal, inout float3 sum_pos, inout float3 sum_
     sum_normal += mul(normal, (float3x3)clus_nrm_mx[ci]);
 }
 
-void deform(inout float4 pos, inout float3 normal, int4 ci_0_3, int4 ci_4_7, int clus_num)
+void deform(const VS_INPUT v, out float4 pos, out float3 normal)
 {
     float3 sum_pos = 0;
     float3 sum_normal = 0;
     
     for(int i = 0; i < 4; ++i)
     {
-        sum_iter(pos, normal, sum_pos, sum_normal, ci_0_3[i]);
+        sum_iter(v.pos, v.normal, sum_pos, sum_normal, v.ci_0_3[i]);
         
         // WTF: if next line is commented, summing will be done
         //      only for first 4 cluster indices. Strange is that
         //      rendering will also be MORE than 2 times faster
         //      (but only the half of the summing is not supposed
         //      to take more the half of shader execution time!)
-        sum_iter(pos, normal, sum_pos, sum_normal, ci_4_7[i]);
+        sum_iter(v.pos, v.normal, sum_pos, sum_normal, v.ci_4_7[i]);
     }
     
-    pos = float4(sum_pos/clus_num, 1);
-    normal = sum_normal/clus_num;
+    pos = float4(sum_pos/v.clus_num, 1);
+    normal = sum_normal/v.clus_num;
 }
 
 VS_OUTPUT main(const VS_INPUT src)
 {
-    float4 pos = src.pos;
-    float3 normal = src.normal;
+    // transform pos & normal due to deformation
+    float4 pos;
+    float3 normal;
+    deform(src, pos, normal);
     
-    deform(pos, normal, src.ci_0_3, src.ci_4_7, src.clus_num);
-    
-    // transformed pos
+    // transform pos & normal due to shift and rotation
     pos = mul(pos, pos_and_rot);
-    
-    // transformed normal
     normal = normalize( mul(normal, (float3x3)pos_and_rot) );
     
+    // apply projection into view space and lighting
     VS_OUTPUT res;
     res.pos   = mul(pos, view);
     res.color = src.color*light((float3)pos, normal);
