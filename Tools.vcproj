@@ -202,6 +202,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Parallel\ilock.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parallel\ilock_factory.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Parallel\task_queue.cpp"
 				>
 			</File>

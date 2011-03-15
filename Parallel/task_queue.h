@@ -1,5 +1,6 @@
 #pragma once
 #include "Parallel/abstract_task.h"
+#include "Parallel/ilock_factory.h"
 
 namespace CrashAndSqueeze
 {
@@ -18,8 +19,12 @@ namespace CrashAndSqueeze
             int first;
             // index of last added item: the next pushed item will be stored after it
             int last;
+            // factory for creating lock objects
+            ILockFactory * lock_factory;
+            // a lock object for limiting access to pop: only one thread pops at a time
+            ILock * pop_lock;
         public:
-            TaskQueue(int max_size);
+            TaskQueue(int max_size, ILockFactory * lock_factory);
 
             void push(AbstractTask *task);
             AbstractTask * pop();
