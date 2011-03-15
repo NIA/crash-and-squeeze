@@ -195,6 +195,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\task_queue_unittest.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\tools_tester.cpp"
 				>
 			</File>

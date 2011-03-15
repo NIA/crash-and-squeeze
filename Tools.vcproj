@@ -194,6 +194,22 @@
 				>
 			</File>
 		</Filter>
+		<Filter
+			Name="Parallel"
+			>
+			<File
+				RelativePath=".\Parallel\abstract_task.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parallel\task_queue.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parallel\task_queue.h"
+				>
+			</File>
+		</Filter>
 	</Files>
 	<Globals>
 	</Globals>
