@@ -27,6 +27,7 @@ namespace CrashAndSqueeze
             TaskQueue(int max_size, ILockFactory * lock_factory);
 
             void push(AbstractTask *task);
+            // returns NULL if no task available
             AbstractTask * pop();
 
             // if the queue is empty it's `first' and `last' indices can be reset

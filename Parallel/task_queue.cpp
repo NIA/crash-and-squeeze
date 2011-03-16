@@ -21,20 +21,23 @@ namespace CrashAndSqueeze
                 Logger::error("in TaskQueue::push: queue is full", __FILE__, __LINE__);
                 return;
             }
-            tasks[++last] = task;
+            // first store task, then increment index to make it accessible
+            tasks[last+1] = task;
+            ++last;
         }
 
         AbstractTask * TaskQueue::pop()
         {
             pop_lock->lock();
+            
+            AbstractTask * task;
             if( is_empty() )
-            {
-                Logger::error("in TaskQueue::pop: queue is empty", __FILE__, __LINE__);
-                pop_lock->unlock();
-                return NULL;
-            }
+                task = NULL;
+            else
+                task = tasks[first++];
+            
             pop_lock->unlock();
-            return tasks[first++];
+            return task;
         }
 
         void TaskQueue::reset()
@@ -42,7 +45,7 @@ namespace CrashAndSqueeze
             pop_lock->lock();
             if( !is_empty() )
             {
-                Logger::error("in TaskQueue::push: queue is full", __FILE__, __LINE__);
+                Logger::error("in TaskQueue::reset: queue is not empty", __FILE__, __LINE__);
                 pop_lock->unlock();
                 return;
             }

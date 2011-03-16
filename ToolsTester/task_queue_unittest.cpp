@@ -92,7 +92,7 @@ TEST_F(TaskQueueTest, PushNPop)
 
 TEST_F(TaskQueueTest, PopFromEmpty)
 {
-    EXPECT_THROW( tq->pop(), ToolsTesterException );
+    EXPECT_EQ( NULL, tq->pop() );
 }
 
 TEST_F(TaskQueueTest, PushToFull)
