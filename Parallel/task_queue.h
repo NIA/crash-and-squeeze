@@ -16,9 +16,9 @@ namespace CrashAndSqueeze
             AbstractTask ** tasks;
             int size;
             // index of first added item: it will be popped on the next call to pop()
-            int first;
+            volatile int first;
             // index of last added item: the next pushed item will be stored after it
-            int last;
+            volatile int last;
             
             // factory for creating lock objects
             IPrimFactory * prim_factory;
@@ -26,6 +26,7 @@ namespace CrashAndSqueeze
             ILock * pop_lock;
             // an event signaling that queue has become empty
             IEvent * queue_emptied;
+            volatile bool is_event_set;
         public:
             TaskQueue(int max_size, IPrimFactory * prim_factory);
 
