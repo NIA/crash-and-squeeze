@@ -8,6 +8,8 @@ using CrashAndSqueeze::Math::Vector;
 using CrashAndSqueeze::Math::VECTOR_SIZE;
 using CrashAndSqueeze::Math::Real;
 using CrashAndSqueeze::Core::IndexArray;
+using CrashAndSqueeze::Parallel::TaskQueue;
+using CrashAndSqueeze::Parallel::AbstractTask;
 
 const unsigned VECTORS_IN_MATRIX = sizeof(D3DXMATRIX)/sizeof(D3DXVECTOR4);
 
@@ -373,6 +375,9 @@ PhysicalModel * Application::add_model(Model &high_model, bool physical, Model *
                               
                               CLUSTERS_BY_AXES,
                               CLUSTER_PADDING_COEFF,
+
+                              &prim_factory,
+
                               NULL,
                               VERTEX_MASS);
         
@@ -627,6 +632,12 @@ void Application::run()
                         }
 
                         stopwatch.start();
+                        TaskQueue *tasks = physical_model->prepare_tasks(dt);
+                        AbstractTask *task;
+                        while( NULL != (task = tasks->pop()) )
+                        {
+                            task->complete();
+                        }
                         physical_model->compute_next_step(*forces, dt, linear_velocity_change, angular_velocity_chage);
                         double time = stopwatch.stop();
 

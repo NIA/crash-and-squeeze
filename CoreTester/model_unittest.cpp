@@ -2,6 +2,9 @@
 #include "Core/model.h"
 #include "Core/cluster.h"
 #include "Core/physical_vertex.h"
+#include "Parallel/single_thread_prim.h"
+
+using namespace ::CrashAndSqueeze::Parallel;
 
 namespace
 {
@@ -69,6 +72,8 @@ protected:
     VertexInfo vi1;
     VertexInfo vi2;
 
+    SingleThreadFactory prim_factory;
+
     Real dt;
 
     ModelTest()
@@ -94,7 +99,7 @@ protected:
     template<int SIZE,class V>
     void test_creation(V (&vertices)[SIZE], const VertexInfo &vi, const MassFloat *masses, MassFloat constant_mass = 0)
     {
-        Model m(vertices, SIZE, vi, vertices, SIZE, vi, CLUSTERS_BY_AXES, PADDING, masses, constant_mass);
+        Model m(vertices, SIZE, vi, vertices, SIZE, vi, CLUSTERS_BY_AXES, PADDING, &prim_factory, masses, constant_mass);
         int vnum = m.get_vertices_num();
         
         int cnum = m.get_clusters_num();
@@ -131,6 +136,16 @@ protected:
             EXPECT_EQ( axis_indices[i], result[i] ) << "result[" << i << "] incorrect";
         }
     }
+
+    void complete_tasks(Model &m)
+    {
+        TaskQueue *tasks = m.prepare_tasks(dt);
+        AbstractTask *task;
+        while( NULL != (task = tasks->pop()) )
+        {
+            task->complete();
+        }
+    }
 };
 
 // TODO: typed tests
@@ -153,7 +168,7 @@ TEST_F(ModelTest, Creation1WithMasses)
 
 TEST_F(ModelTest, StepComputationShouldNotFail)
 {
-    Model m(vertices1, VERTICES1_NUM, vi1, vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
+    Model m(vertices1, VERTICES1_NUM, vi1, vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, &prim_factory, NULL, 4);
     
     const int FORCES_NUM = 10;
     ForcesArray forces(FORCES_NUM);
@@ -161,22 +176,26 @@ TEST_F(ModelTest, StepComputationShouldNotFail)
     for(int i = 0; i < FORCES_NUM; ++i)
         forces.push_back( &f );
 
+    EXPECT_NO_THROW( complete_tasks(m) );
     EXPECT_NO_THROW( m.compute_next_step(forces, dt, linear_velocity_change, angular_velocity_change) );
     
     // should work with no forces
     ForcesArray empty;
+    EXPECT_NO_THROW( complete_tasks(m) );
     EXPECT_NO_THROW( m.compute_next_step(empty, dt, linear_velocity_change, angular_velocity_change) );
     
     // should work with frame
     m.set_frame(frame);
+    EXPECT_NO_THROW( complete_tasks(m) );
     EXPECT_NO_THROW( m.compute_next_step(forces, dt, linear_velocity_change, angular_velocity_change) );
 }
 
 TEST_F(ModelTest, BadForces)
 {
-    Model m(vertices1, VERTICES1_NUM, vi1, vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
+    Model m(vertices1, VERTICES1_NUM, vi1, vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, &prim_factory, NULL, 4);
     ForcesArray bad;
     bad.push_back(NULL);
+    EXPECT_NO_THROW( complete_tasks(m) );
     EXPECT_THROW( m.compute_next_step(bad, dt, linear_velocity_change, angular_velocity_change), CoreTesterException );
 }
 
@@ -219,7 +238,7 @@ bool vectors_almost_equal(const Vector &v1, const Vector &v2, Real accuracy)
 
 TEST_F(ModelTest, Hit)
 {
-    Model m(stick, STICK_VERTICES_NUM, vi1, stick, STICK_VERTICES_NUM, vi1, CLUSTERS_BY_AXES, PADDING, NULL, 4);
+    Model m(stick, STICK_VERTICES_NUM, vi1, stick, STICK_VERTICES_NUM, vi1, CLUSTERS_BY_AXES, PADDING, &prim_factory, NULL, 4);
 
     const Vector hit_velocity(0, 1, 0);
     const Vector exp_lin_velocity(0, 0.5, 0);
@@ -227,6 +246,7 @@ TEST_F(ModelTest, Hit)
 
     ForcesArray empty(0);
     m.hit( SphericalRegion( Vector(0,0,0), 0.1 ), hit_velocity);
+    EXPECT_NO_THROW( complete_tasks(m) );
     EXPECT_NO_THROW( m.compute_next_step(empty, dt, linear_velocity_change, angular_velocity_change) );
 
     EXPECT_EQ( exp_lin_velocity, linear_velocity_change );

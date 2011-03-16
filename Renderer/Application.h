@@ -7,11 +7,13 @@
 #include "performance_reporter.h"
 #include <vector>
 #include "Core/model.h"
+#include "Parallel/single_thread_prim.h"
 
 extern const unsigned VECTORS_IN_MATRIX;
 
 
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
+typedef ::CrashAndSqueeze::Parallel::SingleThreadFactory PrimitiveFactory;
 
 struct ModelEntity
 {
@@ -61,6 +63,8 @@ private:
     bool impact_happened;
     void move_impact(const ::CrashAndSqueeze::Math::Vector & vector);
     void rotate_impact(const ::CrashAndSqueeze::Math::Vector & rotation_axis);
+
+    PrimitiveFactory prim_factory;
 
     Camera camera;
 

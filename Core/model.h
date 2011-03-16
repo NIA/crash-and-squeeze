@@ -13,6 +13,8 @@
 #include "Math/Vector.h"
 #include "Math/Matrix.h"
 #include "Collections/array.h"
+#include "Parallel/abstract_task.h"
+#include "Parallel/task_queue.h"
 
 namespace CrashAndSqueeze
 {
@@ -61,12 +63,32 @@ namespace CrashAndSqueeze
                                          const VertexInfo &vertex_info);
             
             bool init_clusters();
+            void update_cluster_indices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
             
             bool get_nearest_cluster_indices(const Math::Vector position, /*out*/ int cluster_indices[Math::VECTOR_SIZE]);
             bool find_clusters_for_vertex(IVertex &vertex, /*out*/ Collections::Array<Cluster *> & found_clusters);
 
+            void init_tasks(Parallel::IPrimFactory * factory);
+
             // -- fields used in step computation --
 
+            class ClusterTask : public Parallel::AbstractTask
+            {
+            private:
+                Cluster *cluster;
+                Math::Real *dt;
+            protected:
+                // implement AbstractTask
+                virtual void execute();
+            public:
+                ClusterTask();
+                void set_cluster(Cluster & cluster);
+                void set_dt(Math::Real & dt);
+            } *cluster_tasks;
+
+            Parallel::TaskQueue *task_queue;
+
+            Math::Real dt;
             // entire model as a body
             Body *body;
             // rigid frame
@@ -100,6 +122,8 @@ namespace CrashAndSqueeze
 
                   const int clusters_by_axes[Math::VECTOR_SIZE],
                   Math::Real cluster_padding_coeff,
+
+                  Parallel::IPrimFactory * prim_factory,
                   
                   const MassFloat *masses,
                   const MassFloat constant_mass = 0);
@@ -107,7 +131,6 @@ namespace CrashAndSqueeze
             // -- Initial configuration --
             
             void set_frame(const IndexArray &frame_indices);
-            void update_cluster_indices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
 
             // -- Reactions --
             
@@ -122,8 +145,15 @@ namespace CrashAndSqueeze
             // is distributed between vertices inside this region.
             void hit(const IRegion &region, const Math::Vector & velocity);
             
-            // computes next step in local coordinates of body (coordinate system is bound to body frame),
-            // sets `linear_velocity_change' and `angular_velocity_change': the change of global motion
+            // Prepares tasks for next step
+            Parallel::TaskQueue * prepare_tasks(Math::Real dt);
+            // In order to compute next step, a queue of tasks must be retrieved first
+            // from Model::prepare_tasks, and only then Model::compute_next_step should be called.
+            // The wait for the tasks to complete is performed inside this Model::compute_next_step.
+            //
+            // This method computes next step in local coordinates of body (coordinate system is
+            // bound to body frame if there is any, otherwise - to the center of mass), and sets
+            // `linear_velocity_change' and `angular_velocity_change': the change of global motion
             bool compute_next_step(const ForcesArray & forces, Math::Real dt,
                                    /*out*/ Math::Vector & linear_velocity_change,
                                    /*out*/ Math::Vector & angular_velocity_change);

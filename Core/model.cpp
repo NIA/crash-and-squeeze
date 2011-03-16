@@ -10,6 +10,8 @@ namespace CrashAndSqueeze
     using Math::less_or_equal;
     using Math::sign;
     using Logging::Logger;
+    using Parallel::IPrimFactory;
+    using Parallel::TaskQueue;
     
     namespace Core
     {
@@ -30,6 +32,24 @@ namespace CrashAndSqueeze
             }
         }
 
+        Model::ClusterTask::ClusterTask()
+            : cluster(NULL), dt(0) {}
+
+        void Model::ClusterTask::set_cluster(Cluster & cluster)
+        {
+            this->cluster = &cluster;
+        }
+
+        void Model::ClusterTask::set_dt(Real & dt)
+        {
+            this->dt = &dt;
+        }
+        
+        void Model::ClusterTask::execute()
+        {
+            cluster->match_shape(*dt);
+        }
+
         // a constant, determining how much deformation velocities are damped:
         // 0 - no damping of vibrations, 1 - maximum damping, rigid body
         const Real Model::DEFAULT_DAMPING_CONSTANT = 0.7*Body::MAX_RIGIDITY_COEFF;
@@ -44,6 +64,8 @@ namespace CrashAndSqueeze
 
                       const int clusters_by_axes[Math::VECTOR_SIZE],
                       Math::Real cluster_padding_coeff,
+
+                      IPrimFactory * prim_factory,
                       
                       const MassFloat *masses,
                       const MassFloat constant_mass)
@@ -63,7 +85,10 @@ namespace CrashAndSqueeze
               body(NULL),
               frame(NULL),
 
-              null_cluster_index(0)
+              null_cluster_index(0),
+
+              cluster_tasks(NULL),
+              task_queue(NULL)
         {
             // -- Finish initialization of arrays --
             // -- (create enought items and freeze or just forbid reallocations) --
@@ -89,6 +114,8 @@ namespace CrashAndSqueeze
                 {
                     // Update cluster indices for graphical vertices
                     update_cluster_indices(source_graphical_vertices, graphical_vetrices_num, graphical_vertex_info);
+
+                    init_tasks(prim_factory);
                 }
             }
         }
@@ -300,6 +327,19 @@ namespace CrashAndSqueeze
             return true;
         }
 
+        void Model::init_tasks(IPrimFactory * factory)
+        {
+            int clusters_num = clusters.size();
+            cluster_tasks = new ClusterTask[clusters_num];
+            task_queue = new TaskQueue(clusters_num, factory);
+            for(int i = 0; i < clusters_num; ++i)
+            {
+                cluster_tasks[i].set_cluster(clusters[i]);
+                cluster_tasks[i].set_dt(dt);
+                task_queue->push(&cluster_tasks[i]);
+            }
+        }
+
         Vector Model::get_vertex_initial_pos(int index) const
         {
             return initial_positions[index];
@@ -355,17 +395,26 @@ namespace CrashAndSqueeze
             }
         }
 
+        Parallel::TaskQueue * Model::prepare_tasks(Math::Real dt)
+        {
+            this->dt = dt;
+            if(task_queue->is_empty())
+            {
+                task_queue->reset();
+            }
+            return task_queue;
+        }
+
+
         bool Model::compute_next_step(const ForcesArray & forces, Real dt,
                                       /*out*/ Vector & linear_velocity_change,
                                       /*out*/ Vector & angular_velocity_change)
         {
-            shape_deform_reactions.freeze();
+            // TODO: this is not correct: we want to wait untill all tasks are _completed_,
+            // not just popped from queue
+            task_queue->wait_till_emptied();
 
-            // -- For each cluster of model: do shape matching --
-            for(int i = 0; i < clusters.size(); ++i)
-            {
-                clusters[i].match_shape(dt);
-            }
+            shape_deform_reactions.freeze();
 
             // Re-compute properties (due to changed positions of vertices)
             if( false == body->compute_properties() )
@@ -582,6 +631,9 @@ namespace CrashAndSqueeze
         {
             delete body;
             delete frame;
+
+            delete[] cluster_tasks;
+            delete task_queue;
         }
     }
 }
