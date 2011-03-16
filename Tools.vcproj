@@ -214,6 +214,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Parallel\single_thread_prim.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Parallel\task_queue.cpp"
 				>
 			</File>
