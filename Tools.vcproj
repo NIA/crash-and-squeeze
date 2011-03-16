@@ -202,11 +202,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Parallel\ievent.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Parallel\ilock.h"
 				>
 			</File>
 			<File
-				RelativePath=".\Parallel\ilock_factory.h"
+				RelativePath=".\Parallel\iprim_factory.h"
 				>
 			</File>
 			<File
