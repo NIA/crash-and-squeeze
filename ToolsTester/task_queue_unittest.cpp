@@ -117,13 +117,14 @@ TEST_F(TaskQueueTest, PushToFull)
 TEST_F(TaskQueueTest, Reset)
 {
     small_queue->push(&t1);
-    small_queue->pop();
+    small_queue->pop()->complete();
 
     // Here the queue is empty, but it is "full" because adding index has reached the end
     EXPECT_TRUE(small_queue->is_empty());
     EXPECT_TRUE(small_queue->is_full());
     small_queue->reset();
-    // After we reset() the queue, everything is ok: we can add tasks again
-    EXPECT_TRUE(small_queue->is_empty());
-    EXPECT_FALSE(small_queue->is_full());
+    // After we reset() the queue, popped tasks return and become incomplete again
+    EXPECT_FALSE(small_queue->is_empty());
+    EXPECT_TRUE(small_queue->is_full());
+    EXPECT_FALSE(small_queue->pop()->is_complete());
 }

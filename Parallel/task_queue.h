@@ -30,14 +30,19 @@ namespace CrashAndSqueeze
         public:
             TaskQueue(int max_size, IPrimFactory * prim_factory);
 
-            void push(AbstractTask *task);
-            // returns NULL if no task available
+            // this function should be called from a worker thread to obtain
+            // the next task to be completed. Returns NULL if no task available.
             AbstractTask * pop();
 
-            void wait_till_emptied() { queue_emptied->wait(); }
+            // this function is called from the main thread to add the task to the queue
+            void push(AbstractTask *task);
 
-            // if the queue is empty it's `first' and `last' indices can be reset
+            // this function is called from the main thread to mark all complete
+            // tasks incomplete again, and return them back to the queue
             void reset();
+            
+            // this function is called from the main thread to wait untill all tasks are completed
+            void wait_till_emptied() { queue_emptied->wait(); }
 
             bool is_empty() { return first > last; }
             bool is_full() { return last == size - 1; }
