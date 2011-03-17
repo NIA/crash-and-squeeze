@@ -125,6 +125,12 @@ namespace CrashAndSqueeze
         // computes additions of velocity of center of mass and angular velocity
         bool Body::compute_velocity_additions()
         {
+            for(int i = 0; i < vertices.size(); ++i)
+            {
+                if(false == vertices[i]->compute_velocity_addition())
+                    return false;
+            }
+
             return abstract_compute_velocities(&PhysicalVertex::get_velocity_addition,
                                                linear_velocity_addition,
                                                angular_velocity_addition);

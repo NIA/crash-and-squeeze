@@ -38,6 +38,8 @@ TEST(PhysicalVertexTest, InterfaceForCluster)
     EXPECT_EQ( 2, v.get_including_clusters_num() );
     
     // addition is divided by 2 here because vertex belons to 2 clusters
-    vertex.add_to_average_velocity_addition(addition);
+    vertex.add_to_average_velocity_addition(addition, 0);
+    vertex.add_to_average_velocity_addition(Vector::ZERO, 1);
+    vertex.compute_velocity_addition();
     EXPECT_EQ( addition/2, v.get_velocity_addition() );
 }

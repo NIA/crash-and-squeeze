@@ -10,14 +10,11 @@ namespace CrashAndSqueeze
     {
         // gets an addition from a single cluster, divides it by including_clusters_num,
         // and adds corrected value to velocity_addition, thus averaging addiitons
-        bool PhysicalVertex::add_to_average_velocity_addition(const Vector & addition)
+        bool PhysicalVertex::add_to_average_velocity_addition(const Vector & addition, int addition_index)
         {
-            if( false == check_in_cluster() )
-                return false;
-            // we need average velocity addition, not sum, so divide by including_clusters_num
-
-            // TODO: thread-safe cluster addition: velocity_additions[]...
-            velocity_addition += addition/get_including_clusters_num();
+            // additions from different clusters are placed in different array items,
+            // and get averaged in PhysicalVertex::integrate_velocity
+            velocity_additions[addition_index] = addition;
             return true;
         }
 
@@ -27,6 +24,21 @@ namespace CrashAndSqueeze
                 return false;
 
             equilibrium_pos += delta/get_including_clusters_num();
+            return true;
+        }
+
+        bool PhysicalVertex::compute_velocity_addition()
+        {
+            if( false == check_in_cluster() )
+                return false;
+            
+            // compute average velocity addition
+            Vector velocity_addition = Vector::ZERO;
+            for(int i = 0; i < get_including_clusters_num(); ++i)
+            {
+                velocity_addition += velocity_additions[i];
+            }
+            velocity_addition /= get_including_clusters_num();
             return true;
         }
 
@@ -47,8 +59,8 @@ namespace CrashAndSqueeze
                 }
             }
 
+
             velocity += velocity_addition + acceleration*dt;
-            velocity_addition = Vector::ZERO;
             return true;
         }
 

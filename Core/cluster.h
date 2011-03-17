@@ -22,6 +22,8 @@ namespace CrashAndSqueeze
             Math::Vector equilibrium_offset_pos;
             // position in model coordinates (center_of_mass + rotation*equilibrium_offset_pos)
             Math::Vector equilibrium_pos;
+            // index for stroring velocity_addition in PhysicalVertex independently of other classes
+            int addition_index;
 
             void setup_initial_values(const Math::Vector & center_of_mass);
         };
@@ -166,6 +168,8 @@ namespace CrashAndSqueeze
             // (measured off the initial center of mass of the cluster)
             // taking into account plasticity_state
             const Math::Vector & get_equilibrium_offset_pos(int index) const;
+            // returns addition index for index'th vertex
+            const int get_addition_index(int index) const;
 
             Math::Real get_total_mass() const { return total_mass; }
 

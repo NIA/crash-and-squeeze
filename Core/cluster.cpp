@@ -88,7 +88,11 @@ namespace CrashAndSqueeze
             total_mass += vertex.get_mass();
 
             // add new vertex
-            physical_vertex_infos.create_item().vertex = &vertex;
+            PhysicalVertexMappingInfo & info = physical_vertex_infos.create_item();
+            info.vertex = &vertex;
+            
+            // set addition index
+            info.addition_index = vertex.get_next_addition_index();
 
             // invalidate initial characteristics
             initial_characteristics_computed = false;
@@ -250,7 +254,7 @@ namespace CrashAndSqueeze
 
                 Vector velocity_addition = goal_speed_constant*(goal_position - vertex.get_pos())/dt;
 
-                vertex.add_to_average_velocity_addition(velocity_addition);
+                vertex.add_to_average_velocity_addition(velocity_addition, get_addition_index(i));
             }
         }
 
@@ -318,6 +322,11 @@ namespace CrashAndSqueeze
         {
             check_initial_characteristics();
             return physical_vertex_infos[index].equilibrium_offset_pos;
+        }
+
+        const int Cluster::get_addition_index(int index) const
+        {
+            return physical_vertex_infos[index].addition_index;
         }
 
         Cluster::~Cluster()

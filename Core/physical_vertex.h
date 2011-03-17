@@ -16,18 +16,23 @@ namespace CrashAndSqueeze
             Math::Vector pos;
             Math::Real mass;
             Math::Vector velocity;
-            // TODO: thread-safe cluster addition: velocity_additions[]...
+            
+            static const int MAX_CLUSTERS_NUM = 8;
+            Math::Vector velocity_additions[MAX_CLUSTERS_NUM];
+            // computed with PhysicalVertex::compute_velocity_addition
             Math::Vector velocity_addition;
             Math::Vector equilibrium_pos;
             
+            int next_addition_index;
+
             // Number of clusters which include current vertex
             int including_clusters_num;
         public:
             PhysicalVertex( Math::Vector pos = Math::Vector::ZERO,
                             Math::Real mass = 0,
                             Math::Vector velocity = Math::Vector(0,0,0) )
-                : pos(pos), mass(mass), velocity(velocity), velocity_addition(Math::Vector::ZERO),
-                  equilibrium_pos(pos), including_clusters_num(0) {}
+                : pos(pos), mass(mass), velocity(velocity),
+                  equilibrium_pos(pos), including_clusters_num(0), next_addition_index(0) {}
 
             // -- properties --
             
@@ -42,11 +47,20 @@ namespace CrashAndSqueeze
             
             // -- accessors to velocity_addition --
 
+            // gets an addition from a single cluster, divides it by including_clusters_num,
+            // and adds corrected value to velocity_addition, thus averaging addiitons.
+            // addition_index is index in velocity_additions array: each cluster writes into its own
+            // place to avoid race condition
+            bool add_to_average_velocity_addition(const Math::Vector &addition, int addition_index);
+
+            // averages velocity_additions into velocity_addition
+            bool compute_velocity_addition();
+
+            // Before calling this velocity_addition must computed with
+            // PhysicalVertex::compute_velocity_addition
             const Math::Vector & get_velocity_addition() const { return velocity_addition; }
 
-            // gets an addition from a single cluster, divides it by including_clusters_num,
-            // and adds corrected value to velocity_addition, thus averaging addiitons
-            bool add_to_average_velocity_addition(const Math::Vector &addition);
+            int get_next_addition_index() { return next_addition_index++; }
 
             // adds to equilibrium_pos `delta', divided by including_clusters_num
             bool change_equilibrium_pos(const Math::Vector &delta);
