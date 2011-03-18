@@ -13,7 +13,7 @@ namespace CrashAndSqueeze
             virtual ILock * create_lock() = 0;
             virtual void destroy_lock(ILock * lock) = 0;
 
-            virtual IEvent * create_event(bool initially_set = false) = 0;
+            virtual IEvent * create_event(bool initially_set) = 0;
             virtual void destroy_event(IEvent * event) = 0;
             
             virtual ~IPrimFactory() {}

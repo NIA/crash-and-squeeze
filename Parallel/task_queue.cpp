@@ -12,7 +12,7 @@ namespace CrashAndSqueeze
         {
             tasks = new AbstractTask*[size];
             pop_lock = prim_factory->create_lock();
-            queue_emptied = prim_factory->create_event();
+            queue_emptied = prim_factory->create_event(false);
         }
 
         void TaskQueue::push(AbstractTask * task)

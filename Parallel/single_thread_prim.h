@@ -50,14 +50,14 @@ namespace CrashAndSqueeze
             }
         };
 
-        // A factory for these primitives which allocates them dynamically
+        // A factory for these primitives which allocates them dynamically in heap
         class SingleThreadFactory : public IPrimFactory
         {
         public:
             virtual ILock * create_lock() { return new SingleThreadLock(); }
             virtual void destroy_lock(ILock * lock) { delete lock; }
             
-            virtual IEvent * create_event(bool initially_set = false) { return new SingleThreadEvent(initially_set); }
+            virtual IEvent * create_event(bool initially_set) { return new SingleThreadEvent(initially_set); }
             virtual void destroy_event(IEvent * event) { delete event; }
         };
     }
