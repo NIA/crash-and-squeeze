@@ -35,19 +35,18 @@ namespace CrashAndSqueeze
         Model::ClusterTask::ClusterTask()
             : cluster(NULL), dt(0) {}
 
-        void Model::ClusterTask::set_cluster(Cluster & cluster)
+        void Model::ClusterTask::setup(Cluster & cluster, Math::Real & dt, Parallel::IEventSet * event_set, int event_index)
         {
             this->cluster = &cluster;
-        }
-
-        void Model::ClusterTask::set_dt(Real & dt)
-        {
             this->dt = &dt;
+            this->event_set = event_set;
+            this->event_index = event_index;
         }
         
         void Model::ClusterTask::execute()
         {
             cluster->match_shape(*dt);
+            event_set->set(event_index);
         }
 
         // a constant, determining how much deformation velocities are damped:
@@ -87,6 +86,8 @@ namespace CrashAndSqueeze
 
               null_cluster_index(0),
 
+              prim_factory(prim_factory),
+              tasks_completed(NULL),
               cluster_tasks(NULL),
               task_queue(NULL)
         {
@@ -115,7 +116,7 @@ namespace CrashAndSqueeze
                     // Update cluster indices for graphical vertices
                     update_cluster_indices(source_graphical_vertices, graphical_vetrices_num, graphical_vertex_info);
 
-                    init_tasks(prim_factory);
+                    init_tasks();
                 }
             }
         }
@@ -327,15 +328,15 @@ namespace CrashAndSqueeze
             return true;
         }
 
-        void Model::init_tasks(IPrimFactory * factory)
+        void Model::init_tasks()
         {
             int clusters_num = clusters.size();
             cluster_tasks = new ClusterTask[clusters_num];
-            task_queue = new TaskQueue(clusters_num, factory);
+            task_queue = new TaskQueue(clusters_num, prim_factory);
+            tasks_completed = prim_factory->create_event_set(clusters_num, false);
             for(int i = 0; i < clusters_num; ++i)
             {
-                cluster_tasks[i].set_cluster(clusters[i]);
-                cluster_tasks[i].set_dt(dt);
+                cluster_tasks[i].setup(clusters[i], dt, tasks_completed, i);
                 task_queue->push(&cluster_tasks[i]);
             }
         }
@@ -402,6 +403,7 @@ namespace CrashAndSqueeze
             {
                 task_queue->reset();
             }
+            tasks_completed->unset();
             return task_queue;
         }
 
@@ -410,9 +412,7 @@ namespace CrashAndSqueeze
                                       /*out*/ Vector & linear_velocity_change,
                                       /*out*/ Vector & angular_velocity_change)
         {
-            // TODO: this is not correct: we want to wait untill all tasks are _completed_,
-            // not just popped from queue
-            task_queue->wait_till_emptied();
+            tasks_completed->wait();
 
             shape_deform_reactions.freeze();
 
@@ -633,6 +633,7 @@ namespace CrashAndSqueeze
             delete frame;
 
             delete[] cluster_tasks;
+            prim_factory->destroy_event_set(tasks_completed);
             delete task_queue;
         }
     }

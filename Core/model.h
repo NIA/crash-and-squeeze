@@ -68,7 +68,7 @@ namespace CrashAndSqueeze
             bool get_nearest_cluster_indices(const Math::Vector position, /*out*/ int cluster_indices[Math::VECTOR_SIZE]);
             bool find_clusters_for_vertex(IVertex &vertex, /*out*/ Collections::Array<Cluster *> & found_clusters);
 
-            void init_tasks(Parallel::IPrimFactory * factory);
+            void init_tasks();
 
             // -- fields used in step computation --
 
@@ -77,16 +77,20 @@ namespace CrashAndSqueeze
             private:
                 Cluster *cluster;
                 Math::Real *dt;
+                Parallel::IEventSet * event_set;
+                int event_index;
             protected:
                 // implement AbstractTask
                 virtual void execute();
             public:
                 ClusterTask();
-                void set_cluster(Cluster & cluster);
-                void set_dt(Math::Real & dt);
+                void setup(Cluster & cluster, Math::Real & dt, Parallel::IEventSet * event_set, int event_index);
             } *cluster_tasks;
+            
+            Parallel::IPrimFactory * prim_factory;
+            Parallel::IEventSet * tasks_completed;
 
-            Parallel::TaskQueue *task_queue;
+            Parallel::TaskQueue * task_queue;
 
             Math::Real dt;
             // entire model as a body
