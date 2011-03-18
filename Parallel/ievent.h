@@ -7,7 +7,9 @@ namespace CrashAndSqueeze
         // An abstract event, a synchronization primitive for notifying
         // a waiting thread. To provide custom functionality, implement
         // a subclass of IEvent and a subclass of IPrimitiveFactory that
-        // creates instances of your IEvent implementation.
+        // creates instances of your IEvent implementation. Note that
+        // you may use your implementation IEventSet as IEvent too,
+        // or you can make separate efficient implementation of IEvent.
         class IEvent
         {
         public:
@@ -17,6 +19,23 @@ namespace CrashAndSqueeze
             virtual void wait() = 0;
 
             virtual ~IEvent() {}
+        };
+
+        // A set of events, which may be set/unset either separately or
+        // together. Waiting also may be done for all events or just
+        // for one of them. To provide custom functionality, implement
+        // a subclass of IEventSet and a subclass of IPrimitiveFactory that
+        // creates instances of your IEvent implementation.
+        class IEventSet : public IEvent
+        {
+        public:
+            virtual void set(int index) = 0;
+            virtual void unset(int index) = 0;
+            virtual void wait(int index) = 0;
+            
+            virtual void set() = 0;
+            virtual void unset() = 0;
+            virtual void wait() = 0;
         };
     }
 }

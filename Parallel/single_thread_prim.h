@@ -1,12 +1,13 @@
 #pragma once
 #include "Parallel/iprim_factory.h"
-#include "Logging/logger.h"
 
 //
 // Defined here are synchronization primitives that doesn't do
 // any interthread synchronization and are supposed to be used
 // in a single-threaded application.
 //
+
+// TODO: separate tests for them
 
 namespace CrashAndSqueeze
 {
@@ -20,13 +21,7 @@ namespace CrashAndSqueeze
             bool is_locked;
         public:
             SingleThreadLock() : is_locked(false) {}
-            virtual void lock()
-            {
-                if(is_locked)
-                    Logging::Logger::error("in SingleThreadLock::lock: unexpected attempt to lock already locked lock from the same thread!", __FILE__, __LINE__);
-                else
-                    is_locked = true;
-            }
+            virtual void lock();
             virtual void unlock() { is_locked = false; }
         };
 
@@ -43,11 +38,23 @@ namespace CrashAndSqueeze
             virtual void set()   { is_set = true;  }
             virtual void unset() { is_set = false; }
 
-            virtual void wait()
-            {
-                if( ! is_set )
-                    Logging::Logger::error("in SingleThreadEvent::wait: unexpected attempt to wait for unset event from the same thread!", __FILE__, __LINE__);
-            }
+            virtual void wait();
+        };
+
+        class SingleThreadEventSet : public IEventSet
+        {
+        private:
+            int size;
+            bool *are_set;
+            bool check_index(int index);
+        public:
+            SingleThreadEventSet(int size, bool initially_set);
+            virtual void set(int index);
+            virtual void unset(int index);
+            virtual void wait(int index);
+            virtual void set();
+            virtual void unset();
+            virtual void wait();
         };
 
         // A factory for these primitives which allocates them dynamically in heap
@@ -59,6 +66,9 @@ namespace CrashAndSqueeze
             
             virtual IEvent * create_event(bool initially_set) { return new SingleThreadEvent(initially_set); }
             virtual void destroy_event(IEvent * event) { delete event; }
+            
+            virtual IEventSet * create_event_set(int size, bool initially_set) { return new SingleThreadEventSet(size, initially_set); }
+            virtual void destroy_event_set(IEventSet * event_set) { delete event_set; }
         };
     }
 }

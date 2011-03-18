@@ -16,6 +16,9 @@ namespace CrashAndSqueeze
             virtual IEvent * create_event(bool initially_set) = 0;
             virtual void destroy_event(IEvent * event) = 0;
             
+            virtual IEventSet * create_event_set(int size, bool initially_set) = 0;
+            virtual void destroy_event_set(IEventSet * event_set) = 0;
+
             virtual ~IPrimFactory() {}
         };
     }

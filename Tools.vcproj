@@ -214,6 +214,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Parallel\single_thread_prim.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Parallel\single_thread_prim.h"
 				>
 			</File>
