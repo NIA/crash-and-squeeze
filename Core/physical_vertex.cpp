@@ -33,7 +33,7 @@ namespace CrashAndSqueeze
                 return false;
             
             // compute average velocity addition
-            Vector velocity_addition = Vector::ZERO;
+            velocity_addition = Vector::ZERO;
             for(int i = 0; i < get_including_clusters_num(); ++i)
             {
                 velocity_addition += velocity_additions[i];
