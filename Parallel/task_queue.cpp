@@ -31,7 +31,9 @@ namespace CrashAndSqueeze
 
             // first store task, then increment index to make it accessible
             tasks[last+1] = task;
+            pop_lock->lock();
             ++last;
+            pop_lock->unlock();
         }
 
         AbstractTask * TaskQueue::pop()

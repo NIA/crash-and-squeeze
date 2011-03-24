@@ -8,7 +8,7 @@ namespace CrashAndSqueeze
         // a waiting thread. To provide custom functionality, implement
         // a subclass of IEvent and a subclass of IPrimitiveFactory that
         // creates instances of your IEvent implementation. Note that
-        // you may use your implementation IEventSet as IEvent too,
+        // you may use your implementation of IEventSet as IEvent too,
         // or you can make separate efficient implementation of IEvent.
         class IEvent
         {
