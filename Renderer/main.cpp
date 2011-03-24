@@ -66,6 +66,7 @@ namespace
         }
     }
 
+#pragma warning( push )
 #pragma warning( disable : 4512 )
     class PhysicsLoggerAction : public ::CrashAndSqueeze::Logging::Action
     {
@@ -106,7 +107,7 @@ namespace
             throw PhysicsError();
         }
     };
-#pragma warning( default : 4512 ) 
+#pragma warning( pop ) 
 
     // adds values `from`, `from`+1, ..., `to`-1 to array,
     // total `to`-`from` items.
