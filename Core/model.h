@@ -20,6 +20,12 @@ namespace CrashAndSqueeze
 {
     namespace Core
     {
+        class VelocitiesChangedCallback
+        {
+        public:
+            virtual void invoke(const Math::Vector &linear_velocity_change, const Math::Vector &angular_velocity_change) = 0;
+        };
+
         class Model : public IModel
         {
         private:
@@ -86,13 +92,29 @@ namespace CrashAndSqueeze
                 ClusterTask();
                 void setup(Cluster & cluster, Math::Real & dt, Parallel::IEventSet * event_set, int event_index);
             } *cluster_tasks;
+
+            class FinalTask : public Parallel::AbstractTask
+            {
+            private:
+                Model *model;
+            protected:
+                // implement AbstractTask
+                virtual void execute();
+            public:
+                FinalTask(Model *model) : model(model) {}
+            } final_task;
             
             Parallel::IPrimFactory * prim_factory;
-            Parallel::IEventSet * tasks_completed;
+            Parallel::IEventSet * cluster_tasks_completed;
+            Parallel::IEvent * step_completed;
+            Parallel::IEvent * tasks_ready;
 
             Parallel::TaskQueue * task_queue;
 
+            // current step parameters
             Math::Real dt;
+            const ForcesArray * forces;
+            VelocitiesChangedCallback * velocities_changed_callback;
             // entire model as a body
             Body *body;
             // rigid frame
@@ -147,31 +169,47 @@ namespace CrashAndSqueeze
             // Applies addition of `velocity' to model's velocity. The argument `region'
             // specifies the region being directly hit: at the first step momentum addition
             // is distributed between vertices inside this region.
+            //
+            // TODO: thread-safety??
             void hit(const IRegion &region, const Math::Vector & velocity);
             
-            // Prepares tasks for next step
-            Parallel::TaskQueue * prepare_tasks(Math::Real dt);
-            // In order to compute next step, a queue of tasks must be retrieved first
-            // from Model::prepare_tasks, and only then Model::compute_next_step should be called.
-            // The wait for the tasks to complete is performed inside this Model::compute_next_step.
+            // Prepares tasks for next step. If there are some tasks from previous step left,
+            // this function will wait for them to complete. Returns false on failure.
             //
-            // This method computes next step in local coordinates of body (coordinate system is
-            // bound to body frame if there is any, otherwise - to the center of mass), and sets
-            // `linear_velocity_change' and `angular_velocity_change': the change of global motion
-            bool compute_next_step(const ForcesArray & forces, Math::Real dt,
-                                   /*out*/ Math::Vector & linear_velocity_change,
-                                   /*out*/ Math::Vector & angular_velocity_change);
+            // Computation of next step will be in local coordinates of body (coordinate system is
+            // bound to body frame if there is any, otherwise - to the center of mass). After that
+            // the change of global motion is returned via `linear_velocity_change' and `angular_velocity_change'
+            void prepare_tasks(const ForcesArray & forces, Math::Real dt, VelocitiesChangedCallback * vcb);
 
+            // In order to compute next step, a queue of tasks must be prepaired first
+            // with Model::prepare_tasks, and then Model::complete_next_task should be called multiple
+            // times until it returns false (meaning no tasks for this step left)
+            //
+            // This function is thread-safe and can be called from different threads simultaneously.
+            bool complete_next_task();
+
+            // wait until all cluster computation tasks are complete
+            void wait_for_clusters() { cluster_tasks_completed->wait(); }
+
+            // wait until the tasks for next step are ready
+            void wait_till_next_step() { tasks_ready->wait(); }
+
+            // get cluster parameters for computation on GPU
             Math::Matrix get_cluster_transformation(int cluster_index) const;
             Math::Matrix get_cluster_normal_transformation(int cluster_index) const;
             const Math::Vector & get_cluster_initial_center(int cluster_index) const;
             const Math::Vector & get_cluster_center(int cluster_index) const;
 
+            // TODO: remove or implement proper non-gpu computation
             void update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
             
+            // These methods are needed only for test demo
             void update_current_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
             void update_equilibrium_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
             void update_initial_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
+
+            // This is called internally from the last task in queue
+            void _integrate_particle_system();
 
             // -- Properties --
             

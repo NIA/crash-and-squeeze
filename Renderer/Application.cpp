@@ -632,13 +632,10 @@ void Application::run()
                         }
 
                         stopwatch.start();
-                        TaskQueue *tasks = physical_model->prepare_tasks(dt);
-                        AbstractTask *task;
-                        while( NULL != (task = tasks->pop()) )
-                        {
-                            task->complete();
-                        }
-                        physical_model->compute_next_step(*forces, dt, linear_velocity_change, angular_velocity_chage);
+                        physical_model->prepare_tasks(*forces, dt, NULL);
+                        while( false != physical_model->complete_next_task() ) {}
+                        physical_model->wait_for_clusters();
+                        physical_model->wait_till_next_step();
                         double time = stopwatch.stop();
 
                         if( NULL != performance_reporter )

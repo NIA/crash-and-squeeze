@@ -58,14 +58,28 @@ namespace
     template<class V> Vector get_pos(V vertex) { return Vector::ZERO; }
     template<> Vector get_pos<TestVertex1>(TestVertex1 v) { return Vector(v.x, v.y, v.z); }
     template<> Vector get_pos<TestVertex2>(TestVertex2 v) { return Vector(v.x, v.y, v.z); }
+
+    class MyVelocitiesChangeCallback : public VelocitiesChangedCallback
+    {
+    private:
+        Vector linear;
+        Vector angular;
+    public:
+        virtual void invoke(const Vector &linear_velocity_change,
+                            const Vector &angular_velocity_change)
+        {
+            linear = linear_velocity_change;
+            angular = angular_velocity_change;
+        }
+
+        const Vector & get_linear_velocity_change() { return linear; }
+        const Vector & get_angular_velocity_change() { return angular; }
+    };
 }
 
 class ModelTest : public ::testing::Test
 {
 protected:
-    Vector linear_velocity_change;
-    Vector angular_velocity_change;
-
     IndexArray frame;
     static const int FRAME_SIZE = 4;
 
@@ -75,6 +89,8 @@ protected:
     SingleThreadFactory prim_factory;
 
     Real dt;
+
+    MyVelocitiesChangeCallback vcb;
 
     ModelTest()
         : vi1( sizeof(vertices1[0]), 0, 3*sizeof(vertices1[0].x),  sizeof(vertices1[0]) - sizeof(vertices1[0].cn)),
@@ -137,14 +153,12 @@ protected:
         }
     }
 
-    void complete_tasks(Model &m)
+    void compute_next_step(Model &m, const ForcesArray &forces, VelocitiesChangedCallback & vcb)
     {
-        TaskQueue *tasks = m.prepare_tasks(dt);
-        AbstractTask *task;
-        while( NULL != (task = tasks->pop()) )
-        {
-            task->complete();
-        }
+        m.prepare_tasks(forces, dt, &vcb);
+        while( false != m.complete_next_task() ) {}
+        m.wait_for_clusters();
+        m.wait_till_next_step();
     }
 };
 
@@ -176,18 +190,15 @@ TEST_F(ModelTest, StepComputationShouldNotFail)
     for(int i = 0; i < FORCES_NUM; ++i)
         forces.push_back( &f );
 
-    EXPECT_NO_THROW( complete_tasks(m) );
-    EXPECT_NO_THROW( m.compute_next_step(forces, dt, linear_velocity_change, angular_velocity_change) );
+    EXPECT_NO_THROW( compute_next_step(m, forces, vcb) );
     
-    // should work with no forces
+    // should work with no forces and no VelocitiesChangedCallback
     ForcesArray empty;
-    EXPECT_NO_THROW( complete_tasks(m) );
-    EXPECT_NO_THROW( m.compute_next_step(empty, dt, linear_velocity_change, angular_velocity_change) );
+    EXPECT_NO_THROW( compute_next_step(m, empty, *reinterpret_cast<VelocitiesChangedCallback*>(NULL)) );
     
     // should work with frame
     m.set_frame(frame);
-    EXPECT_NO_THROW( complete_tasks(m) );
-    EXPECT_NO_THROW( m.compute_next_step(forces, dt, linear_velocity_change, angular_velocity_change) );
+    EXPECT_NO_THROW( compute_next_step(m, forces, vcb) );
 }
 
 TEST_F(ModelTest, BadForces)
@@ -195,8 +206,7 @@ TEST_F(ModelTest, BadForces)
     Model m(vertices1, VERTICES1_NUM, vi1, vertices1, VERTICES1_NUM, vi1, CLUSTERS_BY_AXES, PADDING, &prim_factory, NULL, 4);
     ForcesArray bad;
     bad.push_back(NULL);
-    EXPECT_NO_THROW( complete_tasks(m) );
-    EXPECT_THROW( m.compute_next_step(bad, dt, linear_velocity_change, angular_velocity_change), CoreTesterException );
+    EXPECT_THROW( compute_next_step(m, bad, vcb), CoreTesterException );
 }
 
 TEST_F(ModelTest, AxisIndicesTrivial)
@@ -246,9 +256,8 @@ TEST_F(ModelTest, Hit)
 
     ForcesArray empty(0);
     m.hit( SphericalRegion( Vector(0,0,0), 0.1 ), hit_velocity);
-    EXPECT_NO_THROW( complete_tasks(m) );
-    EXPECT_NO_THROW( m.compute_next_step(empty, dt, linear_velocity_change, angular_velocity_change) );
+    EXPECT_NO_THROW( compute_next_step(m, empty, vcb) );
 
-    EXPECT_EQ( exp_lin_velocity, linear_velocity_change );
-    EXPECT_TRUE( vectors_almost_equal(exp_ang_velocity, angular_velocity_change, 0.001) ) << "expected " << exp_ang_velocity << ", got " << angular_velocity_change;
+    EXPECT_EQ( exp_lin_velocity, vcb.get_linear_velocity_change() );
+    EXPECT_TRUE( vectors_almost_equal(exp_ang_velocity, vcb.get_angular_velocity_change(), 0.001) ) << "expected " << exp_ang_velocity << ", got " << vcb.get_angular_velocity_change();
 }

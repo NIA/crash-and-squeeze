@@ -12,6 +12,7 @@ namespace CrashAndSqueeze
     using Logging::Logger;
     using Parallel::IPrimFactory;
     using Parallel::TaskQueue;
+    using Parallel::AbstractTask;
     
     namespace Core
     {
@@ -47,6 +48,11 @@ namespace CrashAndSqueeze
         {
             cluster->match_shape(*dt);
             event_set->set(event_index);
+        }
+
+        void Model::FinalTask::execute()
+        {
+            model->_integrate_particle_system();
         }
 
         // a constant, determining how much deformation velocities are damped:
@@ -86,10 +92,18 @@ namespace CrashAndSqueeze
 
               null_cluster_index(0),
 
+              velocities_changed_callback(NULL),
+
               prim_factory(prim_factory),
-              tasks_completed(NULL),
+              cluster_tasks_completed(NULL),
               cluster_tasks(NULL),
-              task_queue(NULL)
+#pragma warning( push )
+#pragma warning( disable : 4355 )
+              final_task(this),
+#pragma warning( pop )
+              task_queue(NULL),
+              step_completed(NULL),
+              tasks_ready(NULL)
         {
             // -- Finish initialization of arrays --
             // -- (create enought items and freeze or just forbid reallocations) --
@@ -332,13 +346,16 @@ namespace CrashAndSqueeze
         {
             int clusters_num = clusters.size();
             cluster_tasks = new ClusterTask[clusters_num];
-            task_queue = new TaskQueue(clusters_num, prim_factory);
-            tasks_completed = prim_factory->create_event_set(clusters_num, false);
+            task_queue = new TaskQueue(clusters_num + 1, prim_factory);
+            cluster_tasks_completed = prim_factory->create_event_set(clusters_num, false);
+            step_completed = prim_factory->create_event(true);
+            tasks_ready = prim_factory->create_event(false);
             for(int i = 0; i < clusters_num; ++i)
             {
-                cluster_tasks[i].setup(clusters[i], dt, tasks_completed, i);
+                cluster_tasks[i].setup(clusters[i], dt, cluster_tasks_completed, i);
                 task_queue->push(&cluster_tasks[i]);
             }
+            task_queue->push(&final_task);
         }
 
         Vector Model::get_vertex_initial_pos(int index) const
@@ -396,34 +413,57 @@ namespace CrashAndSqueeze
             }
         }
 
-        Parallel::TaskQueue * Model::prepare_tasks(Math::Real dt)
+        void Model::prepare_tasks(const ForcesArray & forces, Math::Real dt, VelocitiesChangedCallback * vcb)
         {
+            // wait for previous step to complete
+            step_completed->wait();
+            
+            // store parameters of this step
             this->dt = dt;
+            this->forces = &forces;
+            this->velocities_changed_callback = vcb;
+            
+            // reset queue
             if(task_queue->is_empty())
             {
                 task_queue->reset();
             }
-            tasks_completed->unset();
-            return task_queue;
+            
+            // manage events
+            cluster_tasks_completed->unset();
+            step_completed->unset();
+            tasks_ready->set();
         }
 
-
-        bool Model::compute_next_step(const ForcesArray & forces, Real dt,
-                                      /*out*/ Vector & linear_velocity_change,
-                                      /*out*/ Vector & angular_velocity_change)
+        bool Model::complete_next_task()
         {
-            tasks_completed->wait();
+            AbstractTask *task;
+            if( NULL != (task = task_queue->pop()) )
+            {
+                task->complete();
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
 
+        void Model::_integrate_particle_system()
+        {
+            cluster_tasks_completed->wait();
+
+            // TODO: place it somewhere more logical
             shape_deform_reactions.freeze();
 
             // Re-compute properties (due to changed positions of vertices)
             if( false == body->compute_properties() )
-                return false;
+                return;
 
             // -- Force linear and angular momenta conservation --
 
             if( false == body->compute_velocity_additions() )
-                return false;
+                return;
 
             body->compensate_velocities( body->get_linear_velocity_addition(),
                                          body->get_angular_velocity_addition() );
@@ -431,8 +471,8 @@ namespace CrashAndSqueeze
             // -- For each vertex of model: integrate velocities: sum velocity additions and apply forces --
             for(int i = 0; i < vertices.size(); ++i)
             {
-                if( false == vertices[i].integrate_velocity( forces, dt ) )
-                    return false;
+                if( false == vertices[i].integrate_velocity( *forces, dt ) )
+                    return;
             }
 
             if( NULL != frame )
@@ -440,16 +480,16 @@ namespace CrashAndSqueeze
                 // -- Ensure that the frame moves as a rigid body --
 
                 if( false == frame->compute_properties() )
-                    return false;
+                    return;
                 if( false == frame->compute_velocities() )
-                    return false;
+                    return;
 
                 frame->set_rigid_motion();
             }
 
             // Find macroscopic motion for damping and subsequent substraction
             if( false == body->compute_velocities() )
-                return false;
+                return;
 
             // Damp deformation oscillations
             body->set_rigid_motion(damping_constant);
@@ -457,8 +497,11 @@ namespace CrashAndSqueeze
             // -- Substract macroscopic motion of body --
             // (to make the reference frame of center of mass current reference frame again)
 
-            linear_velocity_change = body->get_linear_velocity();
-            angular_velocity_change = body->get_angular_velocity();
+            if(NULL != velocities_changed_callback)
+            {
+                velocities_changed_callback->invoke( body->get_linear_velocity(),
+                                                     body->get_angular_velocity() );
+            }
 
             body->compensate_velocities(body->get_linear_velocity(), body->get_angular_velocity());
 
@@ -474,9 +517,9 @@ namespace CrashAndSqueeze
 
                 // Re-compute frame velocities, changed after the call of body->compensate_velocities
                 if( false == frame->compute_properties() )
-                    return false;
+                    return;
                 if( false == frame->compute_velocities() )
-                    return false;
+                    return;
 
                 relative_to_frame.set_linear_velocity( - frame->get_linear_velocity() );
                 relative_to_frame.set_angular_velocity( - frame->get_angular_velocity() );
@@ -494,8 +537,8 @@ namespace CrashAndSqueeze
             {
                 region_reactions[i]->invoke_if_needed(*this);
             }
-
-            return true;
+            
+            step_completed->set();
         }
 
         Matrix Model::get_cluster_transformation(int cluster_index) const
@@ -633,7 +676,9 @@ namespace CrashAndSqueeze
             delete frame;
 
             delete[] cluster_tasks;
-            prim_factory->destroy_event_set(tasks_completed);
+            prim_factory->destroy_event_set(cluster_tasks_completed);
+            prim_factory->destroy_event(step_completed);
+            prim_factory->destroy_event(tasks_ready);
             delete task_queue;
         }
     }
