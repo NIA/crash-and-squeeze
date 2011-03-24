@@ -125,6 +125,11 @@ class D3DXFontError : public RuntimeError
 public:
     D3DXFontError() : RuntimeError( _T("Error while creating D3DX font") ) {}
 };
+class OutOfRangeError : public RuntimeError
+{
+public:
+    OutOfRangeError() : RuntimeError( _T("Index out of range") ) {}
+};
 
 inline void check_render( HRESULT res )
 {

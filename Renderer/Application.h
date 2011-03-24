@@ -7,13 +7,13 @@
 #include "performance_reporter.h"
 #include <vector>
 #include "Core/model.h"
-#include "Parallel/single_thread_prim.h"
+#include "parallel.h"
 
 extern const unsigned VECTORS_IN_MATRIX;
 
 
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
-typedef ::CrashAndSqueeze::Parallel::SingleThreadFactory PrimitiveFactory;
+typedef WinFactory PrimitiveFactory;
 
 struct ModelEntity
 {
