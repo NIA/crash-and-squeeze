@@ -188,11 +188,14 @@ namespace CrashAndSqueeze
             // This function is thread-safe and can be called from different threads simultaneously.
             bool complete_next_task();
 
+            // wait until the tasks for next step are ready
+            void wait_for_tasks() { tasks_ready->wait(); }
+
             // wait until all cluster computation tasks are complete
             void wait_for_clusters() { cluster_tasks_completed->wait(); }
 
-            // wait until the tasks for next step are ready
-            void wait_till_next_step() { tasks_ready->wait(); }
+            // wait until all tasks for current step are completed
+            void wait_for_step() { step_completed->wait(); }
 
             // get cluster parameters for computation on GPU
             Math::Matrix get_cluster_transformation(int cluster_index) const;

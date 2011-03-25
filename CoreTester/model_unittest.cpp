@@ -155,10 +155,12 @@ protected:
 
     void compute_next_step(Model &m, const ForcesArray &forces, VelocitiesChangedCallback & vcb)
     {
+        m.wait_for_step();
         m.prepare_tasks(forces, dt, &vcb);
+        m.wait_for_tasks();
         while( false != m.complete_next_task() ) {}
         m.wait_for_clusters();
-        m.wait_till_next_step();
+        m.wait_for_step();
     }
 };
 

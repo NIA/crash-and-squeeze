@@ -632,10 +632,11 @@ void Application::run()
                         }
 
                         stopwatch.start();
+                        physical_model->wait_for_step();
                         physical_model->prepare_tasks(*forces, dt, NULL);
+                        physical_model->wait_for_tasks();
                         while( false != physical_model->complete_next_task() ) {}
                         physical_model->wait_for_clusters();
-                        physical_model->wait_till_next_step();
                         double time = stopwatch.stop();
 
                         if( NULL != performance_reporter )
