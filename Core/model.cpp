@@ -445,6 +445,7 @@ namespace CrashAndSqueeze
             }
             else
             {
+                tasks_ready->unset();
                 return false;
             }
         }

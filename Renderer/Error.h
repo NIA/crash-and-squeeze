@@ -130,6 +130,11 @@ class OutOfRangeError : public RuntimeError
 public:
     OutOfRangeError() : RuntimeError( _T("Index out of range") ) {}
 };
+class ThreadError : public RuntimeError
+{
+public:
+    ThreadError() : RuntimeError( _T("Error while creating thread") ) {}
+};
 
 inline void check_render( HRESULT res )
 {

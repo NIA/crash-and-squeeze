@@ -235,6 +235,10 @@
 				RelativePath=".\Window.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\worker_thread.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -311,6 +315,10 @@
 			</File>
 			<File
 				RelativePath=".\Window.h"
+				>
+			</File>
+			<File
+				RelativePath=".\worker_thread.h"
 				>
 			</File>
 		</Filter>

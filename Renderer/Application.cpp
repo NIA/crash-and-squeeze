@@ -386,11 +386,18 @@ PhysicalModel * Application::add_model(Model &high_model, bool physical, Model *
 
         model_entity.low_model = low_model;
 
+        for(int i = 0; i < THREADS_COUNT; ++i)
+        {
+            // TODO: Oops, it will fail for two or more physical models
+            threads[i].start(model_entity.physical_model);
+        }
+
         static const int BUFFER_SIZE = 128;
         char description[BUFFER_SIZE];
-        sprintf_s(description, BUFFER_SIZE, "%i low-vertices (mapped on %i hi-vertices)  in %i=%ix%ix%i clusters",
+        sprintf_s(description, BUFFER_SIZE, "%i low-vertices (mapped on %i hi-vertices) in %i=%ix%ix%i clusters on %i threads",
                                             low_model->get_vertices_count(), high_model.get_vertices_count(),
-                                            TOTAL_CLUSTERS_COUNT, CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2]);
+                                            TOTAL_CLUSTERS_COUNT, CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2],
+                                            THREADS_COUNT);
         model_entity.performance_reporter = new PerformanceReporter(logger, description);
     }
     else
@@ -634,8 +641,6 @@ void Application::run()
                         stopwatch.start();
                         physical_model->wait_for_step();
                         physical_model->prepare_tasks(*forces, dt, NULL);
-                        physical_model->wait_for_tasks();
-                        while( false != physical_model->complete_next_task() ) {}
                         physical_model->wait_for_clusters();
                         double time = stopwatch.stop();
 
@@ -708,6 +713,8 @@ void Application::run()
     render_performance_reporter.report_results();
     internal_render_performance_reporter.report_results();
     total_performance_reporter.report_results();
+
+    stop_threads();
 }
 
 void Application::toggle_wireframe()
@@ -732,6 +739,15 @@ void Application::unset_wireframe()
 {
     wireframe = false;
     check_state( device->SetRenderState( D3DRS_FILLMODE, D3DFILL_SOLID ) );
+}
+
+void Application::stop_threads()
+{
+    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+    {
+        if(NULL != (*iter).physical_model)
+            (*iter).physical_model->wait_for_step();
+    }
 }
 
 void Application::delete_model_stuff()

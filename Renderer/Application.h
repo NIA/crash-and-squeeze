@@ -8,9 +8,9 @@
 #include <vector>
 #include "Core/model.h"
 #include "parallel.h"
+#include "worker_thread.h"
 
 extern const unsigned VECTORS_IN_MATRIX;
-
 
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
 typedef WinFactory PrimitiveFactory;
@@ -66,6 +66,9 @@ private:
 
     PrimitiveFactory prim_factory;
 
+    static const int THREADS_COUNT = 2;
+    WorkerThread threads[THREADS_COUNT];
+
     Camera camera;
 
     // Initialization steps:
@@ -114,6 +117,7 @@ private:
     void render(PerformanceReporter &internal_reporter);
 
     // Deinitialization steps:
+    void stop_threads();
     void delete_model_stuff();
     void release_interfaces();
 
