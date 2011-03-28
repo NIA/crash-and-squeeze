@@ -10,9 +10,10 @@ private:
     const char * messages[MESSAGES_SIZE];
     int next_message_index;
     WinLock lock;
+    bool messages_enabled;
 
 public:
-    Logger(const char * log_filename);
+    Logger(const char * log_filename, bool messages_enabled = false);
 
     void log(const char *prefix, const char * message, const char * file = "", int line = 0);
     void newline();

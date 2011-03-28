@@ -1,7 +1,7 @@
 #include "logger.h"
 
-Logger::Logger(const char * log_filename)
-: next_message_index(0)
+Logger::Logger(const char * log_filename, bool messages_enabled)
+: next_message_index(0), messages_enabled(messages_enabled)
 {
     log_file.open(log_filename, std::ios::app);
 }
@@ -41,23 +41,29 @@ void Logger::newline()
 
 void Logger::add_message(const char* message)
 {
-    int write_here;
-    lock.lock();
-    write_here = next_message_index;
-    ++next_message_index;
-    lock.unlock();
-    if(write_here < MESSAGES_SIZE)
+    if(messages_enabled)
     {
-        messages[write_here] = message;
+        int write_here;
+        lock.lock();
+        write_here = next_message_index;
+        ++next_message_index;
+        lock.unlock();
+        if(write_here < MESSAGES_SIZE)
+        {
+            messages[write_here] = message;
+        }
     }
 }
 
 void Logger::dump_messages()
 {
-    log_file << std::endl << "Messages dump:" << std::endl;
-    for(int i = 0; i < next_message_index; ++i)
+    if(messages_enabled)
     {
-        log_file << messages[i] << std::endl;
+        log_file << std::endl << "Messages dump:" << std::endl;
+        for(int i = 0; i < next_message_index; ++i)
+        {
+            log_file << messages[i] << std::endl;
+        }
+        log_file.flush();
     }
-    log_file.flush();
 }
