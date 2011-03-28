@@ -8,6 +8,7 @@
 #include <vector>
 #include "Core/model.h"
 #include "parallel.h"
+#include "logger.h"
 #include "worker_thread.h"
 
 extern const unsigned VECTORS_IN_MATRIX;

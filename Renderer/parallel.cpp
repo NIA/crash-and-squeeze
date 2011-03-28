@@ -2,18 +2,7 @@
 
 namespace
 {
-    class WinLock : public ILock
-    {
-    private:
-        CRITICAL_SECTION cs;
-    public:
-        WinLock() { InitializeCriticalSection(&cs); }
-
-        void lock() { EnterCriticalSection(&cs); }
-        void unlock() { LeaveCriticalSection(&cs); }
-
-        ~WinLock() { DeleteCriticalSection(&cs); }
-    };
+    const int MAX_WAIT = 2000;  // 2 sec
 
     class WinEventSet : public IEventSet
     {
@@ -52,7 +41,8 @@ namespace
         virtual void wait(int index)
         {
             check_index(index);
-            WaitForSingleObject(events[index], INFINITE);
+            if( WAIT_TIMEOUT == WaitForSingleObject(events[index], MAX_WAIT) )
+                throw DeadLockError();
         }
 
         virtual void set()
@@ -73,7 +63,8 @@ namespace
         
         virtual void wait()
         {
-            WaitForMultipleObjects(size, events, TRUE, INFINITE);
+            if( WAIT_TIMEOUT == WaitForMultipleObjects(size, events, TRUE, MAX_WAIT) )
+                throw DeadLockError();
         }
 
         ~WinEventSet()

@@ -135,6 +135,11 @@ class ThreadError : public RuntimeError
 public:
     ThreadError() : RuntimeError( _T("Error while creating thread") ) {}
 };
+class DeadLockError : public RuntimeError
+{
+public:
+    DeadLockError() : RuntimeError( _T("Threads are dead-locked!") ) {}
+};
 
 inline void check_render( HRESULT res )
 {

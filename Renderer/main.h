@@ -37,32 +37,6 @@ template<size_t SIZE, class T> inline size_t array_size(T (&array)[SIZE])
     return SIZE;
 }
 
-class Logger
-{
-private:
-    std::ofstream log_file;
-
-public:
-    Logger(const char * log_filename)
-    {
-        log_file.open(log_filename, std::ios::app);
-    }
-
-    void log(const char *prefix, const char * message, const char * file = "", int line = 0);
-    void newline();
-
-    ~Logger()
-    {
-        if(log_file.is_open())
-            log_file.close();
-    }
-
-private:
-    // No copying!
-    Logger(const Logger &logger);
-    Logger & operator=(const Logger &logger);
-};
-
 typedef DWORD Index;
 
 // a helper for filling index buffers

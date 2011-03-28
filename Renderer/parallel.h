@@ -6,6 +6,19 @@ using CrashAndSqueeze::Parallel::ILock;
 using CrashAndSqueeze::Parallel::IEvent;
 using CrashAndSqueeze::Parallel::IEventSet;
 
+class WinLock : public ILock
+{
+private:
+    CRITICAL_SECTION cs;
+public:
+    WinLock() { InitializeCriticalSection(&cs); }
+
+    void lock() { EnterCriticalSection(&cs); }
+    void unlock() { LeaveCriticalSection(&cs); }
+
+    ~WinLock() { DeleteCriticalSection(&cs); }
+};
+
 class WinFactory : public CrashAndSqueeze::Parallel::IPrimFactory
 {
 public:

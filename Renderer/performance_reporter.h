@@ -1,5 +1,6 @@
 #pragma once
 #include "main.h"
+#include "logger.h"
 
 class PerformanceReporter
 {

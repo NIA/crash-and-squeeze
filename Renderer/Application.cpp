@@ -389,7 +389,7 @@ PhysicalModel * Application::add_model(Model &high_model, bool physical, Model *
         for(int i = 0; i < THREADS_COUNT; ++i)
         {
             // TODO: Oops, it will fail for two or more physical models
-            threads[i].start(model_entity.physical_model);
+            threads[i].start(model_entity.physical_model, &logger);
         }
 
         static const int BUFFER_SIZE = 128;
@@ -634,15 +634,18 @@ void Application::run()
 
                         stopwatch.start();
                         physical_model->wait_for_step();
+                        logger.add_message("Step **finished**");
+
                         if(impact_happened && NULL != impact_region)
                         {
                             physical_model->hit(*impact_region, impact_velocity);
                             impact_happened = false;
                         }
-
                         physical_model->prepare_tasks(*forces, dt, NULL);
+                        logger.add_message("Tasks --READY--");
                         physical_model->wait_for_clusters();
                         double time = stopwatch.stop();
+                        logger.add_message("Clusters ~~finished~~");
 
                         if( NULL != performance_reporter )
                         {

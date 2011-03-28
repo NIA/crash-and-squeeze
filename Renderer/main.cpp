@@ -6,8 +6,9 @@
 #include "cylinder.h"
 #include "sphere.h"
 #include <ctime>
+#include "logger.h" // application logger
 
-#include "Logging/logger.h"
+#include "Logging/logger.h" // crash-and-squeeze logger
 
 typedef ::CrashAndSqueeze::Logging::Logger PhysicsLogger;
 using CrashAndSqueeze::Core::ForcesArray;
@@ -188,39 +189,6 @@ namespace
             this->disable();
         }
     };
-}
-
-void Logger::log(const char *prefix, const char * message, const char * file, int line)
-{
-    if(!log_file.is_open())
-        return;
-
-    static const int DATETIME_BUF_SIZE = 80;
-    char datetime_buffer[DATETIME_BUF_SIZE];
-    time_t rawtime;
-    struct tm * timeinfo;
-    time( &rawtime );
-#pragma warning( disable : 4996 )
-    timeinfo = localtime( &rawtime );
-#pragma warning( default : 4996 ) 
-    strftime(datetime_buffer, DATETIME_BUF_SIZE-1, "%Y-%m-%d %H:%M:%S", timeinfo);
-
-    log_file << datetime_buffer << ' ' << prefix << ' ' << message;
-    if(0 != file && '\0' != file[0])
-    {
-        log_file << "; " << file;
-        if(0 != line)
-            log_file << "(" << line << ")";
-    }
-    newline();
-}
-void Logger::newline()
-{
-    if(!log_file.is_open())
-        return;
-
-    log_file << std::endl;
-    log_file.flush();
 }
 
 INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
@@ -442,6 +410,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
             delete reactions[i];
         
         logger.log("ERROR!! [Renderer]", e.get_log_entry());
+        logger.dump_messages();
         const TCHAR *MESSAGE_BOX_TITLE = _T("Renderer error!");
         my_message_box(e.get_message(), MESSAGE_BOX_TITLE, MB_OK | MB_ICONERROR, true);
         return -1;

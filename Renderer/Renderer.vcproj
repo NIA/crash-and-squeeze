@@ -192,6 +192,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\logger.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\main.cpp"
 				>
 			</File>
@@ -263,6 +267,10 @@
 			</File>
 			<File
 				RelativePath=".\Error.h"
+				>
+			</File>
+			<File
+				RelativePath=".\logger.h"
 				>
 			</File>
 			<File
