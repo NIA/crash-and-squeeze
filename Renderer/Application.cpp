@@ -632,14 +632,14 @@ void Application::run()
                     {
                         Vector linear_velocity_change, angular_velocity_chage;
 
+                        stopwatch.start();
+                        physical_model->wait_for_step();
                         if(impact_happened && NULL != impact_region)
                         {
                             physical_model->hit(*impact_region, impact_velocity);
                             impact_happened = false;
                         }
 
-                        stopwatch.start();
-                        physical_model->wait_for_step();
                         physical_model->prepare_tasks(*forces, dt, NULL);
                         physical_model->wait_for_clusters();
                         double time = stopwatch.stop();
