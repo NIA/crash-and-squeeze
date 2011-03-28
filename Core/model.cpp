@@ -418,6 +418,10 @@ namespace CrashAndSqueeze
             // wait for previous step to complete
             step_completed->wait();
             
+            // reset events
+            cluster_tasks_completed->unset();
+            step_completed->unset();
+            
             // store parameters of this step
             this->dt = dt;
             this->forces = &forces;
@@ -429,9 +433,7 @@ namespace CrashAndSqueeze
                 task_queue->reset();
             }
             
-            // manage events
-            cluster_tasks_completed->unset();
-            step_completed->unset();
+            // start new step
             tasks_ready->set();
         }
 
@@ -445,13 +447,14 @@ namespace CrashAndSqueeze
             }
             else
             {
-                tasks_ready->unset();
                 return false;
             }
         }
 
         void Model::_integrate_particle_system()
         {
+            // this is last task, so unset event to make threads wait till new step
+            tasks_ready->unset();
             cluster_tasks_completed->wait();
 
             // TODO: place it somewhere more logical
