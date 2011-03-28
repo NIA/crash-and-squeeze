@@ -197,6 +197,9 @@ namespace CrashAndSqueeze
             // wait until all tasks for current step are completed
             void wait_for_step() { step_completed->wait(); }
 
+            // detect happened evetns and invoke reactions, if needed
+            void react_to_events();
+
             // get cluster parameters for computation on GPU
             Math::Matrix get_cluster_transformation(int cluster_index) const;
             Math::Matrix get_cluster_normal_transformation(int cluster_index) const;

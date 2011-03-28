@@ -160,6 +160,7 @@ protected:
         m.wait_for_tasks();
         while( false != m.complete_next_task() ) {}
         m.wait_for_clusters();
+        m.react_to_events();
         m.wait_for_step();
     }
 };

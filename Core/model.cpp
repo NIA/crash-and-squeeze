@@ -530,6 +530,13 @@ namespace CrashAndSqueeze
                 relative_to_frame.integrate(dt);
             }
             
+            step_completed->set();
+        }
+
+        // TODO: is this function thread-safe? Reading matrix from RigidBody is not atomic.
+        // Should use locks for access to RigidBody methods?
+        void Model::react_to_events()
+        {
             // -- Invoke reactions if needed --
 
             for(int i = 0; i < shape_deform_reactions.size(); ++i)
@@ -541,8 +548,6 @@ namespace CrashAndSqueeze
             {
                 region_reactions[i]->invoke_if_needed(*this);
             }
-            
-            step_completed->set();
         }
 
         Matrix Model::get_cluster_transformation(int cluster_index) const
