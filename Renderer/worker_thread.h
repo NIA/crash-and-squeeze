@@ -11,7 +11,7 @@ private:
     ::CrashAndSqueeze::Core::Model * model;
     Logger *logger;
     
-    void work();
+    DWORD work();
 public:
     WorkerThread();
 

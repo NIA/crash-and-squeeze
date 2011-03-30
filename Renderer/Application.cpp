@@ -633,7 +633,11 @@ void Application::run()
                         Vector linear_velocity_change, angular_velocity_chage;
 
                         stopwatch.start();
-                        physical_model->wait_for_step();
+                        if(false == physical_model->wait_for_step())
+                        {
+                            throw PhysicsError();
+                        }
+
                         logger.add_message("Step **finished**");
 
                         // TODO: should move this after preparing tasks, to do this in parallel with clusters computing?
@@ -649,7 +653,11 @@ void Application::run()
 
                         physical_model->react_to_events();
 
-                        physical_model->wait_for_clusters();
+                        if(false == physical_model->wait_for_clusters())
+                        {
+                            throw PhysicsError();
+                        }
+
                         double time = stopwatch.stop();
                         logger.add_message("Clusters ~~finished~~");
 

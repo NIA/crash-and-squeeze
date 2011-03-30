@@ -103,7 +103,8 @@ namespace CrashAndSqueeze
 #pragma warning( pop )
               task_queue(NULL),
               step_completed(NULL),
-              tasks_ready(NULL)
+              tasks_ready(NULL),
+              success(true)
         {
             // -- Finish initialization of arrays --
             // -- (create enought items and freeze or just forbid reallocations) --
@@ -449,6 +450,26 @@ namespace CrashAndSqueeze
             {
                 return false;
             }
+        }
+
+        bool Model::wait_for_clusters()
+        {
+            cluster_tasks_completed->wait();
+            return success;
+        }
+
+        bool Model::wait_for_step()
+        {
+            step_completed->wait();
+            return success;
+        }
+
+        void Model::abort()
+        {
+            success = false;
+            task_queue->clear();
+            cluster_tasks_completed->set();
+            step_completed->set();
         }
 
         void Model::_integrate_particle_system()

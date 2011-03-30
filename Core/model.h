@@ -111,6 +111,8 @@ namespace CrashAndSqueeze
 
             Parallel::TaskQueue * task_queue;
 
+            volatile bool success;
+
             // current step parameters
             Math::Real dt;
             const ForcesArray * forces;
@@ -191,11 +193,16 @@ namespace CrashAndSqueeze
             // wait until the tasks for next step are ready
             void wait_for_tasks() { tasks_ready->wait(); }
 
-            // wait until all cluster computation tasks are complete
-            void wait_for_clusters() { cluster_tasks_completed->wait(); }
+            // Wait until all cluster computation tasks are complete.
+            // Returns true if computation was successful, false otherwise
+            bool wait_for_clusters();
 
             // wait until all tasks for current step are completed
-            void wait_for_step() { step_completed->wait(); }
+            // Returns true if computation was successful, false otherwise
+            bool wait_for_step();
+
+            // Abort computation in onther threads by emtying task queue and releasing waiting threads
+            void abort();
 
             // detect happened evetns and invoke reactions, if needed
             void react_to_events();
