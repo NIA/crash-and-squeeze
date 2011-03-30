@@ -16,9 +16,15 @@ namespace CrashAndSqueeze
 
         Matrix::Matrix(const Vector &left_vector, const Vector &right_vector)
         {
-            for(int i = 0; i < VECTOR_SIZE; ++i)
-                for(int j = 0; j < VECTOR_SIZE; ++j)
-                    set_at(i, j, left_vector[i]*right_vector[j]);
+            values[0] = left_vector[0]*right_vector[0];
+            values[1] = left_vector[0]*right_vector[1];
+            values[2] = left_vector[0]*right_vector[2];
+            values[3] = left_vector[1]*right_vector[0];
+            values[4] = left_vector[1]*right_vector[1];
+            values[5] = left_vector[1]*right_vector[2];
+            values[6] = left_vector[2]*right_vector[0];
+            values[7] = left_vector[2]*right_vector[1];
+            values[8] = left_vector[2]*right_vector[2];
         }
         
         // -- getters/setters --
@@ -33,6 +39,16 @@ namespace CrashAndSqueeze
                 else
             #endif //ifndef NDEBUG
                     return values[index];
+        }
+
+        void Matrix::set_at_index(int index, Real value)
+        {
+            #ifndef NDEBUG
+                if(index < 0 || index >= MATRIX_ELEMENTS_NUM)
+                    Logging::Logger::error("Matrix index out of range", __FILE__, __LINE__);
+                else
+            #endif //ifndef NDEBUG
+                    values[index] = value;
         }
 
         Vector Matrix::get_row(int row) const
@@ -99,47 +115,35 @@ namespace CrashAndSqueeze
         }
         // -- multiplications --
         
-        Matrix Matrix::operator*(const Matrix &another) const
+        Matrix Matrix::operator*(const Matrix &m) const
         {
             Matrix result;
-            Real value;
-
-            for(int i = 0; i < VECTOR_SIZE; ++i)
-            {
-                for(int j = 0; j < VECTOR_SIZE; ++j)
-                {
-                    value = 0;
-                    for(int k =0; k < VECTOR_SIZE; ++k)
-                    {
-                        value += get_at(i, k)*another.get_at(k, j);
-                    }
-                    result.set_at(i, j, value);
-                }
-            }
+            result.set_at_index(0, values[0]*m.get_at_index(0) + values[1]*m.get_at_index(3) + values[2]*m.get_at_index(6));
+            result.set_at_index(1, values[0]*m.get_at_index(1) + values[1]*m.get_at_index(4) + values[2]*m.get_at_index(7));
+            result.set_at_index(2, values[0]*m.get_at_index(2) + values[1]*m.get_at_index(5) + values[2]*m.get_at_index(8));
+            result.set_at_index(3, values[3]*m.get_at_index(0) + values[4]*m.get_at_index(3) + values[5]*m.get_at_index(6));
+            result.set_at_index(4, values[3]*m.get_at_index(1) + values[4]*m.get_at_index(4) + values[5]*m.get_at_index(7));
+            result.set_at_index(5, values[3]*m.get_at_index(2) + values[4]*m.get_at_index(5) + values[5]*m.get_at_index(8));
+            result.set_at_index(6, values[6]*m.get_at_index(0) + values[7]*m.get_at_index(3) + values[8]*m.get_at_index(6));
+            result.set_at_index(7, values[6]*m.get_at_index(1) + values[7]*m.get_at_index(4) + values[8]*m.get_at_index(7));
+            result.set_at_index(8, values[6]*m.get_at_index(2) + values[7]*m.get_at_index(5) + values[8]*m.get_at_index(8));
             return result;
         }
         
         Vector Matrix::operator*(const Vector &vector) const
         {
             Vector result;
-            Real value;
-            for(int i = 0; i < VECTOR_SIZE; ++i)
-            {
-                value = 0;
-                for(int k = 0; k < VECTOR_SIZE; ++k)
-                {
-                    value += get_at(i, k)*vector[k];
-                }
-                result[i] = value;
-            }
+            result[0] = values[0]*vector[0] + values[1]*vector[1] + values[2]*vector[2];
+            result[1] = values[3]*vector[0] + values[4]*vector[1] + values[5]*vector[2];
+            result[2] = values[6]*vector[0] + values[7]*vector[1] + values[8]*vector[2];
             return result;
         }
 
         Matrix & Matrix::transpose()
         {
-            for(int i = 0; i < VECTOR_SIZE - 1; ++i)
-                for(int j = i + 1; j < VECTOR_SIZE; ++j)
-                    swap( values[ element_index(i,j) ], values[ element_index(j,i)] );
+            swap( values[1], values[3] );
+            swap( values[2], values[6] );
+            swap( values[5], values[7] );
             return *this;
         }
 
@@ -169,14 +173,9 @@ namespace CrashAndSqueeze
         Real Matrix::squared_norm() const
         {
             Real result = 0;
-            Real value;
-            for(int i = 0; i < VECTOR_SIZE; ++i)
+            for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
             {
-                for(int j = 0; j < VECTOR_SIZE; ++j)
-                {
-                    value = get_at(i,j);
-                    result += value*value;
-                }
+                result += values[i]*values[i];
             }
             return result;
         }

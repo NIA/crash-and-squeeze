@@ -63,6 +63,9 @@ namespace CrashAndSqueeze
 
             // index: 0 to 8
             Real Matrix::get_at_index(int index) const;
+
+            // index: 0 to 8
+            void Matrix::set_at_index(int index, Real value);
             
             // indices in matrix: 0,0 to 2,2
             void Matrix::set_at(int row, int column, Real value)

@@ -71,7 +71,7 @@ namespace CrashAndSqueeze
             {
                 const PhysicalVertex &v = *vertices[i];
                 
-                center_of_mass += v.get_mass()*v.get_pos()/total_mass;
+                center_of_mass += v.get_pos()*(v.get_mass()/total_mass);
             }
 
             inertia_tensor = Matrix::ZERO;
@@ -101,7 +101,7 @@ namespace CrashAndSqueeze
                 const PhysicalVertex &vertex = *vertices[i];
                 const Vector &velocity = (vertex.*velocity_func)();
                 
-                res_velocity += vertex.get_mass()*velocity/total_mass;
+                res_velocity += velocity*(vertex.get_mass()/total_mass);
                 angular_momentum += vertex.get_mass() * cross_product(vertex.get_pos() - center_of_mass, velocity);
             }
 
