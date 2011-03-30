@@ -40,6 +40,9 @@ namespace CrashAndSqueeze
             // this function is called from the main thread to mark all complete
             // tasks incomplete again, and return them back to the queue
             void reset();
+
+            // remove tasks from queue without completing them
+            void clear();
             
             // this function is called from the main thread to wait untill all tasks are completed
             void wait_till_emptied() { queue_emptied->wait(); }

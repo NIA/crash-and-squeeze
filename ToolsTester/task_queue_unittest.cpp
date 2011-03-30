@@ -30,6 +30,7 @@ protected:
     virtual void TearDown()
     {
         delete tq;
+        delete small_queue;
         unset_tester_err_callback();
     }
 };
@@ -81,4 +82,13 @@ TEST_F(TaskQueueTest, Reset)
     EXPECT_FALSE(small_queue->is_empty());
     EXPECT_TRUE(small_queue->is_full());
     EXPECT_FALSE(small_queue->pop()->is_complete());
+}
+
+TEST_F(TaskQueueTest, Clear)
+{
+    tq->push(&t1);
+    tq->clear();
+
+    EXPECT_TRUE(tq->is_empty());
+    EXPECT_EQ( NULL, tq->pop() );
 }

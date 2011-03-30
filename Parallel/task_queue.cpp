@@ -85,6 +85,13 @@ namespace CrashAndSqueeze
             pop_lock->unlock();
         }
 
+        void TaskQueue::clear()
+        {
+            pop_lock->lock();
+            first = last + 1;
+            pop_lock->unlock();
+        }
+
         TaskQueue::~TaskQueue()
         {
             delete[] tasks;
