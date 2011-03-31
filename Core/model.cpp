@@ -52,7 +52,7 @@ namespace CrashAndSqueeze
 
         void Model::FinalTask::execute()
         {
-            model->_integrate_particle_system();
+            model->integrate_particle_system();
         }
 
         // a constant, determining how much deformation velocities are damped:
@@ -472,7 +472,7 @@ namespace CrashAndSqueeze
             step_completed->set();
         }
 
-        void Model::_integrate_particle_system()
+        void Model::integrate_particle_system()
         {
             // this is last task, so unset event to make threads wait till new step
             tasks_ready->unset();

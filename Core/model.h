@@ -128,6 +128,8 @@ namespace CrashAndSqueeze
             IndexArray hit_vertices_indices;
 
             // -- step computation steps --
+            void integrate_particle_system();
+
             bool correct_velocity_additions();
 
             typedef Math::Vector (Model::*PositionFunc)(int index) const;
@@ -220,9 +222,6 @@ namespace CrashAndSqueeze
             void update_current_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
             void update_equilibrium_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
             void update_initial_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
-
-            // This is called internally from the last task in queue
-            void _integrate_particle_system();
 
             // -- Properties --
             
