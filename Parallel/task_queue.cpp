@@ -8,11 +8,10 @@ namespace CrashAndSqueeze
     namespace Parallel
     {
         TaskQueue::TaskQueue(int max_size, IPrimFactory * prim_factory)
-            : size(max_size), first(0), last(-1), prim_factory(prim_factory), is_event_set(false)
+            : size(max_size), first(0), last(-1), prim_factory(prim_factory)
         {
             tasks = new AbstractTask*[size];
             pop_lock = prim_factory->create_lock();
-            queue_emptied = prim_factory->create_event(false);
         }
 
         void TaskQueue::push(AbstractTask * task)
@@ -21,12 +20,6 @@ namespace CrashAndSqueeze
             {
                 Logger::error("in TaskQueue::push: queue is full", __FILE__, __LINE__);
                 return;
-            }
-            // clear queue_emptied event, if it is set yet
-            if(is_event_set)
-            {
-                is_event_set = false;
-                queue_emptied->unset();
             }
 
             // first store task, then increment index to make it accessible
@@ -38,25 +31,15 @@ namespace CrashAndSqueeze
 
         AbstractTask * TaskQueue::pop()
         {
-            pop_lock->lock();
+            AbstractTask * task = NULL;
 
-            AbstractTask * task;
-            if( is_empty() )
-            {
-                task = NULL;
-            }
-            else
+            pop_lock->lock();
+            if( ! is_empty() )
             {
                 task = tasks[first++];
-
-                if( is_empty() )
-                {
-                    queue_emptied->set();
-                    is_event_set = true;
-                }
             }
-
             pop_lock->unlock();
+
             return task;
         }
 
@@ -96,7 +79,6 @@ namespace CrashAndSqueeze
         {
             delete[] tasks;
             prim_factory->destroy_lock(pop_lock);
-            prim_factory->destroy_event(queue_emptied);
         }
     }
 }
