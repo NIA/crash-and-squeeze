@@ -348,7 +348,7 @@ namespace CrashAndSqueeze
             int clusters_num = clusters.size();
             cluster_tasks = new ClusterTask[clusters_num];
             task_queue = new TaskQueue(clusters_num + 1, prim_factory);
-            cluster_tasks_completed = prim_factory->create_event_set(clusters_num, false);
+            cluster_tasks_completed = prim_factory->create_event_set(clusters_num, true);
             step_completed = prim_factory->create_event(true);
             tasks_ready = prim_factory->create_event(false);
             for(int i = 0; i < clusters_num; ++i)
