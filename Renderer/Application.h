@@ -18,8 +18,8 @@ typedef WinFactory PrimitiveFactory;
 
 struct ModelEntity
 {
-    Model               *high_model;
-    Model               *low_model;
+    AbstractModel       *high_model;
+    AbstractModel       *low_model;
     PhysicalModel       *physical_model;
     PerformanceReporter *performance_reporter;
 };
@@ -128,7 +128,7 @@ public:
 
     // Adds given model to Application's list of models;
     // creates a physical model if `physical` is true (and returns it);
-    PhysicalModel * add_model(Model &high_model, bool physical = false, Model *low_model = NULL);
+    PhysicalModel * add_model(AbstractModel &high_model, bool physical = false, AbstractModel *low_model = NULL);
     void set_forces(::CrashAndSqueeze::Core::ForcesArray & forces);
     void set_impact(::CrashAndSqueeze::Core::IRegion & region,
                     const ::CrashAndSqueeze::Math::Vector &velocity,

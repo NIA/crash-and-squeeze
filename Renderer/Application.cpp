@@ -259,7 +259,7 @@ void Application::render(PerformanceReporter &internal_reporter)
     
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
-        Model * display_model = (SHOW_GRAPHICAL_VERTICES == show_mode || NULL == (*iter).low_model) ? (*iter).high_model : (*iter).low_model;
+        AbstractModel * display_model = (SHOW_GRAPHICAL_VERTICES == show_mode || NULL == (*iter).low_model) ? (*iter).high_model : (*iter).low_model;
         PhysicalModel       * physical_model       = (*iter).physical_model;
 
         // Set up
@@ -351,7 +351,7 @@ IDirect3DDevice9 * Application::get_device()
     return device;
 }
 
-PhysicalModel * Application::add_model(Model &high_model, bool physical, Model *low_model)
+PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical, AbstractModel *low_model)
 {
     ModelEntity model_entity = {NULL};
 
@@ -680,8 +680,8 @@ void Application::run()
                 for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
                 {
                     PhysicalModel       * physical_model       = (*iter).physical_model;
-                    Model               * high_model           = (*iter).high_model;
-                    Model               * low_model            = (*iter).low_model;
+                    AbstractModel       * high_model           = (*iter).high_model;
+                    AbstractModel       * low_model            = (*iter).low_model;
                     
                     if( NULL != physical_model )
                     {

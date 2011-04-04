@@ -30,6 +30,8 @@ namespace
 
     const TCHAR *SIMPLE_SHADER_FILENAME = _T("simple.vsh");
     const TCHAR *LIGHTING_SHADER_FILENAME = _T("lighting.vsh");
+    
+    const TCHAR *MESH_FILENAME = _T("jeep.x");
 
     const D3DCOLOR CYLINDER_COLOR = D3DCOLOR_XRGB(100, 150, 255);
     const D3DCOLOR OBSTACLE_COLOR = D3DCOLOR_XRGB(100, 100, 100);
@@ -48,9 +50,9 @@ namespace
     const Index LOW_CYLINDER_VERTICES = cylinder_vertices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
     const DWORD LOW_CYLINDER_INDICES = cylinder_indices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
 
-    const Index HIGH_EDGES_PER_BASE = 100; // 300
-    const Index HIGH_EDGES_PER_HEIGHT = 120; // 300
-    const Index HIGH_EDGES_PER_CAP = 40; // 50
+    const Index HIGH_EDGES_PER_BASE = 300; // 100; //
+    const Index HIGH_EDGES_PER_HEIGHT = 300; // 120; //
+    const Index HIGH_EDGES_PER_CAP = 50; // 40; //
     const Index HIGH_CYLINDER_VERTICES = cylinder_vertices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
     const DWORD HIGH_CYLINDER_INDICES = cylinder_indices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
 
@@ -378,7 +380,10 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                math_vector_to_d3dxvector(hit_region.get_center()),
                                D3DXVECTOR3(0, 0, 0));
 
-        app.set_impact( hit_region, Vector(0,45,0.0), hit_region_model );
+        app.set_impact( hit_region, Vector(0,45,0.0), hit_region_model);
+
+        MeshModel car(app.get_device(), simple_shader, MESH_FILENAME, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+        app.add_model(car);
 
         // -------------------------- G O ! ! ! -----------------------
         app.run();

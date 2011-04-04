@@ -3,13 +3,54 @@
 
 extern const unsigned VECTORS_IN_MATRIX;
 
+// -- AbstractModel --
+
+AbstractModel::AbstractModel(IDirect3DDevice9 *device, VertexShader &shader, D3DXVECTOR3 position, D3DXVECTOR3 rotation)
+: device(device), position(position), rotation(rotation), shader(shader)
+{
+        update_matrix();
+}
+
+VertexShader &AbstractModel::get_shader() const
+{
+    return shader;
+}
+
+IDirect3DDevice9 *AbstractModel::get_device() const
+{
+    return device;
+}
+
+void AbstractModel::update_matrix()
+{
+    rotation_and_position = rotate_and_shift_matrix(rotation, position);
+}
+
+void AbstractModel::rotate(float phi)
+{
+    rotation.z += phi;
+    update_matrix();
+}
+
+void AbstractModel::move(D3DXVECTOR3 vector)
+{
+    position += vector;
+    update_matrix();
+}
+
+const D3DXMATRIX &AbstractModel::get_rotation_and_position() const
+{
+    return rotation_and_position;
+}
+
+// -- Model --
+
 Model::Model(   IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, VertexShader &shader,
                 const Vertex *vertices, unsigned vertices_count, const Index *indices, unsigned indices_count,
                 unsigned primitives_count, D3DXVECTOR3 position, D3DXVECTOR3 rotation )
  
-: device(device), vertices_count(vertices_count), primitives_count(primitives_count),
-  primitive_type(primitive_type), vertex_buffer(NULL), index_buffer(NULL),
-  position(position), rotation(rotation), shader(shader)
+: AbstractModel(device, shader, position, rotation), vertices_count(vertices_count), primitives_count(primitives_count),
+  primitive_type(primitive_type), vertex_buffer(NULL), index_buffer(NULL)
 {
     _ASSERT(vertices != NULL);
     _ASSERT(indices != NULL);
@@ -38,8 +79,6 @@ Model::Model(   IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, Verte
             throw IndexBufferFillError();
         memcpy( indices_to_fill, indices, indices_size );
         index_buffer->Unlock();
-    
-        update_matrix();
     }
     // using catch(...) because every caught exception is rethrown
     catch(...)
@@ -49,45 +88,18 @@ Model::Model(   IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, Verte
     }
 }
 
-VertexShader &Model::get_shader()
-{
-    return shader;
-}
-
 void Model::draw() const
 {
-    check_render( device->SetStreamSource( 0, vertex_buffer, 0, sizeof(Vertex) ) );
-    check_render( device->SetIndices( index_buffer ) );
-    check_render( device->DrawIndexedPrimitive( primitive_type, 0, 0, vertices_count, 0, primitives_count ) );
-}
-
-void Model::update_matrix()
-{
-    rotation_and_position = rotate_and_shift_matrix(rotation, position);
-}
-
-void Model::rotate(float phi)
-{
-    rotation.z += phi;
-    update_matrix();
-}
-
-void Model::move(D3DXVECTOR3 vector)
-{
-    position += vector;
-    update_matrix();
-}
-
-const D3DXMATRIX &Model::get_rotation_and_position() const
-{
-    return rotation_and_position;
+    check_render( get_device()->SetStreamSource( 0, vertex_buffer, 0, sizeof(Vertex) ) );
+    check_render( get_device()->SetIndices( index_buffer ) );
+    check_render( get_device()->DrawIndexedPrimitive( primitive_type, 0, 0, vertices_count, 0, primitives_count ) );
 }
 
 Vertex * Model::lock_vertex_buffer()
 {
     Vertex* vertices;
     if(FAILED( vertex_buffer->Lock( 0, vertices_count*sizeof(vertices[0]), reinterpret_cast<void**>(&vertices), 0 ) ))
-        throw VertexBufferFillError();
+        throw VertexBufferLockError();
     return vertices;
 }
 void Model::unlock_vertex_buffer()
@@ -113,6 +125,64 @@ void Model::release_interfaces()
 }
 
 Model::~Model()
+{
+    release_interfaces();
+}
+
+// -- MeshModel --
+MeshModel::MeshModel(IDirect3DDevice9 *device, VertexShader &shader,
+                     const TCHAR * mesh_file,
+                     D3DXVECTOR3 position, D3DXVECTOR3 rotation)
+: AbstractModel(device, shader, position, rotation), mesh(NULL)
+{
+    ID3DXMesh * temp_mesh;
+    if( FAILED( D3DXLoadMeshFromX( mesh_file, D3DXMESH_SYSTEMMEM,
+                                   get_device(), NULL,
+                                   NULL, NULL, &materials_num,
+                                   &temp_mesh ) ) )
+    {
+        throw MeshError();
+    }
+
+    if( FAILED( temp_mesh->CloneMesh( D3DXMESH_SYSTEMMEM, VERTEX_DECL_ARRAY, get_device(), &mesh ) ) )
+    {
+        throw MeshError();
+    }
+    release_interface(temp_mesh);
+}
+
+unsigned MeshModel::get_vertices_count()
+{
+    return mesh->GetNumVertices();
+}
+
+Vertex * MeshModel::lock_vertex_buffer()
+{
+    Vertex* vertices;
+    if(FAILED( mesh->LockVertexBuffer( 0, reinterpret_cast<void**>(&vertices) ) ))
+        throw VertexBufferLockError();
+    return vertices;
+}
+
+void MeshModel::unlock_vertex_buffer()
+{
+    mesh->UnlockVertexBuffer();
+}
+
+void MeshModel::draw() const
+{
+    for(unsigned i = 0; i < materials_num; ++i)
+    {
+        mesh->DrawSubset(i);
+    }
+}
+
+void MeshModel::release_interfaces()
+{
+    release_interface(mesh);
+}
+
+MeshModel::~MeshModel()
 {
     release_interfaces();
 }

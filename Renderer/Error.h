@@ -140,6 +140,11 @@ class DeadLockError : public RuntimeError
 public:
     DeadLockError() : RuntimeError( _T("Threads are dead-locked!") ) {}
 };
+class MeshError : public RuntimeError
+{
+public:
+    MeshError() : RuntimeError( _T("Error while loading mesh from file") ) {}
+};
 
 inline void check_render( HRESULT res )
 {
