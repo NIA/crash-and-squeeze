@@ -31,7 +31,7 @@ namespace
     const TCHAR *SIMPLE_SHADER_FILENAME = _T("simple.vsh");
     const TCHAR *LIGHTING_SHADER_FILENAME = _T("lighting.vsh");
     
-    const TCHAR *MESH_FILENAME = _T("jeep.x");
+    const TCHAR *MESH_FILENAME = _T("ford.x");
 
     const D3DCOLOR CYLINDER_COLOR = D3DCOLOR_XRGB(100, 150, 255);
     const D3DCOLOR OBSTACLE_COLOR = D3DCOLOR_XRGB(100, 100, 100);
@@ -271,6 +271,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                   D3DXVECTOR3(0, 0, 0),
                                   D3DXVECTOR3(0, 0, 0));
 
+        MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+
         cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
                  &CYLINDER_COLOR, 1,
                  LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP,
@@ -286,7 +288,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                  D3DXVECTOR3(0, 0, 0),
                                  D3DXVECTOR3(0, 0, 0));
         
-        PhysicalModel * phys_mod = app.add_model(high_cylinder_model, true, &low_cylinder_model);
+        PhysicalModel * phys_mod = app.add_model(car, true, &car);
         if(NULL == phys_mod)
             throw NullPointerError();
         
@@ -360,7 +362,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         forces.push_back(&force);
         app.set_forces(forces);
 
-        SphericalRegion hit_region( Vector(0,-cylinder_radius,cylinder_z*2/3), 0.1 );
+        SphericalRegion hit_region( Vector(0,0.1,-1.5*2/3), 0.5 );
 
         // ------------------ V i s u a l i z a t i o n -----------------------
         sphere_vertices = new Vertex[SPHERE_VERTICES];
@@ -380,10 +382,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                math_vector_to_d3dxvector(hit_region.get_center()),
                                D3DXVECTOR3(0, 0, 0));
 
-        app.set_impact( hit_region, Vector(0,45,0.0), hit_region_model);
-
-        MeshModel car(app.get_device(), simple_shader, MESH_FILENAME, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
-        app.add_model(car);
+        app.set_impact( hit_region, Vector(0,145,0.0), hit_region_model);
 
         // -------------------------- G O ! ! ! -----------------------
         app.run();

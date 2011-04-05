@@ -12,7 +12,8 @@ private:
 
     D3DXVECTOR3 position;
     D3DXVECTOR3 rotation;
-    D3DXMATRIX rotation_and_position;
+    float zoom;
+    D3DXMATRIX transformation;
 
     void update_matrix();
     
@@ -25,9 +26,10 @@ public:
     VertexShader &get_shader() const;
     IDirect3DDevice9 *get_device() const;
 
-    const D3DXMATRIX &get_rotation_and_position() const;
+    const D3DXMATRIX &get_transformation() const;
     void rotate(float phi);
     void move(D3DXVECTOR3 vector);
+    void set_zoom(float zoom);
     
     virtual unsigned get_vertices_count() = 0;
     virtual Vertex * lock_vertex_buffer() = 0;
@@ -90,7 +92,7 @@ private:
 
 public:
     MeshModel(IDirect3DDevice9 *device, VertexShader &shader,
-              const TCHAR * mesh_file,
+              const TCHAR * mesh_file, const D3DCOLOR color,
               D3DXVECTOR3 position, D3DXVECTOR3 rotation);
 
     virtual unsigned get_vertices_count();

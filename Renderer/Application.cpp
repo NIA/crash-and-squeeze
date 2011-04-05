@@ -138,7 +138,7 @@ namespace
 }
 
 Application::Application(Logger &logger) :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(1.8f, 1.6f, -0.75f), // Constants selected for better view the scene
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(3.8f, 1.6f, -0.75f), // Constants selected for better view the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
@@ -265,7 +265,7 @@ void Application::render(PerformanceReporter &internal_reporter)
         // Set up
         ( display_model->get_shader() ).set();
 
-        set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, display_model->get_rotation_and_position() );
+        set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, display_model->get_transformation() );
         
         if(NULL != physical_model)
         {

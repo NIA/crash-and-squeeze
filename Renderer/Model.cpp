@@ -6,7 +6,7 @@ extern const unsigned VECTORS_IN_MATRIX;
 // -- AbstractModel --
 
 AbstractModel::AbstractModel(IDirect3DDevice9 *device, VertexShader &shader, D3DXVECTOR3 position, D3DXVECTOR3 rotation)
-: device(device), position(position), rotation(rotation), shader(shader)
+: device(device), position(position), rotation(rotation), shader(shader), zoom(1)
 {
         update_matrix();
 }
@@ -23,7 +23,7 @@ IDirect3DDevice9 *AbstractModel::get_device() const
 
 void AbstractModel::update_matrix()
 {
-    rotation_and_position = rotate_and_shift_matrix(rotation, position);
+    transformation = zoom*rotate_and_shift_matrix(rotation, position, zoom);
 }
 
 void AbstractModel::rotate(float phi)
@@ -38,9 +38,15 @@ void AbstractModel::move(D3DXVECTOR3 vector)
     update_matrix();
 }
 
-const D3DXMATRIX &AbstractModel::get_rotation_and_position() const
+void AbstractModel::set_zoom(float zoom)
 {
-    return rotation_and_position;
+    this->zoom = zoom;
+    update_matrix();
+}
+
+const D3DXMATRIX &AbstractModel::get_transformation() const
+{
+    return transformation;
 }
 
 // -- Model --
@@ -131,7 +137,7 @@ Model::~Model()
 
 // -- MeshModel --
 MeshModel::MeshModel(IDirect3DDevice9 *device, VertexShader &shader,
-                     const TCHAR * mesh_file,
+                     const TCHAR * mesh_file, const D3DCOLOR color,
                      D3DXVECTOR3 position, D3DXVECTOR3 rotation)
 : AbstractModel(device, shader, position, rotation), mesh(NULL)
 {
@@ -149,6 +155,13 @@ MeshModel::MeshModel(IDirect3DDevice9 *device, VertexShader &shader,
         throw MeshError();
     }
     release_interface(temp_mesh);
+
+    Vertex *vertices = lock_vertex_buffer();
+    for(unsigned i = 0; i < get_vertices_count(); ++i)
+    {
+        vertices[i].color = color;
+    }
+    unlock_vertex_buffer();
 }
 
 unsigned MeshModel::get_vertices_count()
