@@ -535,10 +535,10 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
         move_impact(Vector(0,0,-MOVE_STEP));
         break;
     case 'J':
-        rotate_impact(VERTICAL_AXIS);
+        rotate_impact(-VERTICAL_AXIS);
         break;
     case 'L':
-        rotate_impact(-VERTICAL_AXIS);
+        rotate_impact(VERTICAL_AXIS);
         break;
     case 'U':
         move_impact_nearer(-MOVE_STEP, VERTICAL_AXIS);
