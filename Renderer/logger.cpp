@@ -46,12 +46,14 @@ void Logger::add_message(const char* message)
         int write_here;
         lock.lock();
         write_here = next_message_index;
-        ++next_message_index;
-        lock.unlock();
-        if(write_here < MESSAGES_SIZE)
+        if(write_here >= MESSAGES_SIZE)
         {
-            messages[write_here] = message;
+            // reset
+            write_here = 0;
         }
+        next_message_index = write_here + 1;
+        lock.unlock();
+        messages[write_here] = message;
     }
 }
 
