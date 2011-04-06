@@ -363,7 +363,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         forces.push_back(&force);
         app.set_forces(forces);
 
-        SphericalRegion hit_region( Vector(0,0.1,-1.5*2/3), 0.3 );
+        SphericalRegion hit_region( Vector(0,2.2,-0.9), 0.3 );
 
         // ------------------ V i s u a l i z a t i o n -----------------------
         sphere_vertices = new Vertex[SPHERE_VERTICES];
@@ -383,7 +383,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                math_vector_to_d3dxvector(hit_region.get_center()),
                                D3DXVECTOR3(0, 0, 0));
 
-        app.set_impact( hit_region, Vector(0,100,0.0), Vector(0, 1.2, 0), hit_region_model);
+        app.set_impact( hit_region, Vector(0,-80,0.0), Vector(0, 1.15, 0), hit_region_model);
 
         // -------------------------- G O ! ! ! -----------------------
         app.run();

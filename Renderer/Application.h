@@ -65,6 +65,7 @@ private:
     bool impact_happened;
     void move_impact(const ::CrashAndSqueeze::Math::Vector & vector);
     void rotate_impact(const ::CrashAndSqueeze::Math::Vector & rotation_axis);
+    void move_impact_nearer(::CrashAndSqueeze::Math::Real distance, const ::CrashAndSqueeze::Math::Vector & rotation_axis);
 
     PrimitiveFactory prim_factory;
 

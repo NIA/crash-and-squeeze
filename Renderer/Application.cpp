@@ -27,6 +27,7 @@ namespace
     const D3DCOLOR    BLACK = D3DCOLOR_XRGB( 0, 0, 0 );
     const Real        ROTATE_STEP = D3DX_PI/30.0;
     const Real        MOVE_STEP = 0.06;
+    const Vector      VERTICAL_AXIS(0,0,1);
     const float       VERTEX_MASS = 1;
     const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 4};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
@@ -440,25 +441,36 @@ void Application::move_impact(const Vector &vector)
     }
 }
 
-Vector rotate_vector(const Vector & vector, const Vector & rotation_axis, const Vector & rot_center, Real angle)
+Vector rotate_vector(const Vector & vector, const Vector & rotation_axis, Real angle)
 {
-    Vector vector_to_rot = vector - rot_center;
     Vector axis = rotation_axis.normalized();
-    Vector direction = vector_to_rot.normalized();
+    Vector direction = vector.normalized();
     Vector normal = ::CrashAndSqueeze::Math::cross_product(direction, axis).normalized();
     Vector direction_radial = ::CrashAndSqueeze::Math::cross_product(axis, normal).normalized();
-    Real v_radial = vector_to_rot.project_to(direction_radial);
+    Real v_radial = vector.project_to(direction_radial);
 
     Real step = 2*v_radial*sin(angle/2);
-    return (vector_to_rot - step*sin(angle/2)*direction_radial + step*cos(angle/2)*normal) + rot_center;
+    return vector - step*sin(angle/2)*direction_radial + step*cos(angle/2)*normal;
 }
 
 void Application::rotate_impact(const Vector & rotation_axis)
 {
     Vector old_pos = impact_region->get_center();
-    Vector new_pos = rotate_vector(old_pos, rotation_axis, impact_rot_center, ROTATE_STEP);
+    Vector new_pos = rotate_vector(old_pos - impact_rot_center, rotation_axis, ROTATE_STEP) + impact_rot_center;
     move_impact(new_pos - old_pos);
-    impact_velocity = rotate_vector(impact_velocity, rotation_axis, Vector::ZERO, ROTATE_STEP);
+    impact_velocity = rotate_vector(impact_velocity, rotation_axis, ROTATE_STEP);
+}
+
+void Application::move_impact_nearer(Real dist, const Vector & rotation_axis)
+{
+    Vector to_center = impact_rot_center - impact_region->get_center();
+    Vector direction;
+    to_center.project_to(rotation_axis, &direction);
+    if( dist > 0 && direction.norm() < MOVE_STEP )
+    {
+        return;
+    }
+    move_impact(direction.normalized()*dist);
 }
 
 void Application::rotate_models(float phi)
@@ -523,10 +535,16 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
         move_impact(Vector(0,0,-MOVE_STEP));
         break;
     case 'J':
-        rotate_impact(Vector(0,0,-1));
+        rotate_impact(VERTICAL_AXIS);
         break;
     case 'L':
-        rotate_impact(Vector(0,0,1));
+        rotate_impact(-VERTICAL_AXIS);
+        break;
+    case 'U':
+        move_impact_nearer(-MOVE_STEP, VERTICAL_AXIS);
+        break;
+    case 'O':
+        move_impact_nearer(MOVE_STEP, VERTICAL_AXIS);
         break;
     case '1':
         set_show_mode(0);
