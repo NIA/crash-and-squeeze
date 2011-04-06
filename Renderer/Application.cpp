@@ -26,7 +26,7 @@ namespace
     const bool        INITIAL_WIREFRAME_STATE = true;
     const D3DCOLOR    BLACK = D3DCOLOR_XRGB( 0, 0, 0 );
     const Real        ROTATE_STEP = D3DX_PI/30.0;
-    const Real        MOVE_STEP = 0.02;
+    const Real        MOVE_STEP = 0.06;
     const float       VERTEX_MASS = 1;
     const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 4};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
@@ -97,7 +97,7 @@ namespace
     const unsigned    SHADER_REG_VIEW_MX = 0;
     //    c12 is directional light vector
     const unsigned    SHADER_REG_DIRECTIONAL_VECTOR = 12;
-    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (-0.2f, -1.0f, 0.3f);
+    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, 1.0f, 0.3f);
     //    c13 is directional light color
     const unsigned    SHADER_REG_DIRECTIONAL_COLOR = 13;
     const D3DCOLOR    SHADER_VAL_DIRECTIONAL_COLOR = D3DCOLOR_XRGB(230, 230, 230);
@@ -112,7 +112,7 @@ namespace
     const D3DCOLOR    SHADER_VAL_POINT_COLOR = D3DCOLOR_XRGB(120, 250, 250);
     //    c17 is point light position
     const unsigned    SHADER_REG_POINT_POSITION = 17;
-    const D3DXVECTOR3 SHADER_VAL_POINT_POSITION  (0.2f, -0.51f, -0.55f);
+    const D3DXVECTOR3 SHADER_VAL_POINT_POSITION  (1.0f, 1.6f, -1.0f);
     //    c18 are attenuation constants
     const unsigned    SHADER_REG_ATTENUATION = 18;
     const D3DXVECTOR3 SHADER_VAL_ATTENUATION  (1.0f, 0, 0.8f);
@@ -138,7 +138,7 @@ namespace
 }
 
 Application::Application(Logger &logger) :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(3.8f, 1.6f, -0.75f), // Constants selected for better view the scene
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(4.8f, 1.6f, 0.75f), // Constants selected for better view the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
@@ -292,12 +292,12 @@ void Application::render(PerformanceReporter &internal_reporter)
             set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*clusters_num, ZEROS );
         }
         
-        if( ! wireframe )
-        {
+        //if( ! wireframe )
+        //{
             // Draw back side
             check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW ) );
             display_model->draw();
-        }
+        //}
         // Draw front side
         check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CW ) );
         display_model->draw();
@@ -418,6 +418,7 @@ void Application::set_forces(ForcesArray & forces)
 
 void Application::set_impact(::CrashAndSqueeze::Core::IRegion & region,
                              const Vector &velocity,
+                             const Vector &rotation_center,
                              Model & model)
 {
     if(NULL == impact_model)
@@ -426,6 +427,7 @@ void Application::set_impact(::CrashAndSqueeze::Core::IRegion & region,
         impact_velocity = velocity;
         add_model(model);
         impact_model = & model;
+        impact_rot_center = rotation_center;
     }
 }
 
@@ -438,24 +440,25 @@ void Application::move_impact(const Vector &vector)
     }
 }
 
-Vector rotate_vector(const Vector & vector, const Vector & rotation_axis, Real angle)
+Vector rotate_vector(const Vector & vector, const Vector & rotation_axis, const Vector & rot_center, Real angle)
 {
+    Vector vector_to_rot = vector - rot_center;
     Vector axis = rotation_axis.normalized();
-    Vector direction = vector.normalized();
+    Vector direction = vector_to_rot.normalized();
     Vector normal = ::CrashAndSqueeze::Math::cross_product(direction, axis).normalized();
     Vector direction_radial = ::CrashAndSqueeze::Math::cross_product(axis, normal).normalized();
-    Real v_radial = vector.project_to(direction_radial);
+    Real v_radial = vector_to_rot.project_to(direction_radial);
 
     Real step = 2*v_radial*sin(angle/2);
-    return vector - step*sin(angle/2)*direction_radial + step*cos(angle/2)*normal;
+    return (vector_to_rot - step*sin(angle/2)*direction_radial + step*cos(angle/2)*normal) + rot_center;
 }
 
 void Application::rotate_impact(const Vector & rotation_axis)
 {
     Vector old_pos = impact_region->get_center();
-    Vector new_pos = rotate_vector(old_pos, rotation_axis, ROTATE_STEP);
+    Vector new_pos = rotate_vector(old_pos, rotation_axis, impact_rot_center, ROTATE_STEP);
     move_impact(new_pos - old_pos);
-    impact_velocity = rotate_vector(impact_velocity, rotation_axis, ROTATE_STEP);
+    impact_velocity = rotate_vector(impact_velocity, rotation_axis, Vector::ZERO, ROTATE_STEP);
 }
 
 void Application::rotate_models(float phi)

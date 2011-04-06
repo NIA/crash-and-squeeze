@@ -195,7 +195,7 @@ namespace
 
 INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 {
-    Logger logger("renderer.log");
+    Logger logger("renderer.log", true);
     logger.newline();
     logger.log("        [Renderer]", "application startup");
     
@@ -272,6 +272,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                   D3DXVECTOR3(0, 0, 0));
 
         MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+        MeshModel low_car(app.get_device(), simple_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
 
         cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
                  &CYLINDER_COLOR, 1,
@@ -288,7 +289,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                  D3DXVECTOR3(0, 0, 0),
                                  D3DXVECTOR3(0, 0, 0));
         
-        PhysicalModel * phys_mod = app.add_model(car, true, &car);
+        PhysicalModel * phys_mod = app.add_model(car, true, &low_car);
         if(NULL == phys_mod)
             throw NullPointerError();
         
@@ -296,8 +297,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         const Index LOW_VERTICES_PER_SIDE = LOW_EDGES_PER_BASE*LOW_EDGES_PER_HEIGHT;
         add_range(frame, LOW_VERTICES_PER_SIDE/4, LOW_VERTICES_PER_SIDE*3/4, LOW_EDGES_PER_BASE); // vertical line layer
         add_range(frame, LOW_VERTICES_PER_SIDE/4 + 1, LOW_VERTICES_PER_SIDE*3/4, LOW_EDGES_PER_BASE); // vertical line layer
-        phys_mod->set_frame(frame);
-        low_cylinder_model.repaint_vertices(frame, FRAME_COLOR);
+        //phys_mod->set_frame(frame);
+        //low_cylinder_model.repaint_vertices(frame, FRAME_COLOR);
 
         // -- shapes and shape callbacks definition --
 
@@ -362,7 +363,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         forces.push_back(&force);
         app.set_forces(forces);
 
-        SphericalRegion hit_region( Vector(0,0.1,-1.5*2/3), 0.5 );
+        SphericalRegion hit_region( Vector(0,0.1,-1.5*2/3), 0.3 );
 
         // ------------------ V i s u a l i z a t i o n -----------------------
         sphere_vertices = new Vertex[SPHERE_VERTICES];
@@ -382,7 +383,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                math_vector_to_d3dxvector(hit_region.get_center()),
                                D3DXVECTOR3(0, 0, 0));
 
-        app.set_impact( hit_region, Vector(0,145,0.0), hit_region_model);
+        app.set_impact( hit_region, Vector(0,100,0.0), Vector(0, 1.2, 0), hit_region_model);
 
         // -------------------------- G O ! ! ! -----------------------
         app.run();

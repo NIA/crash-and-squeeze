@@ -60,6 +60,7 @@ private:
 
     ::CrashAndSqueeze::Core::IRegion * impact_region;
     ::CrashAndSqueeze::Math::Vector impact_velocity;
+    ::CrashAndSqueeze::Math::Vector impact_rot_center;
     Model * impact_model;
     bool impact_happened;
     void move_impact(const ::CrashAndSqueeze::Math::Vector & vector);
@@ -132,6 +133,7 @@ public:
     void set_forces(::CrashAndSqueeze::Core::ForcesArray & forces);
     void set_impact(::CrashAndSqueeze::Core::IRegion & region,
                     const ::CrashAndSqueeze::Math::Vector &velocity,
+                    const ::CrashAndSqueeze::Math::Vector &rotation_center,
                     Model &model);
     void run();
 
