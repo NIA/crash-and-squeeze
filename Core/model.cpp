@@ -256,6 +256,7 @@ namespace CrashAndSqueeze
             for(int i = 0; i < clusters.size(); ++i)
             {
                 clusters[i].compute_initial_characteristics();
+                clusters[i].log_properties(i);
             }
 
             return true;

@@ -191,6 +191,26 @@ namespace
             this->disable();
         }
     };
+
+    void paint_model(AbstractModel &model)
+    {
+        static const int COLORS_COUNT = 5;
+        static D3DCOLOR colors[COLORS_COUNT] =
+        {
+            D3DCOLOR_XRGB(0, 0, 255),
+            D3DCOLOR_XRGB(0, 150, 0),
+            D3DCOLOR_XRGB(150, 255, 0),
+            D3DCOLOR_XRGB(255, 255, 0),
+            D3DCOLOR_XRGB(0, 255, 255),
+        };
+        Vertex * vertices = model.lock_vertex_buffer();
+        for(unsigned i = 0; i < model.get_vertices_count(); ++i)
+        {
+            int color_index = vertices[i].clusters_num % COLORS_COUNT;
+            vertices[i].color = colors[color_index];
+        }
+        model.unlock_vertex_buffer();
+    };
 }
 
 INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
@@ -205,7 +225,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     PhysWarningAction phys_warn_action(logger);
     PhysErrorAction phys_err_action(logger);
     
-    phys_logger.set_action(PhysicsLogger::LOG, &phys_log_action);
+    //phys_logger.set_action(PhysicsLogger::LOG, &phys_log_action);
+    phys_logger.ignore(PhysicsLogger::LOG);
     phys_logger.set_action(PhysicsLogger::WARNING, &phys_warn_action);
     phys_logger.set_action(PhysicsLogger::ERROR, &phys_err_action);
 
@@ -294,6 +315,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         PhysicalModel * phys_mod = app.add_model(car, true, &low_car);
         if(NULL == phys_mod)
             throw NullPointerError();
+
+        paint_model(car);
         
         IndexArray frame;
         const Index LOW_VERTICES_PER_SIDE = LOW_EDGES_PER_BASE*LOW_EDGES_PER_HEIGHT;

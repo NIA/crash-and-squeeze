@@ -185,6 +185,8 @@ namespace CrashAndSqueeze
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
             const Math::Matrix & get_plasticity_state_inv_tr() const { return plasticity_state_inv_trans; }
             Math::Real get_relative_plastic_deformation() const;
+        
+            void Cluster::log_properties(int id);
 
             static const int INITIAL_ALLOCATED_VERTICES_NUM = 100;
 

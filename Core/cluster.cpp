@@ -1,5 +1,6 @@
 #include "Core/cluster.h"
 #include <cstring>
+#include <cstdio>
 
 namespace CrashAndSqueeze
 {
@@ -327,6 +328,14 @@ namespace CrashAndSqueeze
         const int Cluster::get_addition_index(int index) const
         {
             return physical_vertex_infos[index].addition_index;
+        }
+
+        void Cluster::log_properties(int id)
+        {
+            static char buffer[1024];
+            sprintf_s(buffer, "cluster #%2d, physical vertices: %4d, graphical vertices: %4d",
+                              id, get_physical_vertices_num(), get_graphical_vertices_num());
+            Logger::log(buffer);
         }
 
         Cluster::~Cluster()
