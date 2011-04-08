@@ -15,7 +15,14 @@ private:
     float zoom;
     D3DXMATRIX transformation;
 
+    bool draw_cw;
+    bool draw_ccw;
+
     void update_matrix();
+
+protected:
+    virtual void pre_draw() const {}
+    virtual void do_draw() const = 0;
     
 public:
     AbstractModel(  IDirect3DDevice9 *device,
@@ -34,8 +41,11 @@ public:
     virtual unsigned get_vertices_count() = 0;
     virtual Vertex * lock_vertex_buffer() = 0;
     virtual void unlock_vertex_buffer() = 0;
+
+    void set_draw_cw(bool value) { draw_cw = value; }
+    void set_draw_ccw(bool value) { draw_ccw = value; }
     
-    virtual void draw() const = 0;
+    void draw() const;
     virtual ~AbstractModel() {}
 private:
     // No copying!
@@ -55,6 +65,10 @@ private:
 
     void release_interfaces();
 
+protected:
+    virtual void pre_draw() const;
+    virtual void do_draw() const;
+
 public:
     Model(  IDirect3DDevice9 *device,
             D3DPRIMITIVETYPE primitive_type,
@@ -70,8 +84,6 @@ public:
     virtual unsigned get_vertices_count() { return vertices_count; }
     virtual Vertex * lock_vertex_buffer();
     virtual void unlock_vertex_buffer();
-    
-    virtual void draw() const;
 
     void repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color);
 
@@ -90,6 +102,9 @@ private:
 
     void release_interfaces();
 
+protected:
+    virtual void do_draw() const;
+
 public:
     MeshModel(IDirect3DDevice9 *device, VertexShader &shader,
               const TCHAR * mesh_file, const D3DCOLOR color,
@@ -98,8 +113,6 @@ public:
     virtual unsigned get_vertices_count();
     virtual Vertex * lock_vertex_buffer();
     virtual void unlock_vertex_buffer();
-    
-    virtual void draw() const;
 
     virtual ~MeshModel();
 private:

@@ -6,7 +6,7 @@ extern const unsigned VECTORS_IN_MATRIX;
 // -- AbstractModel --
 
 AbstractModel::AbstractModel(IDirect3DDevice9 *device, VertexShader &shader, D3DXVECTOR3 position, D3DXVECTOR3 rotation)
-: device(device), position(position), rotation(rotation), shader(shader), zoom(1)
+: device(device), position(position), rotation(rotation), shader(shader), zoom(1), draw_cw(true), draw_ccw(false)
 {
         update_matrix();
 }
@@ -47,6 +47,25 @@ void AbstractModel::set_zoom(float zoom)
 const D3DXMATRIX &AbstractModel::get_transformation() const
 {
     return transformation;
+}
+
+void AbstractModel::draw() const
+{
+    if(draw_cw || draw_ccw)
+    {
+        pre_draw();
+    }
+    
+    if(draw_ccw)
+    {
+        check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CW ) );
+        do_draw();
+    }
+    if(draw_cw)
+    {
+        check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW ) );
+        do_draw();
+    }
 }
 
 // -- Model --
@@ -94,10 +113,14 @@ Model::Model(   IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, Verte
     }
 }
 
-void Model::draw() const
+void Model::pre_draw() const
 {
     check_render( get_device()->SetStreamSource( 0, vertex_buffer, 0, sizeof(Vertex) ) );
     check_render( get_device()->SetIndices( index_buffer ) );
+}
+    
+void Model::do_draw() const
+{
     check_render( get_device()->DrawIndexedPrimitive( primitive_type, 0, 0, vertices_count, 0, primitives_count ) );
 }
 
@@ -182,7 +205,7 @@ void MeshModel::unlock_vertex_buffer()
     mesh->UnlockVertexBuffer();
 }
 
-void MeshModel::draw() const
+void MeshModel::do_draw() const
 {
     for(unsigned i = 0; i < materials_num; ++i)
     {

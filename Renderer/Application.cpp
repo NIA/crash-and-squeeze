@@ -293,14 +293,6 @@ void Application::render(PerformanceReporter &internal_reporter)
             set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*clusters_num, ZEROS );
         }
         
-        //if( ! wireframe )
-        //{
-            // Draw back side
-            check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW ) );
-            display_model->draw();
-        //}
-        // Draw front side
-        check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CW ) );
         display_model->draw();
     }
 

@@ -53,18 +53,18 @@ void sphere(float radius, D3DXVECTOR3 position, D3DCOLOR color, Index edges_per_
             {
                 // first layer: connect to north pole (north pole is vertex_over and is 0)
                 vertex_over = 0;
-                add_triangle(vertex_back, vertex_over, last_vertex, res_indices, index);
+                add_triangle(vertex_back, last_vertex, vertex_over, res_indices, index);
             }
             else if(edges_per_meridian == theta_index)
             {
                 // last layer: connect to south pole (south pole is vertex)
-                add_triangle(vertex_over_back, vertex_over, last_vertex, res_indices, index);
+                add_triangle(vertex_over_back, last_vertex, vertex_over, res_indices, index);
             }
             else if(0 != theta_index)
             {
                 // connect up and back
-                add_triangle(vertex_back, vertex_over, last_vertex, res_indices, index);
-                add_triangle(vertex_back, vertex_over_back, vertex_over, res_indices, index);
+                add_triangle(vertex_back, last_vertex, vertex_over, res_indices, index);
+                add_triangle(vertex_back, vertex_over, vertex_over_back, res_indices, index);
             }
 
             if(add_vertex)
