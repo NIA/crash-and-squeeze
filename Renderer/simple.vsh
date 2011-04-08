@@ -8,6 +8,7 @@ struct VS_OUTPUT
 {
     float4  pos : POSITION;
     float4  color : COLOR;
+    float   point_size : PSIZE;
 };
 
 const float4x4 view : register(c0);
@@ -21,5 +22,6 @@ VS_OUTPUT main(const VS_INPUT src)
     VS_OUTPUT res;
     res.pos   = mul(pos, view);
     res.color = src.color;
+    res.point_size = 3;
     return res;
 }

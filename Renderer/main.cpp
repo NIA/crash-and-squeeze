@@ -272,8 +272,10 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                   D3DXVECTOR3(0, 0, 0));
 
         MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
-        MeshModel low_car(app.get_device(), simple_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
-
+        Vertex * car_vertices = car.lock_vertex_buffer();
+        PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+        car.unlock_vertex_buffer();
+        
         cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
                  &CYLINDER_COLOR, 1,
                  LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP,
@@ -359,7 +361,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         // -------------------------- F o r c e s -----------------------
         ForcesArray forces;
 
-        PlaneForce force( Vector(0,60,0), Vector(0,0,cylinder_z), Vector(0,0,1), 0.3 );
+        PlaneForce force( Vector(0,60,0), Vector(0,0,cylinder_z), Vector(0,0,1), 0.5 );
         forces.push_back(&force);
         app.set_forces(forces);
 
@@ -384,7 +386,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                D3DXVECTOR3(0, 0, 0));
         hit_region_model.set_draw_ccw(true);
 
-        app.set_impact( hit_region, Vector(0,-90,0.0), Vector(0, 1.15, 0), hit_region_model);
+        app.set_impact( hit_region, Vector(0,-110,0.0), Vector(0, 1.15, 0), hit_region_model);
 
         // -------------------------- G O ! ! ! -----------------------
         app.run();

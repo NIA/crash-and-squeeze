@@ -126,10 +126,10 @@ void Model::do_draw() const
 
 Vertex * Model::lock_vertex_buffer()
 {
-    Vertex* vertices;
-    if(FAILED( vertex_buffer->Lock( 0, vertices_count*sizeof(vertices[0]), reinterpret_cast<void**>(&vertices), 0 ) ))
+    void* vertices;
+    if(FAILED( vertex_buffer->Lock( 0, vertices_count*sizeof(Vertex), &vertices, 0 ) ))
         throw VertexBufferLockError();
-    return vertices;
+    return reinterpret_cast<Vertex*>(vertices);
 }
 void Model::unlock_vertex_buffer()
 {
@@ -194,10 +194,10 @@ unsigned MeshModel::get_vertices_count()
 
 Vertex * MeshModel::lock_vertex_buffer()
 {
-    Vertex* vertices;
-    if(FAILED( mesh->LockVertexBuffer( 0, reinterpret_cast<void**>(&vertices) ) ))
+    void* vertices;
+    if(FAILED( mesh->LockVertexBuffer( 0, &vertices ) ))
         throw VertexBufferLockError();
-    return vertices;
+    return reinterpret_cast<Vertex*>(vertices);
 }
 
 void MeshModel::unlock_vertex_buffer()
@@ -219,6 +219,75 @@ void MeshModel::release_interfaces()
 }
 
 MeshModel::~MeshModel()
+{
+    release_interfaces();
+}
+
+PointModel::PointModel(IDirect3DDevice9 *device, VertexShader &shader,
+                       const Vertex * src_vertices, unsigned src_vertices_count, unsigned int step,
+                       D3DXVECTOR3 position, D3DXVECTOR3 rotation)
+: AbstractModel(device, shader, position, rotation), vertex_buffer(NULL)
+{
+    _ASSERT(vertices != NULL);
+    _ASSERT(step > 0);
+    try
+    {
+        points_count = src_vertices_count/step;
+        const unsigned buffer_size = points_count*sizeof(src_vertices[0]);
+
+        if(FAILED( device->CreateVertexBuffer( buffer_size, D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &vertex_buffer, NULL ) ))
+            throw VertexBufferInitError();
+
+        // fill the vertex buffer.
+        Vertex* points = lock_vertex_buffer();
+        for(unsigned i = 0; i < points_count; ++i)
+        {
+            points[i] = src_vertices[step*i];
+        }
+        unlock_vertex_buffer();
+    }
+    // using catch(...) because every caught exception is rethrown
+    catch(...)
+    {
+        release_interfaces();
+        throw;
+    }
+}
+
+unsigned PointModel::get_vertices_count()
+{
+    return points_count;
+}
+
+Vertex * PointModel::lock_vertex_buffer()
+{
+    void* vertices;
+    if(FAILED( vertex_buffer->Lock( 0, points_count*sizeof(Vertex), &vertices, 0 ) ))
+        throw VertexBufferLockError();
+    return reinterpret_cast<Vertex*>(vertices);
+}
+
+void PointModel::unlock_vertex_buffer()
+{
+    vertex_buffer->Unlock();
+}
+
+void PointModel::pre_draw() const
+{
+    check_render( get_device()->SetStreamSource( 0, vertex_buffer, 0, sizeof(Vertex) ) );
+}
+
+void PointModel::do_draw() const
+{
+    check_render( get_device()->DrawPrimitive(D3DPT_POINTLIST, 0, points_count) );
+}
+
+void PointModel::release_interfaces()
+{
+    release_interface(vertex_buffer);
+}
+
+PointModel::~PointModel()
 {
     release_interfaces();
 }

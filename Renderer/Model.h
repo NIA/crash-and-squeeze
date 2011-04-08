@@ -120,3 +120,31 @@ private:
     MeshModel(const MeshModel&);
     MeshModel &operator=(const MeshModel&);
 };
+
+class PointModel : public AbstractModel
+{
+private:
+    unsigned    points_count;
+    IDirect3DVertexBuffer9  *vertex_buffer;
+
+    void release_interfaces();
+
+protected:
+    virtual void pre_draw() const;
+    virtual void do_draw() const;
+
+public:
+    PointModel(IDirect3DDevice9 *device, VertexShader &shader,
+               const Vertex * src_vertices, unsigned src_vertices_count, unsigned step,
+               D3DXVECTOR3 position, D3DXVECTOR3 rotation);
+
+    virtual unsigned get_vertices_count();
+    virtual Vertex * lock_vertex_buffer();
+    virtual void unlock_vertex_buffer();
+
+    virtual ~PointModel();
+private:
+    // No copying!
+    PointModel(const PointModel&);
+    PointModel &operator=(const PointModel&);
+};
