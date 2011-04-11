@@ -72,6 +72,7 @@ private:
     WorkerThread threads[THREADS_COUNT];
 
     Camera camera;
+    D3DXMATRIX post_transform;
 
     // Initialization steps:
     void init_device();

@@ -1,5 +1,6 @@
 #include "Application.h"
 #include "Stopwatch.h"
+#include "matrices.h"
 #include <time.h>
 
 using CrashAndSqueeze::Core::ForcesArray;
@@ -98,7 +99,7 @@ namespace
     const unsigned    SHADER_REG_VIEW_MX = 0;
     //    c12 is directional light vector
     const unsigned    SHADER_REG_DIRECTIONAL_VECTOR = 12;
-    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, 1.0f, 0.3f);
+    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, -1.0f, 0.3f);
     //    c13 is directional light color
     const unsigned    SHADER_REG_DIRECTIONAL_COLOR = 13;
     const D3DCOLOR    SHADER_VAL_DIRECTIONAL_COLOR = D3DCOLOR_XRGB(230, 230, 230);
@@ -113,7 +114,7 @@ namespace
     const D3DCOLOR    SHADER_VAL_POINT_COLOR = D3DCOLOR_XRGB(120, 250, 250);
     //    c17 is point light position
     const unsigned    SHADER_REG_POINT_POSITION = 17;
-    const D3DXVECTOR3 SHADER_VAL_POINT_POSITION  (1.0f, 1.6f, -1.0f);
+    const D3DXVECTOR3 SHADER_VAL_POINT_POSITION  (-1.6f, 0.0f, 0.8f);
     //    c18 are attenuation constants
     const unsigned    SHADER_REG_ATTENUATION = 18;
     const D3DXVECTOR3 SHADER_VAL_ATTENUATION  (1.0f, 0, 0.8f);
@@ -139,11 +140,11 @@ namespace
 }
 
 Application::Application(Logger &logger) :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(4.8f, 1.6f, 0.75f), // Constants selected for better view of the scene
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(4.8f, 1.1f, -1.2f), // Constants selected for better view of the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
-    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false)
+    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false), post_transform(rotate_x_matrix(D3DX_PI/2))
 {
 
     try
@@ -266,7 +267,7 @@ void Application::render(PerformanceReporter &internal_reporter)
         // Set up
         ( display_model->get_shader() ).set();
 
-        set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, display_model->get_transformation() );
+        set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, post_transform*display_model->get_transformation() );
         
         if(NULL != physical_model)
         {
@@ -479,12 +480,6 @@ void Application::rotate_models(float phi)
 void Application::set_show_mode(int new_show_mode)
 {
     show_mode = new_show_mode;
-    
-    if(SHOW_GRAPHICAL_VERTICES == show_mode)
-        unset_wireframe();
-    else
-        set_wireframe();
-    
     vertices_update_needed = true;
 }
 
@@ -521,16 +516,16 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
         camera.move_counterclockwise();
         break;
     case 'I':
-        move_impact(Vector(0,0,MOVE_STEP));
-        break;
-    case 'K':
         move_impact(Vector(0,0,-MOVE_STEP));
         break;
+    case 'K':
+        move_impact(Vector(0,0,MOVE_STEP));
+        break;
     case 'J':
-        rotate_impact(-VERTICAL_AXIS);
+        rotate_impact(VERTICAL_AXIS);
         break;
     case 'L':
-        rotate_impact(VERTICAL_AXIS);
+        rotate_impact(-VERTICAL_AXIS);
         break;
     case 'U':
         move_impact_nearer(-MOVE_STEP, VERTICAL_AXIS);
