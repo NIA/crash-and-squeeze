@@ -109,7 +109,10 @@ void deform(const VS_INPUT v, out float4 pos, out float3 normal)
         //      rendering will also be MORE than 2 times faster
         //      (but only the half of the summing is not supposed
         //      to take more the half of shader execution time!)
-        sum_iter(v.pos, v.normal, sum_pos, sum_normal, v.ci_4_7[i]);
+        if(v.clus_num > 4)
+        {
+            sum_iter(v.pos, v.normal, sum_pos, sum_normal, v.ci_4_7[i]);
+        }
     }
     
     pos = float4(sum_pos/v.clus_num, 1);
