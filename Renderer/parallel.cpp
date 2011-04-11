@@ -9,6 +9,7 @@ namespace
     private:
         HANDLE *events;
         int size;
+        bool detect_dead_locks;
 
         void check_index(int index)
         {
@@ -16,8 +17,8 @@ namespace
                 throw OutOfRangeError();
         }
     public:
-        WinEventSet(int size, bool initially_set)
-            : size(size)
+        WinEventSet(int size, bool initially_set, bool detect_dead_locks)
+            : size(size), detect_dead_locks(detect_dead_locks)
         {
             events = new HANDLE[size];
             for(int i = 0; i < size; ++i)
@@ -41,8 +42,15 @@ namespace
         virtual void wait(int index)
         {
             check_index(index);
-            if( WAIT_TIMEOUT == WaitForSingleObject(events[index], MAX_WAIT) )
-                throw DeadLockError();
+            if( detect_dead_locks )
+            {
+                if( WAIT_TIMEOUT == WaitForSingleObject(events[index], MAX_WAIT) )
+                    throw DeadLockError();
+            }
+            else
+            {
+                WaitForSingleObject(events[index], INFINITE);
+            }
         }
 
         virtual void set()
@@ -63,8 +71,15 @@ namespace
         
         virtual void wait()
         {
-            if( WAIT_TIMEOUT == WaitForMultipleObjects(size, events, TRUE, MAX_WAIT) )
-                throw DeadLockError();
+            if( detect_dead_locks )
+            {
+                if( WAIT_TIMEOUT == WaitForMultipleObjects(size, events, TRUE, MAX_WAIT) )
+                    throw DeadLockError();
+            }
+            else
+            {
+                WaitForMultipleObjects(size, events, TRUE, INFINITE);
+            }
         }
 
         ~WinEventSet()
@@ -79,6 +94,10 @@ namespace
 }
 
 // -- Factory --
+WinFactory::WinFactory(bool detect_dead_locks)
+: detect_dead_locks(detect_dead_locks)
+{
+}
 
 ILock * WinFactory::create_lock()
 {
@@ -87,10 +106,10 @@ ILock * WinFactory::create_lock()
 
 IEvent * WinFactory::create_event(bool initially_set)
 {
-    return new WinEventSet(1, initially_set);
+    return new WinEventSet(1, initially_set, detect_dead_locks);
 }
 
 IEventSet * WinFactory::create_event_set(int size, bool initially_set)
 {
-    return new WinEventSet(size, initially_set);
+    return new WinEventSet(size, initially_set, detect_dead_locks);
 }

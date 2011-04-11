@@ -21,7 +21,11 @@ public:
 
 class WinFactory : public CrashAndSqueeze::Parallel::IPrimFactory
 {
+private:
+    bool detect_dead_locks;
 public:
+    WinFactory(bool detect_dead_locks);
+
     virtual ILock * create_lock();
     virtual void destroy_lock(ILock * lock) { delete lock; }
 

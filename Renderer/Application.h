@@ -14,7 +14,6 @@
 extern const unsigned VECTORS_IN_MATRIX;
 
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
-typedef WinFactory PrimitiveFactory;
 
 struct ModelEntity
 {
@@ -67,7 +66,7 @@ private:
     void rotate_impact(const ::CrashAndSqueeze::Math::Vector & rotation_axis);
     void move_impact_nearer(::CrashAndSqueeze::Math::Real distance, const ::CrashAndSqueeze::Math::Vector & rotation_axis);
 
-    PrimitiveFactory prim_factory;
+    WinFactory prim_factory;
 
     static const int THREADS_COUNT = 2;
     WorkerThread threads[THREADS_COUNT];
