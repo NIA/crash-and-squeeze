@@ -29,7 +29,7 @@ namespace
     const Real        MOVE_STEP = 0.06;
     const Vector      VERTICAL_AXIS(0,0,1);
     const float       VERTEX_MASS = 1;
-    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 4};
+    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 6};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.2;
 
@@ -127,15 +127,15 @@ namespace
     const unsigned    SHADER_REG_EYE = 21;
     //    c22-c25 is position and rotation of model matrix
     const unsigned    SHADER_REG_POS_AND_ROT_MX = 22;
-    //    c26-c41 are 16 initial centers of mass for 16 clusters
+    //    c26-c49 are 24 initial centers of mass for 24 clusters
     const unsigned    SHADER_REG_CLUSTER_INIT_CENTER = 26;
-    //    c42-c89 are 16 3x4 cluster matrices => 48 vectors
-    const unsigned    SHADER_REG_CLUSTER_MATRIX = 42;
-    //    c90-c92 are ZEROS! (3x4 zero matrix)
+    //    c50-c121 are 24 3x4 cluster matrices => 72 vectors
+    const unsigned    SHADER_REG_CLUSTER_MATRIX = 50;
+    //    c122-c124 are ZEROS! (3x4 zero matrix)
     const D3DMATRIX   ZEROS = {0};
-    //    c93-c140 are 16 4x4 cluster matrices for normal transformation
-    const unsigned    SHADER_REG_CLUSTER_NORMAL_MATRIX = 93;
-    //    c141-c143 are ZEROS! (3x4 zero matrix)
+    //    c125-c196 are 24 3x4 cluster matrices for normal transformation
+    const unsigned    SHADER_REG_CLUSTER_NORMAL_MATRIX = 125;
+    //    c197-c199 are ZEROS! (3x4 zero matrix)
 }
 
 Application::Application(Logger &logger) :
