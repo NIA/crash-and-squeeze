@@ -17,12 +17,7 @@ public:
     void set_up_direction(float x, float y, float z, bool update_mx = true);
     void set_at_position(float x, float y, float z, bool update_mx = true);
 
-    void set(float pos_rho, float pos_theta, float pos_phi, float at_x, float at_y, float at_z)
-    {
-        set_position(pos_rho,pos_theta,pos_phi, false);
-        set_at_position(at_x, at_y, at_z, false);
-        set_up_direction(0,0,1);
-    }
+    void set(float pos_rho, float pos_theta, float pos_phi, float at_x, float at_y, float at_z);
 
     void change_rho(float addition);
     void change_theta(float addition);
@@ -42,6 +37,6 @@ public:
     Camera(float pos_rho, float pos_theta, float pos_phi, float at_x, float at_y, float at_z) { set(pos_rho,pos_theta,pos_phi,at_x,at_y,at_z); }
     void update_matrices();
 
-    D3DXMATRIX get_matrix() const;
+    const D3DXMATRIX & get_matrix() const;
     D3DXVECTOR3 get_eye() const;
 };

@@ -30,6 +30,13 @@ Camera::Camera()
     set(DEFAULT_POSITION.x, DEFAULT_POSITION.y, DEFAULT_POSITION.z, 0, 0, 0);
 }
 
+void Camera::set(float pos_rho, float pos_theta, float pos_phi, float at_x, float at_y, float at_z)
+{
+    set_position(pos_rho,pos_theta,pos_phi, false);
+    set_at_position(at_x, at_y, at_z, false);
+    set_up_direction(0,0,1);
+}
+
 void Camera::set_position(float rho, float theta, float phi, bool update_mx)
 {
     eye_spheric = D3DXVECTOR3(rho, theta, phi);
@@ -149,7 +156,7 @@ void Camera::update_matrices()
     mx = PROJ_MX * view_mx;
 }
 
-D3DXMATRIX Camera::get_matrix() const
+const D3DXMATRIX & Camera::get_matrix() const
 {
     return mx;
 }
