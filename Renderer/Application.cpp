@@ -57,6 +57,14 @@ namespace
                                   _T("F: toggle forces on/off,\n")
                                   _T("W: toggle wireframe on/off,\n")
                                   _T("T: toggle alpha test of/off.\n");
+    
+    const char * RELEASE_OR_DEBUG = 
+#ifdef NDEBUG
+        "Release"
+#else
+        "Debug"
+#endif
+        ;
 
     inline bool is_key_pressed(int virtual_key)
     {
@@ -365,13 +373,7 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
             threads[i].start(model_entity.physical_model, &logger);
         }
 
-        static const int BUFFER_SIZE = 128;
-        char description[BUFFER_SIZE];
-        sprintf_s(description, BUFFER_SIZE, "clusters only for %i low-vertices (mapped on %i hi-vertices) in %i=%ix%ix%i clusters on %i threads",
-                                            low_model->get_vertices_count(), high_model.get_vertices_count(),
-                                            TOTAL_CLUSTERS_COUNT, CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2],
-                                            THREADS_COUNT);
-        model_entity.performance_reporter = new PerformanceReporter(logger, description);
+        model_entity.performance_reporter = new PerformanceReporter(logger, "clusters");
     }
     else
     {
@@ -563,9 +565,9 @@ void Application::run(double duration_sec)
     
     Stopwatch stopwatch;
     Stopwatch total_stopwatch;
-    PerformanceReporter render_performance_reporter(logger, "rendering");
-    PerformanceReporter total_performance_reporter(logger, "total");
-    PerformanceReporter internal_render_performance_reporter(logger, "device->Present");
+    PerformanceReporter render_performance_reporter(logger, "render  ");
+    PerformanceReporter total_performance_reporter(logger, "total   ");
+    PerformanceReporter internal_render_performance_reporter(logger, "present ");
 
     int physics_frames = 0;
     
@@ -713,10 +715,24 @@ void Application::run(double duration_sec)
 
     // -- report performance results --
 
+    static const int BUFFER_SIZE = 512;
+    char header[BUFFER_SIZE];
+
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
+        if( NULL != iter->physical_model )
+        {
+            sprintf_s(header, BUFFER_SIZE,
+                      "Performance for %i low-vertices (mapped on %i hi-vertices) in %i=%ix%ix%i clusters on %i threads [%s]",
+                      iter->physical_model->get_vertices_num(), iter->high_model->get_vertices_count(),
+                      TOTAL_CLUSTERS_COUNT, CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2],
+                      THREADS_COUNT, RELEASE_OR_DEBUG);
+            logger.log("        [Renderer]", header);
+        }
         if( NULL != (*iter).performance_reporter )
+        {
             (*iter).performance_reporter->report_results();
+        }
     }
     render_performance_reporter.report_results();
     internal_render_performance_reporter.report_results();

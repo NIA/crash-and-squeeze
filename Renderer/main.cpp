@@ -33,6 +33,8 @@ namespace
     
     const TCHAR *MESH_FILENAME = _T("ford.x");
 
+    const unsigned MAX_FILENAME_LENGTH = 255;
+
     const D3DCOLOR CYLINDER_COLOR = D3DCOLOR_XRGB(100, 150, 255);
     const D3DCOLOR OBSTACLE_COLOR = D3DCOLOR_XRGB(100, 100, 100);
 
@@ -43,18 +45,6 @@ namespace
     const D3DXCOLOR FRAME_COLOR = D3DCOLOR_XRGB(128, 255, 0);
 
     const Real      THRESHOLD_DISTANCE = 0.05;
-
-    const Index LOW_EDGES_PER_BASE = 40;
-    const Index LOW_EDGES_PER_HEIGHT = 48;
-    const Index LOW_EDGES_PER_CAP = 5;
-    const Index LOW_CYLINDER_VERTICES = cylinder_vertices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
-    const DWORD LOW_CYLINDER_INDICES = cylinder_indices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
-
-    const Index HIGH_EDGES_PER_BASE = 300; // 100; //
-    const Index HIGH_EDGES_PER_HEIGHT = 300; // 120; //
-    const Index HIGH_EDGES_PER_CAP = 50; // 40; //
-    const Index HIGH_CYLINDER_VERTICES = cylinder_vertices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
-    const DWORD HIGH_CYLINDER_INDICES = cylinder_indices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
 
     const Index SPHERE_EDGES_PER_DIAMETER = 8;
     const Index SPHERE_VERTICES = sphere_vertices_count(SPHERE_EDGES_PER_DIAMETER);
@@ -213,11 +203,29 @@ namespace
     };
 }
 
-INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
+INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR cmdline, INT )
 {
-    Logger logger("renderer.log");
+    Index low_edges_per_base = 41;
+    Index low_edges_per_height = 40;
+    Index low_edges_per_cap = 10;
+    Index high_edges_per_base = 129;
+    Index high_edges_per_height = 127;
+    Index high_edges_per_cap = 33;
+    char logger_filename[MAX_FILENAME_LENGTH + 1] = "renderer.log";
+
+    sscanf_s(cmdline, "%u/%u/%u %u/%u/%u %s",
+             &low_edges_per_base, &low_edges_per_height, &low_edges_per_cap,
+             &high_edges_per_base, &high_edges_per_height, &high_edges_per_cap,
+             logger_filename, MAX_FILENAME_LENGTH);
+
+    const Index HIGH_CYLINDER_VERTICES = cylinder_vertices_count(high_edges_per_base, high_edges_per_height, high_edges_per_cap);
+    const DWORD HIGH_CYLINDER_INDICES = cylinder_indices_count(high_edges_per_base, high_edges_per_height, high_edges_per_cap);
+    
+    const Index LOW_CYLINDER_VERTICES = cylinder_vertices_count(low_edges_per_base, low_edges_per_height, low_edges_per_cap);
+    const DWORD LOW_CYLINDER_INDICES = cylinder_indices_count(low_edges_per_base, low_edges_per_height, low_edges_per_cap);
+
+    Logger logger(logger_filename);
     logger.newline();
-    logger.log("        [Renderer]", "application startup");
     
     PhysicsLogger & phys_logger = PhysicsLogger::get_instance();
     
@@ -255,7 +263,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 
         cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
                  &CYLINDER_COLOR, 1,
-                 HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP,
+                 high_edges_per_base, high_edges_per_height, high_edges_per_cap,
                  high_cylinder_model_vertices, high_cylinder_model_indices );
         Model high_cylinder_model(app.get_device(),
                                   D3DPT_TRIANGLESTRIP,
@@ -270,7 +278,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 
         cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
                  &CYLINDER_COLOR, 1,
-                 LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP,
+                 low_edges_per_base, low_edges_per_height, low_edges_per_cap,
                  low_cylinder_model_vertices, low_cylinder_model_indices );
         Model low_cylinder_model(app.get_device(),
                                  D3DPT_TRIANGLESTRIP,
@@ -288,21 +296,21 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
             throw NullPointerError();
 
         IndexArray frame;
-        const Index LOW_VERTICES_PER_SIDE = LOW_EDGES_PER_BASE*LOW_EDGES_PER_HEIGHT;
-        add_range(frame, LOW_VERTICES_PER_SIDE/4, LOW_VERTICES_PER_SIDE*3/4, LOW_EDGES_PER_BASE); // vertical line layer
-        add_range(frame, LOW_VERTICES_PER_SIDE/4 + 1, LOW_VERTICES_PER_SIDE*3/4, LOW_EDGES_PER_BASE); // vertical line layer
+        const Index LOW_VERTICES_PER_SIDE = low_edges_per_base*low_edges_per_height;
+        add_range(frame, LOW_VERTICES_PER_SIDE/4, LOW_VERTICES_PER_SIDE*3/4, low_edges_per_base); // vertical line layer
+        add_range(frame, LOW_VERTICES_PER_SIDE/4 + 1, LOW_VERTICES_PER_SIDE*3/4, low_edges_per_base); // vertical line layer
         phys_mod->set_frame(frame);
         low_cylinder_model.repaint_vertices(frame, FRAME_COLOR);
 
         // -- shapes and shape callbacks definition --
 
-        const int SHAPE_SIZE = LOW_EDGES_PER_BASE;
+        const int SHAPE_SIZE = low_edges_per_base;
         const int SHAPE_LINES_OFFSET = 3;
         const int SHAPES_COUNT = 8;
         const int SHAPE_STEP = (SHAPES_COUNT > 1) ?
-                               ((LOW_EDGES_PER_HEIGHT - 2*SHAPE_LINES_OFFSET)/(SHAPES_COUNT - 1))*LOW_EDGES_PER_BASE :
+                               ((low_edges_per_height - 2*SHAPE_LINES_OFFSET)/(SHAPES_COUNT - 1))*low_edges_per_base :
                                0;
-        const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*LOW_EDGES_PER_BASE;
+        const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*low_edges_per_base;
 
         const int SUBSHAPES_COUNT = 4;
         const int SUBSHAPE_SIZE = SHAPE_SIZE/SUBSHAPES_COUNT;
@@ -342,7 +350,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         CylindricalRegion outside(Vector(0,0,cylinder_z+cylinder_height), Vector(0,0,cylinder_z), cylinder_radius + 0.012);
 
         IndexArray shape;
-        add_range(shape, 9*LOW_EDGES_PER_BASE, 10*LOW_EDGES_PER_BASE);
+        add_range(shape, 9*low_edges_per_base, 10*low_edges_per_base);
 
         MessageBoxRegionReaction inside_reaction(shape, inside, true, _T("[OK] Entered inside!"));
         MessageBoxRegionReaction outside_reaction(shape, outside, false, _T("[OK] Left out!"));
@@ -362,7 +370,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         app.set_impact( hit_region, Vector(0,-110,0.0), Vector(0, 1.15, 0));
 
         // -------------------------- G O ! ! ! -----------------------
-        app.run(10);
+        app.run(5);
         delete_array(&low_cylinder_model_indices);
         delete_array(&low_cylinder_model_vertices);
         delete_array(&high_cylinder_model_indices);
@@ -370,8 +378,6 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 
         for(int i = 0; i < reactions.size(); ++i)
             delete reactions[i];
-        
-        logger.log("        [Renderer]", "application shutdown");
     }
     catch(RuntimeError &e)
     {

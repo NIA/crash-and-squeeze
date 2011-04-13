@@ -1,17 +1,6 @@
 #include "performance_reporter.h"
 #include <cstdio>
 
-namespace
-{
-    const char * RELEASE_OR_DEBUG = 
-#ifdef NDEBUG
-        "Release"
-#else
-        "Debug  "
-#endif
-        ;
-}
-
 PerformanceReporter::PerformanceReporter(Logger &logger, const char *description)
     : measurements_count(0), logger(logger)
 {
@@ -25,24 +14,16 @@ PerformanceReporter::PerformanceReporter(Logger &logger, const char *description
     strcpy_s(this->description, size, description);
 }
 
-void PerformanceReporter::begin_report()
-{
-    static const int BUF_SIZE = 512;
-    static char buf[BUF_SIZE];
-    sprintf_s(buf, BUF_SIZE, "Performance for %s in %s:", description, RELEASE_OR_DEBUG);
-    logger.log("        [Renderer]", buf);
-}
-
-void PerformanceReporter::report_time(char *prefix, double time)
+void PerformanceReporter::report_time(double time)
 {
     if(0 == time)
         return;
     
-    static const int BUF_SIZE = 128;
+    static const int BUF_SIZE = 512;
     static char buf[BUF_SIZE];
     sprintf_s(buf, BUF_SIZE,
-              "%3s:%7.2f ms/frame (%6.1f fps)",
-              prefix, time*1000, 1/time, description, RELEASE_OR_DEBUG);
+              "%s:%7.2f ms/frame (%4.0f fps)",
+              description, time*1000, 1/time);
     logger.log("        [Renderer]", buf);
 }
 
@@ -71,10 +52,7 @@ void PerformanceReporter::report_results()
 {
     if( 0 != measurements_count )
     {
-        begin_report();
-        report_time("AVG", avg_time);
-        report_time("MAX", max_time);
-        report_time("MIN", min_time);
+        report_time(avg_time);
     }
 }
     
