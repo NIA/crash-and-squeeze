@@ -1,7 +1,6 @@
 #include "Application.h"
 #include "Stopwatch.h"
 #include "matrices.h"
-#include <time.h>
 
 using CrashAndSqueeze::Core::ForcesArray;
 using CrashAndSqueeze::Math::Matrix;
@@ -140,7 +139,7 @@ namespace
 }
 
 Application::Application(Logger &logger) :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(4.8f, 1.1f, -1.2f), // Constants selected for better view of the scene
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(1.8f, 1.1f, -1.2f), // Constants selected for better view of the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
@@ -286,7 +285,7 @@ void Application::render(PerformanceReporter &internal_reporter)
     stopwatch.start();
     // Present the backbuffer contents to the display
     check_render( device->Present( NULL, NULL, NULL, NULL ) );
-    internal_reporter.add_measurement(stopwatch.stop());
+    internal_reporter.add_measurement(stopwatch.get_time());
 }
 
 void Application::draw_text_info()
@@ -557,7 +556,7 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
     }
 }
 
-void Application::run()
+void Application::run(double duration_sec)
 {
     window.show();
     window.update();
@@ -582,11 +581,19 @@ void Application::run()
             (*forces)[i]->deactivate();
     }
     
-    // Enter the message loop
     MSG msg;
     ZeroMemory( &msg, sizeof( msg ) );
+    Stopwatch duration_stopwatch;
+    duration_stopwatch.start();
+    // Enter the message loop
     while( msg.message != WM_QUIT )
     {
+        double time_elapsed = duration_stopwatch.get_time();
+        if( duration_sec > 0 && time_elapsed >= duration_sec )
+        {
+            break;
+        }
+
         if( PeekMessage( &msg, NULL, 0U, 0U, PM_REMOVE ) )
         {
             if( msg.message == WM_KEYDOWN )
@@ -642,7 +649,7 @@ void Application::run()
                             throw PhysicsError();
                         }
 
-                        double time = stopwatch.stop();
+                        double time = stopwatch.get_time();
                         logger.add_message("Clusters ~~finished~~");
 
                         if( NULL != performance_reporter )
@@ -699,8 +706,8 @@ void Application::run()
             // graphics
             stopwatch.start();
             render(internal_render_performance_reporter);
-            render_performance_reporter.add_measurement(stopwatch.stop());
-            total_performance_reporter.add_measurement(total_stopwatch.stop());
+            render_performance_reporter.add_measurement(stopwatch.get_time());
+            total_performance_reporter.add_measurement(total_stopwatch.get_time());
         }
     }
 

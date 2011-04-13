@@ -4,7 +4,6 @@
 #include <d3dx9.h>
 #undef ERROR // because WinGDI.h defines this and it's awful!
 #include <cstdlib>
-#include <ctime>
 #include <crtdbg.h>
 #include "Error.h"
 #include <fstream>

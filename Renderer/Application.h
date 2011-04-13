@@ -134,7 +134,7 @@ public:
     void set_impact(::CrashAndSqueeze::Core::IRegion & region,
                     const ::CrashAndSqueeze::Math::Vector &velocity,
                     const ::CrashAndSqueeze::Math::Vector &rotation_center);
-    void run();
+    void run(double duration_sec = 0);
 
     void toggle_wireframe();
     void set_wireframe();

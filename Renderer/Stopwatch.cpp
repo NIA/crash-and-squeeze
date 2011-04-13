@@ -15,10 +15,10 @@ void Stopwatch::start()
     QueryPerformanceCounter(&start_moment);
 }
 
-double Stopwatch::stop()
+double Stopwatch::get_time()
 {
-    LARGE_INTEGER stop_moment;
-    QueryPerformanceCounter(&stop_moment);
+    LARGE_INTEGER current_moment;
+    QueryPerformanceCounter(&current_moment);
     
-    return static_cast<double>(stop_moment.QuadPart - start_moment.QuadPart)/frequency;
+    return static_cast<double>(current_moment.QuadPart - start_moment.QuadPart)/frequency;
 }

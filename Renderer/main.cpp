@@ -362,7 +362,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         app.set_impact( hit_region, Vector(0,-110,0.0), Vector(0, 1.15, 0));
 
         // -------------------------- G O ! ! ! -----------------------
-        app.run();
+        app.run(10);
         delete_array(&low_cylinder_model_indices);
         delete_array(&low_cylinder_model_vertices);
         delete_array(&high_cylinder_model_indices);

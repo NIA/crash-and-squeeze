@@ -13,6 +13,6 @@ public:
 
     // starts the stopwatch
     void start();
-    // stops the stopwatch and returns measured time
-    double stop();
+    // gets elapsed time
+    double get_time();
 };
