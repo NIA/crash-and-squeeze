@@ -72,7 +72,6 @@ private:
     WorkerThread threads[THREADS_COUNT];
 
     Camera camera;
-    D3DXMATRIX post_transform;
 
     // Initialization steps:
     void init_device();
@@ -134,8 +133,7 @@ public:
     void set_forces(::CrashAndSqueeze::Core::ForcesArray & forces);
     void set_impact(::CrashAndSqueeze::Core::IRegion & region,
                     const ::CrashAndSqueeze::Math::Vector &velocity,
-                    const ::CrashAndSqueeze::Math::Vector &rotation_center,
-                    Model &model);
+                    const ::CrashAndSqueeze::Math::Vector &rotation_center);
     void run();
 
     void toggle_wireframe();

@@ -30,7 +30,7 @@ namespace
     const Real        MOVE_STEP = 0.06;
     const Vector      VERTICAL_AXIS(0,0,1);
     const float       VERTEX_MASS = 1;
-    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 6};
+    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 4};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.2;
 
@@ -144,7 +144,7 @@ Application::Application(Logger &logger) :
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
-    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false), post_transform(rotate_x_matrix(D3DX_PI/2))
+    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false)
 {
 
     try
@@ -240,34 +240,17 @@ void Application::render(PerformanceReporter &internal_reporter)
     // Begin the scene
     check_render( device->BeginScene() );
     // Setting constants
-    D3DXVECTOR3 directional_vector;
-    D3DXVec3Normalize(&directional_vector, &SHADER_VAL_DIRECTIONAL_VECTOR);
-
-    D3DCOLOR ambient_color = ambient_light_enabled ? SHADER_VAL_AMBIENT_COLOR : BLACK;
-    D3DCOLOR directional_color = directional_light_enabled ? SHADER_VAL_DIRECTIONAL_COLOR : BLACK;
-    D3DCOLOR point_color = point_light_enabled ? SHADER_VAL_POINT_COLOR : BLACK;
-
     set_shader_matrix( SHADER_REG_VIEW_MX,            camera.get_matrix());
-    set_shader_vector( SHADER_REG_DIRECTIONAL_VECTOR, directional_vector);
-    set_shader_color(  SHADER_REG_DIRECTIONAL_COLOR,  directional_color);
-    set_shader_float(  SHADER_REG_DIFFUSE_COEF,       SHADER_VAL_DIFFUSE_COEF);
-    set_shader_color(  SHADER_REG_AMBIENT_COLOR,      ambient_color);
-    set_shader_color(  SHADER_REG_POINT_COLOR,        point_color);
-    set_shader_point(  SHADER_REG_POINT_POSITION,     SHADER_VAL_POINT_POSITION);
-    set_shader_vector( SHADER_REG_ATTENUATION,        SHADER_VAL_ATTENUATION);
-    set_shader_float(  SHADER_REG_SPECULAR_COEF,      SHADER_VAL_SPECULAR_COEF);
-    set_shader_float(  SHADER_REG_SPECULAR_F,         SHADER_VAL_SPECULAR_F);
-    set_shader_point(  SHADER_REG_EYE,                camera.get_eye());
     
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
         AbstractModel * display_model = (SHOW_GRAPHICAL_VERTICES == show_mode || NULL == (*iter).low_model) ? (*iter).high_model : (*iter).low_model;
-        PhysicalModel       * physical_model       = (*iter).physical_model;
+        PhysicalModel * physical_model = (*iter).physical_model;
 
         // Set up
         ( display_model->get_shader() ).set();
 
-        set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, post_transform*display_model->get_transformation() );
+        set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, display_model->get_transformation() );
         
         if(NULL != physical_model)
         {
@@ -296,9 +279,6 @@ void Application::render(PerformanceReporter &internal_reporter)
         
         display_model->draw();
     }
-
-    // Draw text info
-    draw_text_info();
 
     // End the scene
     check_render( device->EndScene() );
@@ -412,15 +392,12 @@ void Application::set_forces(ForcesArray & forces)
 
 void Application::set_impact(::CrashAndSqueeze::Core::IRegion & region,
                              const Vector &velocity,
-                             const Vector &rotation_center,
-                             Model & model)
+                             const Vector &rotation_center)
 {
     if(NULL == impact_model)
     {
         impact_region = & region;
         impact_velocity = velocity;
-        add_model(model);
-        impact_model = & model;
         impact_rot_center = rotation_center;
     }
 }
@@ -638,7 +615,6 @@ void Application::run()
                     
                     if( NULL != physical_model )
                     {
-                        Vector linear_velocity_change, angular_velocity_chage;
                         if(false == physical_model->wait_for_step())
                         {
                             throw PhysicsError();

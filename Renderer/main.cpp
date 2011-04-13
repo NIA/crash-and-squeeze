@@ -215,31 +215,24 @@ namespace
 
 INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 {
-    Logger logger("renderer.log", true);
+    Logger logger("renderer.log");
     logger.newline();
     logger.log("        [Renderer]", "application startup");
     
     PhysicsLogger & phys_logger = PhysicsLogger::get_instance();
     
-    PhysLogAction phys_log_action(logger);
-    PhysWarningAction phys_warn_action(logger);
     PhysErrorAction phys_err_action(logger);
     
-    //phys_logger.set_action(PhysicsLogger::LOG, &phys_log_action);
     phys_logger.ignore(PhysicsLogger::LOG);
-    phys_logger.set_action(PhysicsLogger::WARNING, &phys_warn_action);
+    phys_logger.ignore(PhysicsLogger::WARNING);
     phys_logger.set_action(PhysicsLogger::ERROR, &phys_err_action);
 
     srand( static_cast<unsigned>( time(NULL) ) );
     
-    Vertex * cubic_vertices = NULL;
-    Index * cubic_indices = NULL;
     Vertex * low_cylinder_model_vertices = NULL;
     Index * low_cylinder_model_indices = NULL;
     Vertex * high_cylinder_model_vertices = NULL;
     Index * high_cylinder_model_indices = NULL;
-    Vertex * sphere_vertices = NULL;
-    Index * sphere_indices = NULL;
     
     Array<ShapeDeformationReaction*> reactions;
     try
@@ -251,23 +244,6 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         
         // -------------------------- M o d e l -----------------------
 
-        //cubic_vertices = new Vertex[CUBIC_VERTICES_COUNT];
-        //cubic_indices = new Index[CUBIC_INDICES_COUNT];
-
-        //cubic(0.5, 0.5, 2, D3DXVECTOR3(-0.25f, -0.25f, 3), CYLINDER_COLOR,
-        //      cubic_vertices, cubic_indices);
-
-        //Model cube(app.get_device(),
-        //           D3DPT_LINELIST,
-        //           simple_shader,
-        //           cubic_vertices,
-        //           CUBIC_VERTICES_COUNT,
-        //           cubic_indices,
-        //           CUBIC_INDICES_COUNT,
-        //           CUBIC_PRIMITIVES_COUNT,
-        //           D3DXVECTOR3(0,0,0),
-        //           D3DXVECTOR3(0,0,0));
-        //app.add_model(cube, true);
         low_cylinder_model_vertices = new Vertex[LOW_CYLINDER_VERTICES];
         low_cylinder_model_indices = new Index[LOW_CYLINDER_INDICES];
         high_cylinder_model_vertices = new Vertex[HIGH_CYLINDER_VERTICES];
@@ -292,11 +268,6 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                   D3DXVECTOR3(0, 0, 0),
                                   D3DXVECTOR3(0, 0, 0));
 
-        MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
-        Vertex * car_vertices = car.lock_vertex_buffer();
-        PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
-        car.unlock_vertex_buffer();
-        
         cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
                  &CYLINDER_COLOR, 1,
                  LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP,
@@ -312,18 +283,16 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                  D3DXVECTOR3(0, 0, 0),
                                  D3DXVECTOR3(0, 0, 0));
         
-        PhysicalModel * phys_mod = app.add_model(car, true, &low_car);
+        PhysicalModel * phys_mod = app.add_model(high_cylinder_model, true, &low_cylinder_model);
         if(NULL == phys_mod)
             throw NullPointerError();
 
-        paint_model(car);
-        
         IndexArray frame;
         const Index LOW_VERTICES_PER_SIDE = LOW_EDGES_PER_BASE*LOW_EDGES_PER_HEIGHT;
         add_range(frame, LOW_VERTICES_PER_SIDE/4, LOW_VERTICES_PER_SIDE*3/4, LOW_EDGES_PER_BASE); // vertical line layer
         add_range(frame, LOW_VERTICES_PER_SIDE/4 + 1, LOW_VERTICES_PER_SIDE*3/4, LOW_EDGES_PER_BASE); // vertical line layer
-        //phys_mod->set_frame(frame);
-        //low_cylinder_model.repaint_vertices(frame, FRAME_COLOR);
+        phys_mod->set_frame(frame);
+        low_cylinder_model.repaint_vertices(frame, FRAME_COLOR);
 
         // -- shapes and shape callbacks definition --
 
@@ -390,37 +359,14 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 
         SphericalRegion hit_region( Vector(0,2.2,-0.9), 0.25 );
 
-        // ------------------ V i s u a l i z a t i o n -----------------------
-        sphere_vertices = new Vertex[SPHERE_VERTICES];
-        sphere_indices = new Index[SPHERE_INDICES];
-
-        sphere(static_cast<float>(hit_region.get_radius()), D3DXVECTOR3(0,0,0), HIT_REGION_COLOR,
-               SPHERE_EDGES_PER_DIAMETER, sphere_vertices, sphere_indices);
-
-        Model hit_region_model(app.get_device(),
-                               D3DPT_TRIANGLELIST,
-                               simple_shader,
-                               sphere_vertices,
-                               SPHERE_VERTICES,
-                               sphere_indices,
-                               SPHERE_INDICES,
-                               SPHERE_INDICES/3,
-                               math_vector_to_d3dxvector(hit_region.get_center()),
-                               D3DXVECTOR3(0, 0, 0));
-        hit_region_model.set_draw_ccw(true);
-
-        app.set_impact( hit_region, Vector(0,-110,0.0), Vector(0, 1.15, 0), hit_region_model);
+        app.set_impact( hit_region, Vector(0,-110,0.0), Vector(0, 1.15, 0));
 
         // -------------------------- G O ! ! ! -----------------------
         app.run();
-        delete_array(&cubic_indices);
-        delete_array(&cubic_vertices);
         delete_array(&low_cylinder_model_indices);
         delete_array(&low_cylinder_model_vertices);
         delete_array(&high_cylinder_model_indices);
         delete_array(&high_cylinder_model_vertices);
-        delete_array(&sphere_indices);
-        delete_array(&sphere_vertices);
 
         for(int i = 0; i < reactions.size(); ++i)
             delete reactions[i];
@@ -429,14 +375,10 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     }
     catch(RuntimeError &e)
     {
-        delete_array(&cubic_indices);
-        delete_array(&cubic_vertices);
         delete_array(&low_cylinder_model_indices);
         delete_array(&low_cylinder_model_vertices);
         delete_array(&high_cylinder_model_indices);
         delete_array(&high_cylinder_model_vertices);
-        delete_array(&sphere_indices);
-        delete_array(&sphere_vertices);
         for(int i = 0; i < reactions.size(); ++i)
             delete reactions[i];
         
