@@ -388,7 +388,7 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
 
         static const int BUFFER_SIZE = 128;
         char description[BUFFER_SIZE];
-        sprintf_s(description, BUFFER_SIZE, "%i low-vertices (mapped on %i hi-vertices) in %i=%ix%ix%i clusters on %i threads",
+        sprintf_s(description, BUFFER_SIZE, "clusters only for %i low-vertices (mapped on %i hi-vertices) in %i=%ix%ix%i clusters on %i threads",
                                             low_model->get_vertices_count(), high_model.get_vertices_count(),
                                             TOTAL_CLUSTERS_COUNT, CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2],
                                             THREADS_COUNT);
@@ -639,8 +639,6 @@ void Application::run()
                     if( NULL != physical_model )
                     {
                         Vector linear_velocity_change, angular_velocity_chage;
-
-                        stopwatch.start();
                         if(false == physical_model->wait_for_step())
                         {
                             throw PhysicsError();
@@ -656,6 +654,8 @@ void Application::run()
                             physical_model->hit(*impact_region, impact_velocity);
                             impact_happened = false;
                         }
+
+                        stopwatch.start();
                         physical_model->prepare_tasks(*forces, dt, NULL);
                         logger.add_message("Tasks --READY--");
 
