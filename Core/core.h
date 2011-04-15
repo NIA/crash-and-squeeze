@@ -16,7 +16,7 @@ namespace CrashAndSqueeze
         typedef Collections::Array<int> IndexArray;
 
         template<class T>
-        inline void ignore_unreferenced(T parameter) { parameter; }
+        inline void ignore_unreferenced(const T & parameter) { parameter; }
 
         inline const void *add_to_pointer(const void *pointer, int offset)
         {

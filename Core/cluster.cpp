@@ -47,18 +47,6 @@ namespace CrashAndSqueeze
             equilibrium_pos = vertex->get_pos();
         }
 
-        void GraphicalVertexMappingInfo::setup_initial_values(const Vector & center_of_mass)
-        {
-            initial_offset_state = *vertex;
-            for(int i = 0; i < initial_offset_state.get_points_num(); ++i)
-            {
-                Vector offset = vertex->get_point(i) - center_of_mass;
-                initial_offset_state.set_point(i, offset);
-            }
-            deformed_offset_state = initial_offset_state;
-            previous_state = *vertex;
-        }
-
         // -- Cluster methods --
 
         Cluster::Cluster()
@@ -104,7 +92,6 @@ namespace CrashAndSqueeze
             // add new vertex
             GraphicalVertexMappingInfo & mapping_info = graphical_vertex_infos.create_item();
             mapping_info.vertex = &vertex;
-            mapping_info.setup_initial_values(center_of_mass);
         }
 
         void Cluster::compute_initial_characteristics()
@@ -117,11 +104,6 @@ namespace CrashAndSqueeze
             for(int i = 0; i < get_physical_vertices_num(); ++i)
             {
                 physical_vertex_infos[i].setup_initial_values(center_of_mass);
-            }
-
-            for(int i = 0; i < get_graphical_vertices_num(); ++i)
-            {
-                graphical_vertex_infos[i].setup_initial_values(center_of_mass);
             }
 
             initial_characteristics_computed = true;

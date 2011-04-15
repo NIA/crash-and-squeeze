@@ -647,43 +647,10 @@ namespace CrashAndSqueeze
 
         void Model::update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
-            if(vertices_num > graphical_vertices.size())
-            {
-                Logger::warning("in Model::update_vertices: requested to update too many vertices, probably wrong vertices given?", __FILE__, __LINE__);
-                vertices_num = vertices.size();
-            }
-            if(vertex_info.get_points_num() > graphical_vertices[0].get_points_num())
-            {
-                Logger::error("in Model::update_vertices: vertex_info incompatible with that was used for initialization: too many points per vertex requested", __FILE__, __LINE__);
-                return;
-            }
-            if(vertex_info.get_vectors_num() > graphical_vertices[0].get_vectors_num())
-            {
-                Logger::error("in Model::update_vertices: vertex_info incompatible with that was used for initialization: too many vectors per vertex requested", __FILE__, __LINE__);
-                return;
-            }
-
-            void *out_vertex = out_vertices;
-            for(int i = 0; i < vertices_num; ++i)
-            {
-                for(int j = 0; j < vertex_info.get_points_num(); ++j)
-                {
-                    VertexFloat *out_point =
-                        reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(j)) );
-
-                    VertexInfo::vector_to_vertex_floats(graphical_vertices[i].get_point(j), out_point);
-                }
-
-                for(int j = 0; j < vertex_info.get_vectors_num(); ++j)
-                {
-                    VertexFloat *out_vector =
-                        reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_vector_offset(j)) );
-
-                    VertexInfo::vector_to_vertex_floats(graphical_vertices[i].get_vector(j), out_vector);
-                }
-
-                out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
-            }
+            ignore_unreferenced(out_vertices);
+            ignore_unreferenced(vertices_num);
+            ignore_unreferenced(vertex_info);
+            Logger::error("in Model::update_vertices: CPU version not yet implemented", __FILE__, __LINE__); 
         }
 
         void Model::update_current_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)

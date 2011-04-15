@@ -32,16 +32,6 @@ namespace CrashAndSqueeze
         struct GraphicalVertexMappingInfo
         {
             GraphicalVertex *vertex;
-
-            // initial state of graphical vertex, with all points re-computed as
-            // offsets from the center of mass
-            GraphicalVertex initial_offset_state;
-            // state after plastic deformation: plasticity_state*initial_offset_state
-            GraphicalVertex deformed_offset_state;
-            // previous state, used to find difference between it and current state
-            GraphicalVertex previous_state;
-
-            void setup_initial_values(const Math::Vector & center_of_mass);
         };
 
         class Cluster

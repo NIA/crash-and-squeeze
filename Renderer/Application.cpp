@@ -673,18 +673,16 @@ void Application::run(double duration_sec)
                 for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
                 {
                     PhysicalModel       * physical_model       = (*iter).physical_model;
-                    AbstractModel       * high_model           = (*iter).high_model;
                     AbstractModel       * low_model            = (*iter).low_model;
                     
                     if( NULL != physical_model )
                     {
-                        Vertex *high_vertices = high_model->lock_vertex_buffer();
                         Vertex *low_vertices = low_model->lock_vertex_buffer();
 
                         switch(show_mode)
                         {
                         case SHOW_GRAPHICAL_VERTICES:
-                            physical_model->update_vertices(high_vertices, high_model->get_vertices_count(), VERTEX_INFO);
+                            // update not needed, since it is made on GPU
                             break;
                         case SHOW_CURRENT_POSITIONS:
                             physical_model->update_current_positions(low_vertices, low_model->get_vertices_count(), VERTEX_INFO);
@@ -697,7 +695,6 @@ void Application::run(double duration_sec)
                             break;
                         }
 
-                        high_model->unlock_vertex_buffer();
                         low_model->unlock_vertex_buffer();
                     }
                 }
