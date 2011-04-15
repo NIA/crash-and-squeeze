@@ -28,7 +28,8 @@ namespace
     const D3DCOLOR    BLACK = D3DCOLOR_XRGB( 0, 0, 0 );
     const Real        ROTATE_STEP = D3DX_PI/30.0;
     const Real        MOVE_STEP = 0.06;
-    const Vector      VERTICAL_AXIS(0,0,1);
+    const int         ROTATION_AXES_COUNT = 3;
+    const Vector      ROTATION_AXES[ROTATION_AXES_COUNT] = {Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)};
     const float       VERTEX_MASS = 1;
     const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 6};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
@@ -144,7 +145,8 @@ Application::Application(Logger &logger) :
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
-    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false), post_transform(rotate_x_matrix(D3DX_PI/2))
+    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false), post_transform(rotate_x_matrix(D3DX_PI/2)),
+    impact_axis(0)
 {
 
     try
@@ -522,16 +524,19 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
         move_impact(Vector(0,0,MOVE_STEP));
         break;
     case 'J':
-        rotate_impact(VERTICAL_AXIS);
+        rotate_impact(ROTATION_AXES[impact_axis]);
         break;
     case 'L':
-        rotate_impact(-VERTICAL_AXIS);
+        rotate_impact(-ROTATION_AXES[impact_axis]);
         break;
     case 'U':
-        move_impact_nearer(-MOVE_STEP, VERTICAL_AXIS);
+        move_impact_nearer(-MOVE_STEP, ROTATION_AXES[impact_axis]);
         break;
     case 'O':
-        move_impact_nearer(MOVE_STEP, VERTICAL_AXIS);
+        move_impact_nearer(MOVE_STEP, ROTATION_AXES[impact_axis]);
+        break;
+    case 'H':
+        impact_axis = (impact_axis+1)%ROTATION_AXES_COUNT;
         break;
     case '1':
         set_show_mode(0);

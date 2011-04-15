@@ -60,6 +60,7 @@ private:
     ::CrashAndSqueeze::Core::IRegion * impact_region;
     ::CrashAndSqueeze::Math::Vector impact_velocity;
     ::CrashAndSqueeze::Math::Vector impact_rot_center;
+    int impact_axis; // index of impact rotation axis
     Model * impact_model;
     bool impact_happened;
     void move_impact(const ::CrashAndSqueeze::Math::Vector & vector);
