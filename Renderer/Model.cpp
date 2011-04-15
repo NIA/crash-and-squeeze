@@ -228,7 +228,7 @@ PointModel::PointModel(IDirect3DDevice9 *device, VertexShader &shader,
                        D3DXVECTOR3 position, D3DXVECTOR3 rotation)
 : AbstractModel(device, shader, position, rotation), vertex_buffer(NULL)
 {
-    _ASSERT(vertices != NULL);
+    _ASSERT(src_vertices != NULL);
     _ASSERT(step > 0);
     try
     {
