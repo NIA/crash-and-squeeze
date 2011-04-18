@@ -16,8 +16,8 @@ const unsigned VECTORS_IN_MATRIX = sizeof(D3DXMATRIX)/sizeof(D3DXVECTOR4);
 
 namespace
 {
-    const int         WINDOW_SIZE = 600;
-    const D3DCOLOR    BACKGROUND_COLOR = D3DCOLOR_XRGB( 5, 5, 10 );
+    const int         WINDOW_SIZE = 1000;
+    const D3DCOLOR    BACKGROUND_COLOR = D3DCOLOR_XRGB( 255, 255, 255 );
     const D3DCOLOR    TEXT_COLOR = D3DCOLOR_XRGB( 255, 255, 0 );
     const int         TEXT_HEIGHT = 20;
     const int         TEXT_MARGIN = 10;
@@ -100,13 +100,13 @@ namespace
     const unsigned    SHADER_REG_VIEW_MX = 0;
     //    c12 is directional light vector
     const unsigned    SHADER_REG_DIRECTIONAL_VECTOR = 12;
-    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, -1.0f, 0.3f);
+    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, 1.0f, 0.3f);
     //    c13 is directional light color
     const unsigned    SHADER_REG_DIRECTIONAL_COLOR = 13;
     const D3DCOLOR    SHADER_VAL_DIRECTIONAL_COLOR = D3DCOLOR_XRGB(230, 230, 230);
     //    c14 is diffuse coefficient
     const unsigned    SHADER_REG_DIFFUSE_COEF = 14;
-    const float       SHADER_VAL_DIFFUSE_COEF = 0.8f;
+    const float       SHADER_VAL_DIFFUSE_COEF = 1.0f;
     //    c15 is ambient color
     const unsigned    SHADER_REG_AMBIENT_COLOR = 15;
     const D3DCOLOR    SHADER_VAL_AMBIENT_COLOR = D3DCOLOR_XRGB(80, 80, 80);
@@ -141,7 +141,7 @@ namespace
 }
 
 Application::Application(Logger &logger) :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(4.8f, 1.1f, -1.2f), // Constants selected for better view of the scene
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(5.1f, 1.11571f, 1.12478f), // Constants selected for better view of the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
