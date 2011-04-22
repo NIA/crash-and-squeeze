@@ -33,7 +33,7 @@ private:
     IDirect3D9                  *d3d;           // used to create the D3DDevice
     IDirect3DDevice9            *device;        // our rendering device
     ID3DXFont                   *font;          // font to draw text
-
+    IDirect3DQuery9             *event_query;   // event query for accurate profiling of rendering
     bool directional_light_enabled;
     bool point_light_enabled;
     bool spot_light_enabled;

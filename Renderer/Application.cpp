@@ -151,7 +151,7 @@ Application::Application(Logger &logger) :
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
-    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false)
+    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false), event_query(NULL)
 {
 
     try
@@ -217,6 +217,8 @@ void Application::init_device()
 
     toggle_wireframe();
     set_alpha_test();
+
+    device->CreateQuery(D3DQUERYTYPE_EVENT, &event_query);
 }
 
 void Application::init_font()
@@ -249,6 +251,17 @@ void Application::render(PerformanceReporter &internal_reporter)
     // Setting constants
     set_shader_matrix( SHADER_REG_VIEW_MX,            camera.get_matrix());
     
+    // 1. Add an end marker to the command buffer queue.
+    event_query->Issue(D3DISSUE_END);
+
+    // 2. Empty the command buffer and wait until the GPU is idle.
+    while(S_FALSE == event_query->GetData( NULL, 0, D3DGETDATA_FLUSH ))
+        ;
+
+    // 3. Start profiling
+    stopwatch.start();
+
+    // 4. Invoke the API calls to be profiled.
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
         AbstractModel * display_model = (SHOW_GRAPHICAL_VERTICES == show_mode || NULL == (*iter).low_model) ? (*iter).high_model : (*iter).low_model;
@@ -286,14 +299,22 @@ void Application::render(PerformanceReporter &internal_reporter)
         
         display_model->draw();
     }
+    // 5. Add an end marker to the command buffer queue.
+    event_query->Issue(D3DISSUE_END);
+
+    // 6. Force the driver to execute the commands from the command buffer.
+    // Empty the command buffer and wait until the GPU is idle.
+    while(S_FALSE == event_query->GetData( NULL, 0, D3DGETDATA_FLUSH ))
+        ;
+    	
+    // 7. End profiling
+    internal_reporter.add_measurement(stopwatch.get_time());
 
     // End the scene
     check_render( device->EndScene() );
     
-    stopwatch.start();
     // Present the backbuffer contents to the display
     check_render( device->Present( NULL, NULL, NULL, NULL ) );
-    internal_reporter.add_measurement(stopwatch.get_time());
 }
 
 void Application::draw_text_info()
@@ -373,7 +394,7 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
             threads[i].start(model_entity.physical_model, &logger);
         }
 
-        model_entity.performance_reporter = new PerformanceReporter(logger, "clusters");
+        model_entity.performance_reporter = new PerformanceReporter(logger, "physics ");
     }
     else
     {
@@ -567,7 +588,6 @@ void Application::run(double duration_sec)
     Stopwatch total_stopwatch;
     PerformanceReporter render_performance_reporter(logger, "render  ");
     PerformanceReporter total_performance_reporter(logger, "total   ");
-    PerformanceReporter internal_render_performance_reporter(logger, "present ");
 
     int physics_frames = 0;
     
@@ -646,7 +666,7 @@ void Application::run(double duration_sec)
 
                         physical_model->react_to_events();
 
-                        if(false == physical_model->wait_for_clusters())
+                        if(false == physical_model->wait_for_step())
                         {
                             throw PhysicsError();
                         }
@@ -703,9 +723,7 @@ void Application::run(double duration_sec)
             }
             
             // graphics
-            stopwatch.start();
-            render(internal_render_performance_reporter);
-            render_performance_reporter.add_measurement(stopwatch.get_time());
+            render(render_performance_reporter);
             total_performance_reporter.add_measurement(total_stopwatch.get_time());
         }
     }
@@ -732,7 +750,6 @@ void Application::run(double duration_sec)
         }
     }
     render_performance_reporter.report_results();
-    internal_render_performance_reporter.report_results();
     total_performance_reporter.report_results();
 
     stop_threads();
@@ -788,6 +805,7 @@ void Application::release_interfaces()
     release_interface( d3d );
     release_interface( device );
     release_interface( font );
+    release_interface( event_query );
 }
 
 Application::~Application()
