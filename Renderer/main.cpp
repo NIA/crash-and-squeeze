@@ -205,24 +205,11 @@ namespace
 
 INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR cmdline, INT )
 {
-    Index low_edges_per_base = 41;
-    Index low_edges_per_height = 40;
-    Index low_edges_per_cap = 10;
-    Index high_edges_per_base = 129;
-    Index high_edges_per_height = 127;
-    Index high_edges_per_cap = 33;
+    int used_threads = 4;
     char logger_filename[MAX_FILENAME_LENGTH + 1] = "renderer.log";
 
-    sscanf_s(cmdline, "%u/%u/%u %u/%u/%u %s",
-             &low_edges_per_base, &low_edges_per_height, &low_edges_per_cap,
-             &high_edges_per_base, &high_edges_per_height, &high_edges_per_cap,
+    sscanf_s(cmdline, "%u %s", &used_threads,
              logger_filename, MAX_FILENAME_LENGTH);
-
-    const Index HIGH_CYLINDER_VERTICES = cylinder_vertices_count(high_edges_per_base, high_edges_per_height, high_edges_per_cap);
-    const DWORD HIGH_CYLINDER_INDICES = cylinder_indices_count(high_edges_per_base, high_edges_per_height, high_edges_per_cap);
-    
-    const Index LOW_CYLINDER_VERTICES = cylinder_vertices_count(low_edges_per_base, low_edges_per_height, low_edges_per_cap);
-    const DWORD LOW_CYLINDER_INDICES = cylinder_indices_count(low_edges_per_base, low_edges_per_height, low_edges_per_cap);
 
     Logger logger(logger_filename);
     logger.newline();
@@ -237,157 +224,37 @@ INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR cmdline, INT )
 
     srand( static_cast<unsigned>( time(NULL) ) );
     
-    Vertex * low_cylinder_model_vertices = NULL;
-    Index * low_cylinder_model_indices = NULL;
-    Vertex * high_cylinder_model_vertices = NULL;
-    Index * high_cylinder_model_indices = NULL;
-    
-    Array<ShapeDeformationReaction*> reactions;
     try
     {
-        Application app(logger);
+        Application app(logger, used_threads);
 
         VertexShader simple_shader(app.get_device(), VERTEX_DECL_ARRAY, SIMPLE_SHADER_FILENAME);
         VertexShader lighting_shader(app.get_device(), VERTEX_DECL_ARRAY, LIGHTING_SHADER_FILENAME);
         
         // -------------------------- M o d e l -----------------------
 
-        low_cylinder_model_vertices = new Vertex[LOW_CYLINDER_VERTICES];
-        low_cylinder_model_indices = new Index[LOW_CYLINDER_INDICES];
-        high_cylinder_model_vertices = new Vertex[HIGH_CYLINDER_VERTICES];
-        high_cylinder_model_indices = new Index[HIGH_CYLINDER_INDICES];
+        MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+        Vertex * car_vertices = car.lock_vertex_buffer();
+        PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+        car.unlock_vertex_buffer();
         
-        const float cylinder_radius = 0.25;
-        const float cylinder_height = 1;
-        const float cylinder_z = -cylinder_height/2;
-
-        cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
-                 &CYLINDER_COLOR, 1,
-                 high_edges_per_base, high_edges_per_height, high_edges_per_cap,
-                 high_cylinder_model_vertices, high_cylinder_model_indices );
-        Model high_cylinder_model(app.get_device(),
-                                  D3DPT_TRIANGLESTRIP,
-                                  lighting_shader,
-                                  high_cylinder_model_vertices,
-                                  HIGH_CYLINDER_VERTICES,
-                                  high_cylinder_model_indices,
-                                  HIGH_CYLINDER_INDICES,
-                                  HIGH_CYLINDER_INDICES - 2,
-                                  D3DXVECTOR3(0, 0, 0),
-                                  D3DXVECTOR3(0, 0, 0));
-
-        cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
-                 &CYLINDER_COLOR, 1,
-                 low_edges_per_base, low_edges_per_height, low_edges_per_cap,
-                 low_cylinder_model_vertices, low_cylinder_model_indices );
-        Model low_cylinder_model(app.get_device(),
-                                 D3DPT_TRIANGLESTRIP,
-                                 simple_shader,
-                                 low_cylinder_model_vertices,
-                                 LOW_CYLINDER_VERTICES,
-                                 low_cylinder_model_indices,
-                                 LOW_CYLINDER_INDICES,
-                                 LOW_CYLINDER_INDICES - 2,
-                                 D3DXVECTOR3(0, 0, 0),
-                                 D3DXVECTOR3(0, 0, 0));
-        
-        PhysicalModel * phys_mod = app.add_model(high_cylinder_model, true, &low_cylinder_model);
+        PhysicalModel * phys_mod = app.add_model(car, true, &low_car);
         if(NULL == phys_mod)
             throw NullPointerError();
 
-        IndexArray frame;
-        const Index LOW_VERTICES_PER_SIDE = low_edges_per_base*low_edges_per_height;
-        add_range(frame, LOW_VERTICES_PER_SIDE/4, LOW_VERTICES_PER_SIDE*3/4, low_edges_per_base); // vertical line layer
-        add_range(frame, LOW_VERTICES_PER_SIDE/4 + 1, LOW_VERTICES_PER_SIDE*3/4, low_edges_per_base); // vertical line layer
-        phys_mod->set_frame(frame);
-        low_cylinder_model.repaint_vertices(frame, FRAME_COLOR);
-
-        // -- shapes and shape callbacks definition --
-
-        const int SHAPE_SIZE = low_edges_per_base;
-        const int SHAPE_LINES_OFFSET = 3;
-        const int SHAPES_COUNT = 8;
-        const int SHAPE_STEP = (SHAPES_COUNT > 1) ?
-                               ((low_edges_per_height - 2*SHAPE_LINES_OFFSET)/(SHAPES_COUNT - 1))*low_edges_per_base :
-                               0;
-        const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*low_edges_per_base;
-
-        const int SUBSHAPES_COUNT = 4;
-        const int SUBSHAPE_SIZE = SHAPE_SIZE/SUBSHAPES_COUNT;
-
-        // let's have some static array of dynamic arrays... :)
-        IndexArray vertex_indices[SHAPES_COUNT*SUBSHAPES_COUNT];
-        // ...and fill it
-        int subshape_index = 0;
-        for(int i = 0; i < SHAPES_COUNT; ++i)
-        {
-            for(int j = 0; j < SUBSHAPES_COUNT; ++j)
-            {
-                int subshape_start = SHAPE_OFFSET + i*SHAPE_STEP + j*SUBSHAPE_SIZE;
-                add_range(vertex_indices[subshape_index], subshape_start, subshape_start + SUBSHAPE_SIZE);
-                // create reaction
-                ShapeDeformationReaction & reaction = * new   DummyReaction( vertex_indices[subshape_index],
-                                                                             THRESHOLD_DISTANCE,
-                                                                             low_cylinder_model );
-                reactions.push_back(&reaction);
-                // register reaction
-                phys_mod->add_shape_deformation_reaction(reaction);
-                
-                ++subshape_index;
-            }
-        }
-
-        IndexArray hit_point(1);
-        hit_point.push_back(390); // oops, hard-coded...
-        
-        MessageBoxHitReaction weak_hit_reaction(hit_point, 1, _T("[All OK] Weak hit occured!"));
-        MessageBoxHitReaction strong_hit_reaction(hit_point, 100, _T("[!BUG!] Strong hit occured!"));
-
-        phys_mod->add_hit_reaction(weak_hit_reaction);
-        phys_mod->add_hit_reaction(strong_hit_reaction);
-
-        CylindricalRegion inside(Vector(0,0,cylinder_z+cylinder_height), Vector(0,0,cylinder_z), cylinder_radius - 0.1);
-        CylindricalRegion outside(Vector(0,0,cylinder_z+cylinder_height), Vector(0,0,cylinder_z), cylinder_radius + 0.012);
-
-        IndexArray shape;
-        add_range(shape, 9*low_edges_per_base, 10*low_edges_per_base);
-
-        MessageBoxRegionReaction inside_reaction(shape, inside, true, _T("[OK] Entered inside!"));
-        MessageBoxRegionReaction outside_reaction(shape, outside, false, _T("[OK] Left out!"));
-
-        phys_mod->add_region_reaction(inside_reaction);
-        phys_mod->add_region_reaction(outside_reaction);
 
         // -------------------------- F o r c e s -----------------------
         ForcesArray forces;
-
-        PlaneForce force( Vector(0,60,0), Vector(0,0,cylinder_z), Vector(0,0,1), 0.5 );
-        forces.push_back(&force);
         app.set_forces(forces);
 
         SphericalRegion hit_region( Vector(0,2.2,-0.9), 0.25 );
-
         app.set_impact( hit_region, Vector(0,-110,0.0), Vector(0, 1.15, 0));
 
         // -------------------------- G O ! ! ! -----------------------
         app.run(5);
-        delete_array(&low_cylinder_model_indices);
-        delete_array(&low_cylinder_model_vertices);
-        delete_array(&high_cylinder_model_indices);
-        delete_array(&high_cylinder_model_vertices);
-
-        for(int i = 0; i < reactions.size(); ++i)
-            delete reactions[i];
     }
     catch(RuntimeError &e)
     {
-        delete_array(&low_cylinder_model_indices);
-        delete_array(&low_cylinder_model_vertices);
-        delete_array(&high_cylinder_model_indices);
-        delete_array(&high_cylinder_model_vertices);
-        for(int i = 0; i < reactions.size(); ++i)
-            delete reactions[i];
-        
         logger.log("ERROR!! [Renderer]", e.get_log_entry());
         logger.dump_messages();
         const TCHAR *MESSAGE_BOX_TITLE = _T("Renderer error!");

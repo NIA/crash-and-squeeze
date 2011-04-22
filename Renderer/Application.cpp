@@ -146,18 +146,20 @@ namespace
     //    c197-c199 are ZEROS! (3x4 zero matrix)
 }
 
-Application::Application(Logger &logger) :
+Application::Application(Logger &logger, int used_threads_count) :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(1.8f, 1.1f, -1.2f), // Constants selected for better view of the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
-    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false), event_query(NULL)
+    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false), event_query(NULL),
+    threads_count(MAX_THREADS_COUNT)
 {
 
     try
     {
         init_device();
         set_show_mode(SHOW_GRAPHICAL_VERTICES);
+        set_threads_count(used_threads_count);
         init_font();
     }
     // using catch(...) because every caught exception is rethrown
@@ -228,6 +230,18 @@ void Application::init_font()
         throw D3DXFontError();
 }
 
+void Application::set_threads_count(int value)
+{
+    if(value < 0 || value > MAX_THREADS_COUNT)
+    {
+        throw ThreadsCountError();
+    }
+    else
+    {
+        threads_count = value;
+    }
+}
+
 void  Application::set_alpha_test()
 {
     if(alpha_test_enabled)
@@ -239,7 +253,6 @@ void  Application::set_alpha_test()
         check_state( device->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS) );
     }
 }
-
 
 void Application::render(PerformanceReporter &internal_reporter)
 {
@@ -388,7 +401,7 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
 
         model_entity.low_model = low_model;
 
-        for(int i = 0; i < THREADS_COUNT; ++i)
+        for(int i = 0; i < threads_count; ++i)
         {
             // TODO: Oops, it will fail for two or more physical models
             threads[i].start(model_entity.physical_model, &logger);
@@ -738,10 +751,10 @@ void Application::run(double duration_sec)
         if( NULL != iter->physical_model )
         {
             sprintf_s(header, BUFFER_SIZE,
-                      "Performance for %i low-vertices (mapped on %i hi-vertices) in %i=%ix%ix%i clusters on %i threads [%s]",
+                      "%i low-vertices and %i hi-vertices in %i=%ix%ix%i clusters on %i threads [%s]",
                       iter->physical_model->get_vertices_num(), iter->high_model->get_vertices_count(),
                       TOTAL_CLUSTERS_COUNT, CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2],
-                      THREADS_COUNT, RELEASE_OR_DEBUG);
+                      threads_count, RELEASE_OR_DEBUG);
             logger.log("        [Renderer]", header);
         }
         if( NULL != (*iter).performance_reporter )

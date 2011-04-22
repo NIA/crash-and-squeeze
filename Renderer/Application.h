@@ -68,8 +68,10 @@ private:
 
     WinFactory prim_factory;
 
-    static const int THREADS_COUNT = 2;
-    WorkerThread threads[THREADS_COUNT];
+    static const int MAX_THREADS_COUNT = 8;
+    WorkerThread threads[MAX_THREADS_COUNT];
+    int threads_count;
+    void set_threads_count(int value);
 
     Camera camera;
 
@@ -124,7 +126,7 @@ private:
     void release_interfaces();
 
 public:
-    Application(Logger &logger);
+    Application(Logger &logger, int used_threads_count);
     IDirect3DDevice9 * get_device();
 
     // Adds given model to Application's list of models;

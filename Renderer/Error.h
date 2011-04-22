@@ -145,6 +145,11 @@ class MeshError : public RuntimeError
 public:
     MeshError() : RuntimeError( _T("Error while loading mesh from file") ) {}
 };
+class ThreadsCountError : public RuntimeError
+{
+public:
+    ThreadsCountError() : RuntimeError( _T("Invalid threads count given") ) {}
+};
 
 inline void check_render( HRESULT res )
 {
