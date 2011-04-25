@@ -408,6 +408,7 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
         }
 
         model_entity.performance_reporter = new PerformanceReporter(logger, "physics ");
+        model_entity.clusters_reporter    = new PerformanceReporter(logger, "clusters");
     }
     else
     {
@@ -654,6 +655,7 @@ void Application::run(double duration_sec)
                 {
                     PhysicalModel       * physical_model       = (*iter).physical_model;
                     PerformanceReporter * performance_reporter = (*iter).performance_reporter;
+                    PerformanceReporter * clusters_reporter    = (*iter).clusters_reporter;
                     
                     if( NULL != physical_model )
                     {
@@ -679,17 +681,26 @@ void Application::run(double duration_sec)
 
                         physical_model->react_to_events();
 
+                        if(false == physical_model->wait_for_clusters())
+                        {
+                            throw PhysicsError();
+                        }
+                        double clusters_time = stopwatch.get_time();
+                        
                         if(false == physical_model->wait_for_step())
                         {
                             throw PhysicsError();
                         }
-
                         double time = stopwatch.get_time();
                         logger.add_message("Clusters ~~finished~~");
 
                         if( NULL != performance_reporter )
                         {
                             performance_reporter->add_measurement(time);
+                        }
+                        if( NULL != clusters_reporter )
+                        {
+                            clusters_reporter->add_measurement(clusters_time);
                         }
                     }
                 }
@@ -757,9 +768,10 @@ void Application::run(double duration_sec)
                       threads_count, RELEASE_OR_DEBUG);
             logger.log("        [Renderer]", header);
         }
-        if( NULL != (*iter).performance_reporter )
+        if( NULL != iter->performance_reporter )
         {
-            (*iter).performance_reporter->report_results();
+            iter->clusters_reporter->report_results();
+            iter->performance_reporter->report_results();
         }
     }
     render_performance_reporter.report_results();
@@ -805,11 +817,9 @@ void Application::delete_model_stuff()
 {
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
-        if(NULL != (*iter).physical_model)
-            delete (*iter).physical_model;
-
-        if(NULL != (*iter).performance_reporter)
-            delete (*iter).performance_reporter;
+        delete iter->physical_model;
+        delete iter->performance_reporter;
+        delete iter->clusters_reporter;
     }
 }
 
