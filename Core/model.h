@@ -174,7 +174,9 @@ namespace CrashAndSqueeze
             // specifies the region being directly hit: at the first step momentum addition
             // is distributed between vertices inside this region.
             //
-            // TODO: thread-safety??
+            // TODO: should it be done _after_ preparing tasks, i.e. in parallel with clusters computing?
+            // Should then use a lock to avoid race condition between this and last task? (unlikely, because it
+            // will probably finish before, but possible)
             void hit(const IRegion &region, const Math::Vector & velocity);
             
             // Prepares tasks for next step. If there are some tasks from previous step left,

@@ -653,9 +653,6 @@ void Application::run()
 
                         logger.add_message("Step **finished**");
 
-                        // TODO: should move this after preparing tasks, to do this in parallel with clusters computing?
-                        // Should then use a lock to avoid race condition between this and last task? (unlikely, because it
-                        // will probably finish before, but possible)
                         if(impact_happened && NULL != impact_region)
                         {
                             physical_model->hit(*impact_region, impact_velocity);
