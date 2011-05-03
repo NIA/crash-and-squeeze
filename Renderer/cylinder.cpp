@@ -3,15 +3,14 @@
 Index cylinder_vertices_count(Index edges_per_base, Index edges_per_height, Index edges_per_cap)
 {
     return (edges_per_base)*((edges_per_height + 1) + 2 + 2*(edges_per_cap -1)) // vertices per edges_per_height+1 levels plus last ans first levels again, plus edges_per_cap-1 levels per each of 2 caps
-           + 2 // plus centers of 2 caps
-           + edges_per_height; // plus jump between top and bottom
+           + 2; // plus centers of 2 caps
 }
 
 DWORD cylinder_indices_count(Index edges_per_base, Index edges_per_height, Index edges_per_cap)
 {
     return 2*(edges_per_base + 1)*(edges_per_height + 2*(edges_per_cap - 1)) // indices per edges_per_height levels plus edges_per_cap-1 levels per each of 2 caps
            + 2*(2*edges_per_base + 1) // plus 2 ends of caps
-           + edges_per_height + 2;  // plus jump between top and bottom
+           + 2; // plus degenerate triagnle for jump from top to bottom
 }
 
 namespace
@@ -93,12 +92,12 @@ namespace
                 params.res_vertices[vertex] = Vertex(position, color, normal);
                 if( level != 0 )
                 {
-                    params.res_indices[index++] = vertex - params.edges_per_base; // from previous level
                     params.res_indices[index++] = vertex;                           // from current level
+                    params.res_indices[index++] = vertex - params.edges_per_base; // from previous level
                     if( step == params.edges_per_base - 1 ) // last step
                     {
-                        params.res_indices[index++] = vertex - 2*params.edges_per_base + 1; // first from previuos level
                         params.res_indices[index++] = vertex - params.edges_per_base + 1; // first from current level
+                        params.res_indices[index++] = vertex - 2*params.edges_per_base + 1; // first from previuos level
                     }
                 }
                 ++vertex;
@@ -111,8 +110,8 @@ namespace
             params.res_vertices[vertex] = Vertex( position, params.colors[0], normal_if_horisontal );
             for( Index step = 0; step < params.edges_per_base; ++step )
             {
-                params.res_indices[index++] = vertex - params.edges_per_base + step;
                 params.res_indices[index++] = vertex;
+                params.res_indices[index++] = vertex - params.edges_per_base + step;
             }
             params.res_indices[index++] = vertex - params.edges_per_base;
             ++vertex;
@@ -161,16 +160,6 @@ void cylinder( float radius, float height, D3DXVECTOR3 position,
     params.top = true;
     generate_levels(vertex, index, params);
 
-    // Go from last level to first inside cylinder
-    const float STEP_UP = params.height/params.edges_per_height;
-    for( unsigned level = params.edges_per_height; level != 0; --level )
-    {
-        res_vertices[vertex] = Vertex( D3DXVECTOR3(0, 0, level*STEP_UP) + position,
-                                       colors[0],
-                                       D3DXVECTOR3(0,0,1.0f) );
-        res_indices[index++] = vertex;
-        ++vertex;
-    }
     for( unsigned i = 0; i < VERTICES_PER_TRIANGLE-1; ++i )
     {
         // making degenerate triangle
