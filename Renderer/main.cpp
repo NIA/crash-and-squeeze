@@ -211,7 +211,7 @@ INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR cmdline, INT )
     sscanf_s(cmdline, "%u %s", &used_threads,
              logger_filename, MAX_FILENAME_LENGTH);
 
-    Logger logger(logger_filename);
+    Logger logger(logger_filename, false);
     logger.newline();
     
     PhysicsLogger & phys_logger = PhysicsLogger::get_instance();

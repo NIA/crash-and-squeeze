@@ -1,10 +1,15 @@
 #include "logger.h"
 #include <ctime>
+#include <fstream>
+#include <iomanip>
+
+using namespace std;
 
 Logger::Logger(const char * log_filename, bool messages_enabled)
 : next_message_index(0), messages_enabled(messages_enabled)
 {
-    log_file.open(log_filename, std::ios::app);
+    log_file.open(log_filename, ios::app);
+    stopwatch.start();
 }
 
 void Logger::log(const char *prefix, const char * message, const char * file, int line)
@@ -36,11 +41,11 @@ void Logger::newline()
     if(!log_file.is_open())
         return;
 
-    log_file << std::endl;
+    log_file << endl;
     log_file.flush();
 }
 
-void Logger::add_message(const char* message)
+void Logger::add_message(const char* message, int thread_id)
 {
     if(messages_enabled)
     {
@@ -55,6 +60,8 @@ void Logger::add_message(const char* message)
         next_message_index = write_here + 1;
         lock.unlock();
         messages[write_here] = message;
+        timestamps[write_here] = stopwatch.get_time();
+        thread_ids[write_here] = thread_id;
     }
 }
 
@@ -62,11 +69,16 @@ void Logger::dump_messages()
 {
     if(messages_enabled)
     {
-        log_file << std::endl << "Messages dump:" << std::endl;
+        log_file << endl << "Messages dump:" << endl;
+        log_file << setiosflags(ios::fixed) << setprecision(2);
+        lock.lock();
         for(int i = 0; i < next_message_index; ++i)
         {
-            log_file << messages[i] << std::endl;
+            log_file << setw(7) << timestamps[i]*1000 << "ms"
+                     << " #" << thread_ids[i] << ':'
+                     << ' '  << messages[i] << endl;
         }
+        lock.unlock();
         log_file.flush();
     }
 }

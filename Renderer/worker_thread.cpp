@@ -3,7 +3,7 @@
 WorkerThread::WorkerThread()
 : handle(NULL), model(NULL), logger(NULL) {}
 
-void WorkerThread::start(CrashAndSqueeze::Core::Model *model, Logger *logger)
+void WorkerThread::start(CrashAndSqueeze::Core::Model *model, Logger *logger, int id)
 {
     _ASSERT(NULL == handle);
     stopped = false;
@@ -12,6 +12,7 @@ void WorkerThread::start(CrashAndSqueeze::Core::Model *model, Logger *logger)
         throw ThreadError();
     this->model = model;
     this->logger = logger;
+    this->id = id;
 }
 
 DWORD WorkerThread::routine(void *param)
@@ -28,19 +29,19 @@ DWORD WorkerThread::work()
         _ASSERT(NULL != logger);
         while(!stopped)
         {
-            logger->add_message("Waiting for tasks...");
+            logger->add_message("Waiting for tasks...", id);
             model->wait_for_tasks();
-            logger->add_message("...the wait is over");
+            logger->add_message("...the wait is over", id);
             
             bool has_more_tasks = true;
             while( !stopped && has_more_tasks)
             {
-                logger->add_message("Task >>started>>");
+                logger->add_message("Task >>started>>", id);
                 has_more_tasks = model->complete_next_task();
                 if(has_more_tasks)
-                    logger->add_message("Task <<finished<<");
+                    logger->add_message("Task <<finished<<", id);
                 else
-                    logger->add_message("ALL Tasks ==finished==");
+                    logger->add_message("): No more tasks :(", id);
             }
         }
         return 0;

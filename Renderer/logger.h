@@ -1,6 +1,7 @@
 #pragma once
 #include "main.h"
 #include "parallel.h"
+#include "stopwatch.h"
 
 class Logger
 {
@@ -8,8 +9,12 @@ private:
     std::ofstream log_file;
     static const int MESSAGES_SIZE =50000;
     const char * messages[MESSAGES_SIZE];
+    double timestamps[MESSAGES_SIZE];
+    int thread_ids[MESSAGES_SIZE];
+
     int next_message_index;
     WinLock lock;
+    Stopwatch stopwatch;
     bool messages_enabled;
 
 public:
@@ -19,9 +24,9 @@ public:
     void newline();
     
     // WARNING! message is not copied but saved as pointer. DO NOT pass local
-    // variables as `message'! For best safety `message' should be constant string
-    // literal, so there would be a guarantee that it is not freed before dumping.
-    void add_message(const char* message);
+    // variables as `message'! For best safety `message' should be a global constant (incl. string
+    // literal), so there would be a guarantee that it is neither freed nor changed before dumping.
+    void add_message(const char* message, int thread_id = 0);
     void dump_messages();
 
     ~Logger()

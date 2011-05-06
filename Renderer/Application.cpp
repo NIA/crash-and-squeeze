@@ -404,7 +404,7 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
         for(int i = 0; i < threads_count; ++i)
         {
             // TODO: Oops, it will fail for two or more physical models
-            threads[i].start(model_entity.physical_model, &logger);
+            threads[i].start(model_entity.physical_model, &logger, i+1); // i+1, because #0 is current thread
         }
 
         model_entity.performance_reporter = new PerformanceReporter(logger, "physics ");
@@ -659,13 +659,6 @@ void Application::run(double duration_sec)
                     
                     if( NULL != physical_model )
                     {
-                        if(false == physical_model->wait_for_step())
-                        {
-                            throw PhysicsError();
-                        }
-
-                        logger.add_message("Step **finished**");
-
                         // TODO: should move this after preparing tasks, to do this in parallel with clusters computing?
                         // Should then use a lock to avoid race condition between this and last task? (unlikely, because it
                         // will probably finish before, but possible)
@@ -676,8 +669,8 @@ void Application::run(double duration_sec)
                         }
 
                         stopwatch.start();
-                        physical_model->prepare_tasks(*forces, dt, NULL);
                         logger.add_message("Tasks --READY--");
+                        physical_model->prepare_tasks(*forces, dt, NULL);
 
                         physical_model->react_to_events();
 
@@ -686,13 +679,14 @@ void Application::run(double duration_sec)
                             throw PhysicsError();
                         }
                         double clusters_time = stopwatch.get_time();
+                        logger.add_message("Clusters ~~finished~~");
                         
                         if(false == physical_model->wait_for_step())
                         {
                             throw PhysicsError();
                         }
                         double time = stopwatch.get_time();
-                        logger.add_message("Clusters ~~finished~~");
+                        logger.add_message("Step **finished**");
 
                         if( NULL != performance_reporter )
                         {
