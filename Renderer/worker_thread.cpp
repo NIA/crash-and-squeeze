@@ -7,12 +7,20 @@ void WorkerThread::start(CrashAndSqueeze::Core::Model *model, Logger *logger, in
 {
     _ASSERT(NULL == handle);
     stopped = false;
-	handle = CreateThread(NULL, 0, WorkerThread::routine, this, 0, NULL);
-    if(NULL == handle)
-        throw ThreadError();
     this->model = model;
     this->logger = logger;
     this->id = id;
+    handle = CreateThread(NULL, 0, WorkerThread::routine, this, 0, NULL);
+    if(NULL == handle)
+    {
+        throw ThreadError();
+    }
+    
+    int affinity_mask = 1 << (id - 1);
+    if(NULL == SetThreadAffinityMask(handle, affinity_mask))
+    {
+        throw AffinityError();
+    }
 }
 
 DWORD WorkerThread::routine(void *param)

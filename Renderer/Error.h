@@ -150,6 +150,11 @@ class ThreadsCountError : public RuntimeError
 public:
     ThreadsCountError() : RuntimeError( _T("Invalid threads count given") ) {}
 };
+class AffinityError : public RuntimeError
+{
+public:
+    AffinityError() : RuntimeError( _T("Failed to set thread affinity mask") ) {}
+};
 
 inline void check_render( HRESULT res )
 {
