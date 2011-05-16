@@ -235,7 +235,7 @@ INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR cmdline, INT )
 
         MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
         Vertex * car_vertices = car.lock_vertex_buffer();
-        PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+        PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), 3, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
         car.unlock_vertex_buffer();
         
         PhysicalModel * phys_mod = app.add_model(car, true, &low_car);

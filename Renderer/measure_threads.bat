@@ -1,7 +1,7 @@
 @echo off
 rem config, feel free to change
 set LAUNCH=..\_Bin\Release\Renderer.exe
-set REPEATS=1
+set REPEATS=4
 set LOGFILE=measure_threads.log
 
 rem -----------------------------------

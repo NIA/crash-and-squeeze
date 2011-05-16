@@ -407,14 +407,17 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
             threads[i].start(model_entity.physical_model, &logger, i+1); // i+1, because #0 is current thread
         }
 
-        model_entity.performance_reporter = new PerformanceReporter(logger, "physics ");
         model_entity.clusters_reporter    = new PerformanceReporter(logger, "clusters");
+        model_entity.body_reporter        = new PerformanceReporter(logger, "body    ");
+        model_entity.performance_reporter = new PerformanceReporter(logger, "tot.phys");
     }
     else
     {
         model_entity.low_model = NULL;
         model_entity.physical_model = NULL;
         model_entity.performance_reporter = NULL;
+        model_entity.clusters_reporter    = NULL;
+        model_entity.body_reporter        = NULL;
     }
 
     model_entities.push_back( model_entity );
@@ -656,6 +659,7 @@ void Application::run(double duration_sec)
                     PhysicalModel       * physical_model       = (*iter).physical_model;
                     PerformanceReporter * performance_reporter = (*iter).performance_reporter;
                     PerformanceReporter * clusters_reporter    = (*iter).clusters_reporter;
+                    PerformanceReporter * body_reporter        = (*iter).body_reporter;
                     
                     if( NULL != physical_model )
                     {
@@ -695,6 +699,10 @@ void Application::run(double duration_sec)
                         if( NULL != clusters_reporter )
                         {
                             clusters_reporter->add_measurement(clusters_time);
+                        }
+                        if( NULL != body_reporter )
+                        {
+                            body_reporter->add_measurement(time - clusters_time);
                         }
                     }
                 }
@@ -765,6 +773,7 @@ void Application::run(double duration_sec)
         if( NULL != iter->performance_reporter )
         {
             iter->clusters_reporter->report_results();
+            iter->body_reporter->report_results();
             iter->performance_reporter->report_results();
         }
     }
@@ -814,6 +823,7 @@ void Application::delete_model_stuff()
         delete iter->physical_model;
         delete iter->performance_reporter;
         delete iter->clusters_reporter;
+        delete iter->body_reporter;
     }
 }
 
