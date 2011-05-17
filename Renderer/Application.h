@@ -21,6 +21,8 @@ struct ModelEntity
     AbstractModel       *low_model;
     PhysicalModel       *physical_model;
     PerformanceReporter *performance_reporter;
+    Vertex              *testbed_buffer;
+    int                 testbed_size;
 };
 
 typedef std::vector<ModelEntity> ModelEntities;

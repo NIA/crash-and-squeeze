@@ -395,12 +395,16 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
         }
 
         model_entity.performance_reporter = new PerformanceReporter(logger, "physics ");
+        model_entity.testbed_size = high_model.get_vertices_count();
+        model_entity.testbed_buffer = new Vertex[model_entity.testbed_size];
     }
     else
     {
         model_entity.low_model = NULL;
         model_entity.physical_model = NULL;
         model_entity.performance_reporter = NULL;
+        model_entity.testbed_size = 0;
+        model_entity.testbed_buffer = NULL;
     }
 
     model_entities.push_back( model_entity );
@@ -587,6 +591,7 @@ void Application::run(double duration_sec)
     Stopwatch stopwatch;
     Stopwatch total_stopwatch;
     PerformanceReporter render_performance_reporter(logger, "render  ");
+    PerformanceReporter update_performance_reporter(logger, "updating");
     PerformanceReporter total_performance_reporter(logger, "total   ");
 
     int physics_frames = 0;
@@ -683,8 +688,7 @@ void Application::run(double duration_sec)
                 ++physics_frames;
                 emultate_one_step = false;
 
-                if(SHOW_GRAPHICAL_VERTICES != show_mode)
-                    vertices_update_needed = true;
+                vertices_update_needed = true;
             }
 
             if(vertices_update_needed)
@@ -694,6 +698,8 @@ void Application::run(double duration_sec)
                 {
                     PhysicalModel       * physical_model       = (*iter).physical_model;
                     AbstractModel       * low_model            = (*iter).low_model;
+                    Vertex              * testbed_buffer       = (*iter).testbed_buffer;
+                    int                   testbed_size         = (*iter).testbed_size;
                     
                     if( NULL != physical_model )
                     {
@@ -703,6 +709,10 @@ void Application::run(double duration_sec)
                         {
                         case SHOW_GRAPHICAL_VERTICES:
                             // update not needed, since it is made on GPU
+                            // just test it in a testbed
+                            stopwatch.start();
+                            physical_model->update_vertices(testbed_buffer, testbed_size, VERTEX_INFO);
+                            update_performance_reporter.add_measurement(stopwatch.get_time());
                             break;
                         case SHOW_CURRENT_POSITIONS:
                             physical_model->update_current_positions(low_vertices, low_model->get_vertices_count(), VERTEX_INFO);
@@ -721,6 +731,7 @@ void Application::run(double duration_sec)
 
                 vertices_update_needed = false;
             }
+            
             
             // graphics
             render(render_performance_reporter);
@@ -749,6 +760,7 @@ void Application::run(double duration_sec)
             (*iter).performance_reporter->report_results();
         }
     }
+    update_performance_reporter.report_results();
     render_performance_reporter.report_results();
     total_performance_reporter.report_results();
 
@@ -792,11 +804,9 @@ void Application::delete_model_stuff()
 {
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
-        if(NULL != (*iter).physical_model)
-            delete (*iter).physical_model;
-
-        if(NULL != (*iter).performance_reporter)
-            delete (*iter).performance_reporter;
+        delete (*iter).physical_model;
+        delete (*iter).performance_reporter;
+        delete[] (*iter).testbed_buffer;
     }
 }
 
