@@ -45,7 +45,7 @@ namespace CrashAndSqueeze
             virtual int get_including_clusters_num() const { return including_clusters_num; }
             virtual bool check_in_cluster();
             // and add something special
-            ClusterIndex get_including_cluster_index(int index);
+            ClusterIndex get_including_cluster_index(int index) const;
         };
     }
 }

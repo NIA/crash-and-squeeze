@@ -572,16 +572,14 @@ namespace CrashAndSqueeze
             }
         }
 
-        Matrix Model::get_cluster_transformation(int cluster_index) const
+        const Matrix & Model::get_cluster_transformation(int cluster_index) const
         {
-            const Cluster &c = clusters[cluster_index];
-            return c.get_rotation() * c.get_plasticity_state();
+            return clusters[cluster_index].get_graphical_pos_transform();
         }
 
-        Matrix Model::get_cluster_normal_transformation(int cluster_index) const
+        const Matrix & Model::get_cluster_normal_transformation(int cluster_index) const
         {
-            const Cluster &c = clusters[cluster_index];
-            return c.get_rotation() * c.get_plasticity_state_inv_tr();
+            return clusters[cluster_index].get_graphical_nrm_transform();
         }
 
         const Vector & Model::get_cluster_center(int cluster_index) const
@@ -666,20 +664,48 @@ namespace CrashAndSqueeze
             void *out_vertex = out_vertices;
             for(int i = 0; i < vertices_num; ++i)
             {
+                const GraphicalVertex & vertex = graphical_vertices[i];
+                int clusters_num = vertex.get_including_clusters_num();
+                if(0 == clusters_num)
+                {
+                    Logger::error("GraphicalVertex doesn't belong to any cluster", __FILE__, __LINE__);
+                    return;
+                }
+
                 for(int j = 0; j < vertex_info.get_points_num(); ++j)
                 {
-                    VertexFloat *out_point =
+                    Vector new_point = Vector::ZERO;
+                    for( int k = 0; k < clusters_num; ++k)
+                    {
+                        const Cluster & cluster = clusters[vertex.get_including_cluster_index(k)];
+                        new_point += cluster.get_graphical_pos_transform() * (vertex.get_point(j) - cluster.get_initial_center_of_mass())
+                                   + cluster.get_center_of_mass();
+                    }
+                    new_point /= clusters_num;
+
+                    VertexFloat *destination =
                         reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(j)) );
 
-                    VertexInfo::vector_to_vertex_floats(graphical_vertices[i].get_point(j), out_point);
+                    VertexInfo::vector_to_vertex_floats(new_point, destination);
                 }
 
                 for(int j = 0; j < vertex_info.get_vectors_num(); ++j)
                 {
-                    VertexFloat *out_vector =
+                    Vector new_vector = Vector::ZERO;
+                    for( int k = 0; k < clusters_num; ++k)
+                    {
+                        const Cluster & cluster = clusters[vertex.get_including_cluster_index(k)];
+                        if(vertex.is_vector_orthogonal(j))
+                            new_vector += cluster.get_graphical_nrm_transform() * vertex.get_vector(j);
+                        else
+                            new_vector += cluster.get_graphical_pos_transform() * vertex.get_vector(j);
+                    }
+                    new_vector /= clusters_num;
+
+                    VertexFloat *destination =
                         reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_vector_offset(j)) );
 
-                    VertexInfo::vector_to_vertex_floats(graphical_vertices[i].get_vector(j), out_vector);
+                    VertexInfo::vector_to_vertex_floats(new_vector, destination);
                 }
 
                 out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());

@@ -212,8 +212,8 @@ namespace CrashAndSqueeze
             void react_to_events();
 
             // get cluster parameters for computation on GPU
-            Math::Matrix get_cluster_transformation(int cluster_index) const;
-            Math::Matrix get_cluster_normal_transformation(int cluster_index) const;
+            const Math::Matrix & get_cluster_transformation(int cluster_index) const;
+            const Math::Matrix & get_cluster_normal_transformation(int cluster_index) const;
             const Math::Vector & get_cluster_initial_center(int cluster_index) const;
             const Math::Vector & get_cluster_center(int cluster_index) const;
 

@@ -139,6 +139,7 @@ namespace CrashAndSqueeze
             update_equilibrium_positions(false);
             apply_goal_positions(dt);
             update_plasticity_state(dt);
+            update_graphical_transformations();
         }            
 
         void Cluster::update_center_of_mass()
@@ -170,6 +171,12 @@ namespace CrashAndSqueeze
                 get_physical_vertex(i).change_equilibrium_pos(new_equil_pos - equil_pos);
                 equil_pos = new_equil_pos;
             }
+        }
+
+        void Cluster::update_graphical_transformations()
+        {
+            graphical_pos_transform = rotation*plasticity_state;
+            graphical_nrm_transform = rotation*plasticity_state_inv_trans;
         }
 
         void Cluster::compute_asymmetric_term()
