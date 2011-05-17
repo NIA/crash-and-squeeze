@@ -572,16 +572,14 @@ namespace CrashAndSqueeze
             }
         }
 
-        Matrix Model::get_cluster_transformation(int cluster_index) const
+        const Matrix & Model::get_cluster_transformation(int cluster_index) const
         {
-            const Cluster &c = clusters[cluster_index];
-            return c.get_rotation() * c.get_plasticity_state();
+            return clusters[cluster_index].get_graphical_pos_transform();
         }
 
-        Matrix Model::get_cluster_normal_transformation(int cluster_index) const
+        const Matrix & Model::get_cluster_normal_transformation(int cluster_index) const
         {
-            const Cluster &c = clusters[cluster_index];
-            return c.get_rotation() * c.get_plasticity_state_inv_tr();
+            return clusters[cluster_index].get_graphical_nrm_transform();
         }
 
         const Vector & Model::get_cluster_center(int cluster_index) const
@@ -647,10 +645,71 @@ namespace CrashAndSqueeze
 
         void Model::update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
-            ignore_unreferenced(out_vertices);
-            ignore_unreferenced(vertices_num);
-            ignore_unreferenced(vertex_info);
-            Logger::error("in Model::update_vertices: CPU version not yet implemented", __FILE__, __LINE__); 
+            if(vertices_num > graphical_vertices.size())
+            {
+                Logger::warning("in Model::update_vertices: requested to update too many vertices, probably wrong vertices given?", __FILE__, __LINE__);
+                vertices_num = vertices.size();
+            }
+            if(vertex_info.get_points_num() > graphical_vertices[0].get_points_num())
+            {
+                Logger::error("in Model::update_vertices: vertex_info incompatible with that was used for initialization: too many points per vertex requested", __FILE__, __LINE__);
+                return;
+            }
+            if(vertex_info.get_vectors_num() > graphical_vertices[0].get_vectors_num())
+            {
+                Logger::error("in Model::update_vertices: vertex_info incompatible with that was used for initialization: too many vectors per vertex requested", __FILE__, __LINE__);
+                return;
+            }
+
+            void *out_vertex = out_vertices;
+            for(int i = 0; i < vertices_num; ++i)
+            {
+                const GraphicalVertex & vertex = graphical_vertices[i];
+                int clusters_num = vertex.get_including_clusters_num();
+                if(0 == clusters_num)
+                {
+                    Logger::error("GraphicalVertex doesn't belong to any cluster", __FILE__, __LINE__);
+                    return;
+                }
+
+                for(int j = 0; j < vertex_info.get_points_num(); ++j)
+                {
+                    Vector new_point = Vector::ZERO;
+                    for( int k = 0; k < clusters_num; ++k)
+                    {
+                        const Cluster & cluster = clusters[vertex.get_including_cluster_index(k)];
+                        new_point += cluster.get_graphical_pos_transform() * (vertex.get_point(j) - cluster.get_initial_center_of_mass())
+                                   + cluster.get_center_of_mass();
+                    }
+                    new_point /= clusters_num;
+
+                    VertexFloat *destination =
+                        reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(j)) );
+
+                    VertexInfo::vector_to_vertex_floats(new_point, destination);
+                }
+
+                for(int j = 0; j < vertex_info.get_vectors_num(); ++j)
+                {
+                    Vector new_vector = Vector::ZERO;
+                    for( int k = 0; k < clusters_num; ++k)
+                    {
+                        const Cluster & cluster = clusters[vertex.get_including_cluster_index(k)];
+                        if(vertex.is_vector_orthogonal(j))
+                            new_vector += cluster.get_graphical_nrm_transform() * vertex.get_vector(j);
+                        else
+                            new_vector += cluster.get_graphical_pos_transform() * vertex.get_vector(j);
+                    }
+                    new_vector /= clusters_num;
+
+                    VertexFloat *destination =
+                        reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_vector_offset(j)) );
+
+                    VertexInfo::vector_to_vertex_floats(new_vector, destination);
+                }
+
+                out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
+            }
         }
 
         void Model::update_current_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)

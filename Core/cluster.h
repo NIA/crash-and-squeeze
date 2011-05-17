@@ -97,6 +97,10 @@ namespace CrashAndSqueeze
             Math::Matrix scale;
             // total deformation used in goal positions calculation (interpolated from R and A)
             Math::Matrix total_deformation;
+            // position transformation for graphical vertices (rotation*plasticity_state)
+            Math::Matrix graphical_pos_transform;
+            // normal transformation for graphical vertices (rotation*plasticity_state_inv_trans)
+            Math::Matrix graphical_nrm_transform;
             
             // -- access helpers --
             bool check_initial_characteristics() const;
@@ -129,6 +133,9 @@ namespace CrashAndSqueeze
 
             // is called after updating plasticity_state
             void update_equilibrium_positions(Math::Real dt);
+
+            // updates graphical_pos_transform & graphical_nrm_transform
+            void update_graphical_transformations();
         
         public:
             Cluster();
@@ -174,6 +181,8 @@ namespace CrashAndSqueeze
             const Math::Matrix & get_total_deformation() const { return total_deformation; }
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
             const Math::Matrix & get_plasticity_state_inv_tr() const { return plasticity_state_inv_trans; }
+            const Math::Matrix & get_graphical_pos_transform() const { return graphical_pos_transform; }
+            const Math::Matrix & get_graphical_nrm_transform() const { return graphical_nrm_transform; }
             Math::Real get_relative_plastic_deformation() const;
         
             void log_properties(int id);

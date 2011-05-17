@@ -56,13 +56,15 @@ namespace CrashAndSqueeze
             return true;
         }
 
-        ClusterIndex GraphicalVertex::get_including_cluster_index(int index)
+        ClusterIndex GraphicalVertex::get_including_cluster_index(int index) const
         {
+        #ifndef NDEBUG
             if(index >= VertexInfo::CLUSTER_INDICES_NUM)
             {
                 Logger::error("in GraphicalVertex::get_including_cluster_index: index out of range", __FILE__, __LINE__);
                 return 0;
             }
+        #endif //ifndef NDEBUG
             return cluster_indices[index];
         }
     }
