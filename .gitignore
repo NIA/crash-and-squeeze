@@ -38,3 +38,5 @@ _ReSharper*/
 #AMD CodeAnalyst:
 *.caw
 *.tbp.dir
+# Intel VTune Amplifier XE:
+My Amplifier*
