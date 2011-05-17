@@ -161,6 +161,11 @@ Application::Application(Logger &logger, int used_threads_count) :
         set_show_mode(SHOW_GRAPHICAL_VERTICES);
         set_threads_count(used_threads_count);
         init_font();
+        if(NULL == SetThreadAffinityMask(GetCurrentThread(), 8))
+        {
+            throw AffinityError();
+        }
+
     }
     // using catch(...) because every caught exception is rethrown
     catch(...)
@@ -673,24 +678,24 @@ void Application::run(double duration_sec)
                         }
 
                         stopwatch.start();
-                        logger.add_message("Tasks --READY--");
+                        //logger.add_message("Tasks --READY--");
                         physical_model->prepare_tasks(*forces, dt, NULL);
 
-                        physical_model->react_to_events();
+                        //physical_model->react_to_events();
 
                         if(false == physical_model->wait_for_clusters())
                         {
                             throw PhysicsError();
                         }
                         double clusters_time = stopwatch.get_time();
-                        logger.add_message("Clusters ~~finished~~");
+                        //logger.add_message("Clusters ~~finished~~");
                         
                         if(false == physical_model->wait_for_step())
                         {
                             throw PhysicsError();
                         }
                         double time = stopwatch.get_time();
-                        logger.add_message("Step **finished**");
+                        //logger.add_message("Step **finished**");
 
                         if( NULL != performance_reporter )
                         {
