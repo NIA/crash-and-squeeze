@@ -100,7 +100,7 @@ namespace
     const unsigned    SHADER_REG_VIEW_MX = 0;
     //    c12 is directional light vector
     const unsigned    SHADER_REG_DIRECTIONAL_VECTOR = 12;
-    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, 1.0f, 0.3f);
+    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, 0.5f, 1.0f);
     //    c13 is directional light color
     const unsigned    SHADER_REG_DIRECTIONAL_COLOR = 13;
     const D3DCOLOR    SHADER_VAL_DIRECTIONAL_COLOR = D3DCOLOR_XRGB(230, 230, 230);
@@ -146,7 +146,7 @@ Application::Application(Logger &logger) :
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
     forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false), post_transform(rotate_x_matrix(D3DX_PI/2)),
-    impact_axis(0)
+    impact_axis(0), is_updating_vertices_on_gpu(true)
 {
 
     try
@@ -273,27 +273,31 @@ void Application::render(PerformanceReporter &internal_reporter)
         
         if(NULL != physical_model)
         {
-            // step of 3 vectors between consequent 3x4 matrices
-            int step = VECTORS_IN_MATRIX-1;
-            int clusters_num = physical_model->get_clusters_num();
-            // for each cluster...
-            for(int i = 0; i < clusters_num; ++i)
+            // if updating displayed vertices on GPU then setup matrices for it
+            if(is_updating_vertices_on_gpu)
             {
-                // ...set initial center of mass...
-                D3DXVECTOR3 init_pos = math_vector_to_d3dxvector(physical_model->get_cluster_initial_center(i));
-                set_shader_vector( SHADER_REG_CLUSTER_INIT_CENTER + i, init_pos);
-                
-                // ...and transformation matrices for positions...
-                D3DXMATRIX cluster_matrix;
-                build_d3d_matrix(physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i), cluster_matrix);
-                set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*i, cluster_matrix);
+                // step of 3 vectors between consequent 3x4 matrices
+                int step = VECTORS_IN_MATRIX-1;
+                int clusters_num = physical_model->get_clusters_num();
+                // for each cluster...
+                for(int i = 0; i < clusters_num; ++i)
+                {
+                    // ...set initial center of mass...
+                    D3DXVECTOR3 init_pos = math_vector_to_d3dxvector(physical_model->get_cluster_initial_center(i));
+                    set_shader_vector( SHADER_REG_CLUSTER_INIT_CENTER + i, init_pos);
+                    
+                    // ...and transformation matrices for positions...
+                    D3DXMATRIX cluster_matrix;
+                    build_d3d_matrix(physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i), cluster_matrix);
+                    set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*i, cluster_matrix);
 
-                // ...and normals
-                build_d3d_matrix(physical_model->get_cluster_normal_transformation(i), Vector::ZERO, cluster_matrix);
-                set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*i, cluster_matrix);
+                    // ...and normals
+                    build_d3d_matrix(physical_model->get_cluster_normal_transformation(i), Vector::ZERO, cluster_matrix);
+                    set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*i, cluster_matrix);
+                }
+                set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*clusters_num, ZEROS );
+                set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*clusters_num, ZEROS );
             }
-            set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*clusters_num, ZEROS );
-            set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*clusters_num, ZEROS );
         }
         
         display_model->draw();
@@ -593,6 +597,7 @@ void Application::run()
     Stopwatch stopwatch;
     Stopwatch total_stopwatch;
     PerformanceReporter render_performance_reporter(logger, "rendering");
+    PerformanceReporter update_performance_reporter(logger, "updating");
     PerformanceReporter total_performance_reporter(logger, "total");
     PerformanceReporter internal_render_performance_reporter(logger, "device->Present");
 
@@ -679,9 +684,7 @@ void Application::run()
                 }
                 ++physics_frames;
                 emultate_one_step = false;
-
-                if(SHOW_GRAPHICAL_VERTICES != show_mode)
-                    vertices_update_needed = true;
+                vertices_update_needed = true;
             }
 
             if(vertices_update_needed)
@@ -690,32 +693,40 @@ void Application::run()
                 for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
                 {
                     PhysicalModel       * physical_model       = (*iter).physical_model;
-                    AbstractModel       * high_model           = (*iter).high_model;
-                    AbstractModel       * low_model            = (*iter).low_model;
                     
                     if( NULL != physical_model )
                     {
-                        Vertex *high_vertices = high_model->lock_vertex_buffer();
-                        Vertex *low_vertices = low_model->lock_vertex_buffer();
+                        AbstractModel *model;
+                        if(SHOW_GRAPHICAL_VERTICES == show_mode)
+                            model = (*iter).high_model;
+                        else
+                            model = (*iter).low_model;
 
-                        switch(show_mode)
+                        if( ! (is_updating_vertices_on_gpu && SHOW_GRAPHICAL_VERTICES == show_mode) )
                         {
-                        case SHOW_GRAPHICAL_VERTICES:
-                            physical_model->update_vertices(high_vertices, high_model->get_vertices_count(), VERTEX_INFO);
-                            break;
-                        case SHOW_CURRENT_POSITIONS:
-                            physical_model->update_current_positions(low_vertices, low_model->get_vertices_count(), VERTEX_INFO);
-                            break;
-                        case SHOW_EQUILIBRIUM_POSITIONS:
-                            physical_model->update_equilibrium_positions(low_vertices, low_model->get_vertices_count(), VERTEX_INFO);
-                            break;
-                        case SHOW_INITIAL_POSITIONS:
-                            physical_model->update_initial_positions(low_vertices, low_model->get_vertices_count(), VERTEX_INFO);
-                            break;
-                        }
+                            Vertex *vertices = model->lock_vertex_buffer();
+                            int vertices_count = model->get_vertices_count();
 
-                        high_model->unlock_vertex_buffer();
-                        low_model->unlock_vertex_buffer();
+                            switch(show_mode)
+                            {
+                            case SHOW_GRAPHICAL_VERTICES:
+                                stopwatch.start();
+                                physical_model->update_vertices(vertices, vertices_count, VERTEX_INFO);
+                                update_performance_reporter.add_measurement(stopwatch.stop());
+                                break;
+                            case SHOW_CURRENT_POSITIONS:
+                                physical_model->update_current_positions(vertices, vertices_count, VERTEX_INFO);
+                                break;
+                            case SHOW_EQUILIBRIUM_POSITIONS:
+                                physical_model->update_equilibrium_positions(vertices, vertices_count, VERTEX_INFO);
+                                break;
+                            case SHOW_INITIAL_POSITIONS:
+                                physical_model->update_initial_positions(vertices, vertices_count, VERTEX_INFO);
+                                break;
+                            }
+
+                            model->unlock_vertex_buffer();
+                        }
                     }
                 }
 
@@ -737,6 +748,7 @@ void Application::run()
         if( NULL != (*iter).performance_reporter )
             (*iter).performance_reporter->report_results();
     }
+    update_performance_reporter.report_results();
     render_performance_reporter.report_results();
     internal_render_performance_reporter.report_results();
     total_performance_reporter.report_results();

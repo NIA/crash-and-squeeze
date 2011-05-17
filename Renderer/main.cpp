@@ -29,7 +29,7 @@ namespace
     bool DISABLE_MESSAGE_BOXES = true;
 
     const TCHAR *SIMPLE_SHADER_FILENAME = _T("simple.vsh");
-    const TCHAR *LIGHTING_SHADER_FILENAME = _T("lighting.vsh");
+    const TCHAR *LIGHTING_SHADER_FILENAME = _T("deform+lighting.vsh");
     
     const TCHAR *MESH_FILENAME = _T("ford.x");
 
@@ -245,6 +245,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     try
     {
         Application app(logger);
+        app.set_updating_vertices_on_gpu(true);
 
         VertexShader simple_shader(app.get_device(), VERTEX_DECL_ARRAY, SIMPLE_SHADER_FILENAME);
         VertexShader lighting_shader(app.get_device(), VERTEX_DECL_ARRAY, LIGHTING_SHADER_FILENAME);

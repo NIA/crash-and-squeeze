@@ -43,6 +43,9 @@ private:
     bool emulation_enabled;
     bool emultate_one_step;
 
+    // default is true
+    bool is_updating_vertices_on_gpu;
+
     bool wireframe;
 
     bool vertices_update_needed;
@@ -137,6 +140,8 @@ public:
                     const ::CrashAndSqueeze::Math::Vector &velocity,
                     const ::CrashAndSqueeze::Math::Vector &rotation_center,
                     Model &model);
+    void set_updating_vertices_on_gpu(bool value) { is_updating_vertices_on_gpu = value; }
+
     void run();
 
     void toggle_wireframe();
