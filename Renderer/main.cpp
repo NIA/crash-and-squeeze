@@ -207,8 +207,9 @@ INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR cmdline, INT )
 {
     int used_threads = 4;
     char logger_filename[MAX_FILENAME_LENGTH + 1] = "renderer.log";
+    int vertices_coeff = 10;
 
-    sscanf_s(cmdline, "%u %s", &used_threads,
+    sscanf_s(cmdline, "%d %d %s", &used_threads, &vertices_coeff,
              logger_filename, MAX_FILENAME_LENGTH);
 
     Logger logger(logger_filename, false);
@@ -226,6 +227,11 @@ INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR cmdline, INT )
     
     try
     {
+        if(used_threads < 1 || vertices_coeff < 1)
+        {
+            throw InvalidArgumentError();
+        }
+
         Application app(logger, used_threads);
 
         VertexShader simple_shader(app.get_device(), VERTEX_DECL_ARRAY, SIMPLE_SHADER_FILENAME);
@@ -235,7 +241,7 @@ INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR cmdline, INT )
 
         MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
         Vertex * car_vertices = car.lock_vertex_buffer();
-        PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), 3, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+        PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), vertices_coeff, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
         car.unlock_vertex_buffer();
         
         PhysicalModel * phys_mod = app.add_model(car, true, &low_car);

@@ -155,7 +155,11 @@ class AffinityError : public RuntimeError
 public:
     AffinityError() : RuntimeError( _T("Failed to set thread affinity mask") ) {}
 };
-
+class InvalidArgumentError : public RuntimeError
+{
+public:
+    InvalidArgumentError() : RuntimeError( _T("Invalid argument") ) {}
+};
 inline void check_render( HRESULT res )
 {
     if( FAILED(res) )
