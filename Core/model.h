@@ -142,6 +142,7 @@ namespace CrashAndSqueeze
             // and the mass should be given as constant_mass argument.
             // The model must have rigid frame, defined by frame_indices array of indices
             // of frame vertices.
+            // TODO: the fact that cluster_padding_coeff defines only half of overlapping area is not obvious.
             Model(const void *source_physical_vertices,
                   int physical_vetrices_num,
                   VertexInfo const &physical_vertex_info,
