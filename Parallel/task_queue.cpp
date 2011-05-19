@@ -55,15 +55,6 @@ namespace CrashAndSqueeze
             
             // reseting `first' index to 0 returns all popped items back...
             first = 0;
-            
-            // ...if there were any
-            if( !is_empty() )
-            {
-                for(int i = first; i <= last; ++i)
-                {
-                    tasks[i]->reset();
-                }
-            }
 
             pop_lock->unlock();
         }

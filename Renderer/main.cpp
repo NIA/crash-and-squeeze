@@ -208,8 +208,9 @@ INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR cmdline, INT )
     int used_threads = 4;
     char logger_filename[MAX_FILENAME_LENGTH + 1] = "renderer.log";
     int vertices_coeff = 10;
+    int duration_sec = 5;
 
-    sscanf_s(cmdline, "%d %d %s", &used_threads, &vertices_coeff,
+    sscanf_s(cmdline, "%d %d %d %s", &used_threads, &vertices_coeff, &duration_sec,
              logger_filename, MAX_FILENAME_LENGTH);
 
     Logger logger(logger_filename, false);
@@ -227,7 +228,7 @@ INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR cmdline, INT )
     
     try
     {
-        if(used_threads < 1 || vertices_coeff < 1)
+        if(used_threads < 1 || vertices_coeff < 1 || duration_sec <= 0)
         {
             throw InvalidArgumentError();
         }
@@ -257,7 +258,7 @@ INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR cmdline, INT )
         app.set_impact( hit_region, Vector(0,-110,0.0), Vector(0, 1.15, 0));
 
         // -------------------------- G O ! ! ! -----------------------
-        app.run(5);
+        app.run(duration_sec);
     }
     catch(RuntimeError &e)
     {

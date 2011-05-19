@@ -184,6 +184,7 @@ namespace CrashAndSqueeze
             // bound to body frame if there is any, otherwise - to the center of mass). After that
             // the change of global motion is returned via `linear_velocity_change' and `angular_velocity_change'
             void prepare_tasks(const ForcesArray & forces, Math::Real dt, VelocitiesChangedCallback * vcb);
+            void launch_tasks();
 
             // In order to compute next step, a queue of tasks must be prepaired first
             // with Model::prepare_tasks, and then Model::complete_next_task should be called multiple

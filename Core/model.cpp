@@ -434,6 +434,10 @@ namespace CrashAndSqueeze
             {
                 task_queue->reset();
             }
+        }
+
+        void Model::launch_tasks()
+        {
             
             // start new step
             tasks_ready->set();
@@ -441,10 +445,10 @@ namespace CrashAndSqueeze
 
         bool Model::complete_next_task()
         {
-            AbstractTask *task;
-            if( NULL != (task = task_queue->pop()) )
+            AbstractTask *task = task_queue->pop();
+            if( NULL != task )
             {
-                task->complete();
+                task->execute();
                 return true;
             }
             else

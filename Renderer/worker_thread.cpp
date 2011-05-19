@@ -1,7 +1,7 @@
 #include "worker_thread.h"
 
 WorkerThread::WorkerThread()
-: handle(NULL), model(NULL), logger(NULL) {}
+: handle(NULL), model(NULL), logger(NULL), tasks_completed(0) {}
 
 void WorkerThread::start(CrashAndSqueeze::Core::Model *model, Logger *logger, int id)
 {
@@ -37,19 +37,24 @@ DWORD WorkerThread::work()
         _ASSERT(NULL != logger);
         while(!stopped)
         {
-            logger->add_message("Waiting for tasks...", id);
+            //logger->add_message("Waiting for tasks...", id);
             model->wait_for_tasks();
-            logger->add_message("...the wait is over", id);
+            //logger->add_message("...the wait is over", id);
             
             bool has_more_tasks = true;
             while( !stopped && has_more_tasks)
             {
-                logger->add_message("Task >>started>>", id);
+                //logger->add_message("Task >>started>>", id);
                 has_more_tasks = model->complete_next_task();
-                if(has_more_tasks)
-                    logger->add_message("Task <<finished<<", id);
-                else
-                    logger->add_message("): No more tasks :(", id);
+                //if(has_more_tasks)
+                //{
+                //    logger->add_message("Task <<finished<<", id);
+                //    ++tasks_completed;
+                //}
+                //else
+                //{
+                //    logger->add_message("): No more tasks :(", id);
+                //}
             }
         }
         return 0;

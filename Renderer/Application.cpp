@@ -29,7 +29,7 @@ namespace
     const Real        MOVE_STEP = 0.06;
     const Vector      VERTICAL_AXIS(0,0,1);
     const float       VERTEX_MASS = 1;
-    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 4};
+    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 6};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.2;
 
@@ -161,7 +161,7 @@ Application::Application(Logger &logger, int used_threads_count) :
         set_show_mode(SHOW_GRAPHICAL_VERTICES);
         set_threads_count(used_threads_count);
         init_font();
-        if(NULL == SetThreadAffinityMask(GetCurrentThread(), 8))
+        if(NULL == SetThreadAffinityMask(GetCurrentThread(), 1))
         {
             throw AffinityError();
         }
@@ -677,9 +677,10 @@ void Application::run(double duration_sec)
                             impact_happened = false;
                         }
 
-                        stopwatch.start();
                         //logger.add_message("Tasks --READY--");
                         physical_model->prepare_tasks(*forces, dt, NULL);
+                        stopwatch.start();
+                        physical_model->launch_tasks();
 
                         //physical_model->react_to_events();
 
@@ -754,7 +755,7 @@ void Application::run(double duration_sec)
             }
             
             // graphics
-            render(render_performance_reporter);
+            //render(render_performance_reporter);
             total_performance_reporter.add_measurement(total_stopwatch.get_time());
         }
     }
@@ -762,18 +763,18 @@ void Application::run(double duration_sec)
     // -- report performance results --
 
     static const int BUFFER_SIZE = 512;
-    char header[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE];
 
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
         if( NULL != iter->physical_model )
         {
-            sprintf_s(header, BUFFER_SIZE,
+            sprintf_s(buffer, BUFFER_SIZE,
                       "%i low-vertices and %i hi-vertices in %i=%ix%ix%i clusters on %i threads [%s]",
                       iter->physical_model->get_vertices_num(), iter->high_model->get_vertices_count(),
                       TOTAL_CLUSTERS_COUNT, CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2],
                       threads_count, RELEASE_OR_DEBUG);
-            logger.log("        [Renderer]", header);
+            logger.log("        [Renderer]", buffer);
         }
         if( NULL != iter->performance_reporter )
         {
@@ -784,6 +785,12 @@ void Application::run(double duration_sec)
     }
     render_performance_reporter.report_results();
     total_performance_reporter.report_results();
+
+    //for(int i = 0; i < threads_count; ++i)
+    //{
+    //    sprintf_s(buffer, BUFFER_SIZE, "Worker thread #%d completed %d tasks", i+1, threads[i].get_tasks_completed());
+    //    logger.log("        [Renderer]", buffer);
+    //}
 
     stop_threads();
 }
