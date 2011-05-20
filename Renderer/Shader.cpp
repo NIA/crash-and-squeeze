@@ -3,7 +3,7 @@
 namespace
 {
     const char *ENTRY_POINT = "main";
-    const char *PROFILE = "vs_3_0";
+    const char *PROFILE = "vs_2_0";
 }
 
 VertexShader::VertexShader(IDirect3DDevice9 *device, const D3DVERTEXELEMENT9* vertex_declaration, const TCHAR *shader_filename)
