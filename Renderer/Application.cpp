@@ -782,6 +782,10 @@ void Application::unset_wireframe()
 
 void Application::stop_threads()
 {
+    for (int i = 0; i < THREADS_COUNT; ++i)
+    {
+        threads[i].stop();
+    }
     for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
         if(NULL != (*iter).physical_model)
