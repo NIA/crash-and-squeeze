@@ -50,9 +50,9 @@ namespace
     const Index LOW_CYLINDER_VERTICES = cylinder_vertices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
     const DWORD LOW_CYLINDER_INDICES = cylinder_indices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
 
-    const Index HIGH_EDGES_PER_BASE = 300; // 100; //
-    const Index HIGH_EDGES_PER_HEIGHT = 300; // 120; //
-    const Index HIGH_EDGES_PER_CAP = 50; // 40; //
+    const Index HIGH_EDGES_PER_BASE =  100; //300; //
+    const Index HIGH_EDGES_PER_HEIGHT =  120; //300; //
+    const Index HIGH_EDGES_PER_CAP = 40; // 50; //
     const Index HIGH_CYLINDER_VERTICES = cylinder_vertices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
     const DWORD HIGH_CYLINDER_INDICES = cylinder_indices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
 
@@ -293,10 +293,10 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                   D3DXVECTOR3(0, 0, 0),
                                   D3DXVECTOR3(0, 0, 0));
 
-        MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
-        Vertex * car_vertices = car.lock_vertex_buffer();
-        PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
-        car.unlock_vertex_buffer();
+        //MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+        //Vertex * car_vertices = car.lock_vertex_buffer();
+        //PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+        //car.unlock_vertex_buffer();
         
         cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
                  &CYLINDER_COLOR, 1,
@@ -313,7 +313,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                  D3DXVECTOR3(0, 0, 0),
                                  D3DXVECTOR3(0, 0, 0));
         
-        PhysicalModel * phys_mod = app.add_model(car, true, &low_car);
+        PhysicalModel * phys_mod = app.add_model(high_cylinder_model, true, &low_cylinder_model);
         if(NULL == phys_mod)
             throw NullPointerError();
 
@@ -321,8 +321,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         const Index LOW_VERTICES_PER_SIDE = LOW_EDGES_PER_BASE*LOW_EDGES_PER_HEIGHT;
         add_range(frame, LOW_VERTICES_PER_SIDE/4, LOW_VERTICES_PER_SIDE*3/4, LOW_EDGES_PER_BASE); // vertical line layer
         add_range(frame, LOW_VERTICES_PER_SIDE/4 + 1, LOW_VERTICES_PER_SIDE*3/4, LOW_EDGES_PER_BASE); // vertical line layer
-        //phys_mod->set_frame(frame);
-        //low_cylinder_model.repaint_vertices(frame, FRAME_COLOR);
+        phys_mod->set_frame(frame);
+        low_cylinder_model.repaint_vertices(frame, FRAME_COLOR);
 
         // -- shapes and shape callbacks definition --
 
@@ -387,7 +387,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         forces.push_back(&force);
         app.set_forces(forces);
 
-        SphericalRegion hit_region( Vector(0,2.2,-0.9), 0.25 );
+        SphericalRegion hit_region( Vector(0,-cylinder_radius,cylinder_z*2/3), 0.1 );
 
         // ------------------ V i s u a l i z a t i o n -----------------------
         sphere_vertices = new Vertex[SPHERE_VERTICES];
@@ -408,7 +408,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                D3DXVECTOR3(0, 0, 0));
         hit_region_model.set_draw_ccw(true);
 
-        app.set_impact( hit_region, Vector(0,-110,0.0), Vector(0, 1.15, 0), hit_region_model);
+        app.set_impact( hit_region, Vector(0,60,0.0), Vector(0, 0, 0), hit_region_model);
 
         // -------------------------- G O ! ! ! -----------------------
         app.run();

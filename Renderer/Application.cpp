@@ -31,7 +31,7 @@ namespace
     const int         ROTATION_AXES_COUNT = 3;
     const Vector      ROTATION_AXES[ROTATION_AXES_COUNT] = {Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)};
     const float       VERTEX_MASS = 1;
-    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 6};
+    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 4};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.2;
 
@@ -100,7 +100,7 @@ namespace
     const unsigned    SHADER_REG_VIEW_MX = 0;
     //    c12 is directional light vector
     const unsigned    SHADER_REG_DIRECTIONAL_VECTOR = 12;
-    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, 0.5f, 1.0f);
+    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (-0.2f, -1.0f, 0.3f);
     //    c13 is directional light color
     const unsigned    SHADER_REG_DIRECTIONAL_COLOR = 13;
     const D3DCOLOR    SHADER_VAL_DIRECTIONAL_COLOR = D3DCOLOR_XRGB(230, 230, 230);
@@ -115,7 +115,7 @@ namespace
     const D3DCOLOR    SHADER_VAL_POINT_COLOR = D3DCOLOR_XRGB(120, 250, 250);
     //    c17 is point light position
     const unsigned    SHADER_REG_POINT_POSITION = 17;
-    const D3DXVECTOR3 SHADER_VAL_POINT_POSITION  (-1.6f, 0.0f, 0.8f);
+    const D3DXVECTOR3 SHADER_VAL_POINT_POSITION  (0.2f, -0.51f, -0.55f);
     //    c18 are attenuation constants
     const unsigned    SHADER_REG_ATTENUATION = 18;
     const D3DXVECTOR3 SHADER_VAL_ATTENUATION  (1.0f, 0, 0.8f);
@@ -141,11 +141,11 @@ namespace
 }
 
 Application::Application(Logger &logger) :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(5.1f, 1.11571f, 1.12478f), // Constants selected for better view of the scene
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(1.8f, 1.2876f, -0.373009f), // Constants selected for better view of the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
-    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false), post_transform(rotate_x_matrix(D3DX_PI/2)),
+    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false), post_transform(rotate_x_matrix(0)),
     impact_axis(0), is_updating_vertices_on_gpu(true)
 {
 
