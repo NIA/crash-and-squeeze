@@ -290,12 +290,11 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                   high_cylinder_model_indices,
                                   HIGH_CYLINDER_INDICES,
                                   HIGH_CYLINDER_INDICES - 2,
-                                  D3DXVECTOR3(0, 0, 0),
                                   D3DXVECTOR3(0, 0, 0));
 
-        MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+        MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0));
         Vertex * car_vertices = car.lock_vertex_buffer();
-        PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+        PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0));
         car.unlock_vertex_buffer();
         
         cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
@@ -310,7 +309,6 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                  low_cylinder_model_indices,
                                  LOW_CYLINDER_INDICES,
                                  LOW_CYLINDER_INDICES - 2,
-                                 D3DXVECTOR3(0, 0, 0),
                                  D3DXVECTOR3(0, 0, 0));
         
         PhysicalModel * phys_mod = app.add_physical_model(car, low_car);
@@ -404,8 +402,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                sphere_indices,
                                SPHERE_INDICES,
                                SPHERE_INDICES/3,
-                               math_vector_to_d3dxvector(hit_region.get_center()),
-                               D3DXVECTOR3(0, 0, 0));
+                               math_vector_to_d3dxvector(hit_region.get_center()));
         hit_region_model.set_draw_ccw(true);
 
         app.set_impact( hit_region, Vector(0,-110,0.0), Vector(0, 1.15, 0), hit_region_model);

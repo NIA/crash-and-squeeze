@@ -5,10 +5,11 @@ extern const unsigned VECTORS_IN_MATRIX;
 
 // -- AbstractModel --
 
-AbstractModel::AbstractModel(IDirect3DDevice9 *device, VertexShader &shader, D3DXVECTOR3 position, D3DXVECTOR3 rotation)
+AbstractModel::AbstractModel(IDirect3DDevice9 *device, VertexShader &shader, D3DXVECTOR3 position)
 : device(device), position(position), rotation(rotation), shader(shader), zoom(1), draw_cw(true), draw_ccw(false)
 {
-        update_matrix();
+    rotation = rotate_x_matrix(0); // unity matrix
+    update_matrix();
 }
 
 VertexShader &AbstractModel::get_shader() const
@@ -23,12 +24,12 @@ IDirect3DDevice9 *AbstractModel::get_device() const
 
 void AbstractModel::update_matrix()
 {
-    transformation = zoom*rotate_and_shift_matrix(rotation, position, zoom);
+    transformation = shift_matrix(position, zoom)*rotation;
 }
 
 void AbstractModel::rotate(float phi)
 {
-    rotation.z += phi;
+    rotation *= rotate_z_matrix(phi);
     update_matrix();
 }
 
@@ -41,6 +42,18 @@ void AbstractModel::move(D3DXVECTOR3 vector)
 void AbstractModel::set_zoom(float zoom)
 {
     this->zoom = zoom;
+    update_matrix();
+}
+
+void AbstractModel::set_position(const D3DXVECTOR3 & new_pos)
+{
+    position = new_pos;
+    update_matrix();
+}
+
+void AbstractModel::set_rotation(const D3DXMATRIX & new_rot)
+{
+    rotation = new_rot;
     update_matrix();
 }
 
@@ -72,9 +85,9 @@ void AbstractModel::draw() const
 
 Model::Model(   IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, VertexShader &shader,
                 const Vertex *vertices, unsigned vertices_count, const Index *indices, unsigned indices_count,
-                unsigned primitives_count, D3DXVECTOR3 position, D3DXVECTOR3 rotation )
+                unsigned primitives_count, D3DXVECTOR3 position )
  
-: AbstractModel(device, shader, position, rotation), vertices_count(vertices_count), primitives_count(primitives_count),
+: AbstractModel(device, shader, position), vertices_count(vertices_count), primitives_count(primitives_count),
   primitive_type(primitive_type), vertex_buffer(NULL), index_buffer(NULL)
 {
     _ASSERT(vertices != NULL);
@@ -161,8 +174,8 @@ Model::~Model()
 // -- MeshModel --
 MeshModel::MeshModel(IDirect3DDevice9 *device, VertexShader &shader,
                      const TCHAR * mesh_file, const D3DCOLOR color,
-                     D3DXVECTOR3 position, D3DXVECTOR3 rotation)
-: AbstractModel(device, shader, position, rotation), mesh(NULL)
+                     D3DXVECTOR3 position)
+: AbstractModel(device, shader, position), mesh(NULL)
 {
     ID3DXMesh * temp_mesh;
     if( FAILED( D3DXLoadMeshFromX( mesh_file, D3DXMESH_SYSTEMMEM,
@@ -225,8 +238,8 @@ MeshModel::~MeshModel()
 
 PointModel::PointModel(IDirect3DDevice9 *device, VertexShader &shader,
                        const Vertex * src_vertices, unsigned src_vertices_count, unsigned int step,
-                       D3DXVECTOR3 position, D3DXVECTOR3 rotation)
-: AbstractModel(device, shader, position, rotation), vertex_buffer(NULL)
+                       D3DXVECTOR3 position)
+: AbstractModel(device, shader, position), vertex_buffer(NULL)
 {
     _ASSERT(src_vertices != NULL);
     _ASSERT(step > 0);

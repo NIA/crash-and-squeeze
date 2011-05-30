@@ -11,7 +11,7 @@ private:
     VertexShader        &shader;
 
     D3DXVECTOR3 position;
-    D3DXVECTOR3 rotation;
+    D3DXMATRIX rotation;
     float zoom;
     D3DXMATRIX transformation;
 
@@ -27,16 +27,19 @@ protected:
 public:
     AbstractModel(  IDirect3DDevice9 *device,
             VertexShader &shader,
-            D3DXVECTOR3 position,
-            D3DXVECTOR3 rotation);
+            D3DXVECTOR3 position);
     
     VertexShader &get_shader() const;
     IDirect3DDevice9 *get_device() const;
 
     const D3DXMATRIX &get_transformation() const;
+    
     void rotate(float phi);
     void move(D3DXVECTOR3 vector);
+    
     void set_zoom(float zoom);
+    void set_position(const D3DXVECTOR3 & new_pos);
+    void set_rotation(const D3DXMATRIX & new_rot);
     
     virtual unsigned get_vertices_count() = 0;
     virtual Vertex * lock_vertex_buffer() = 0;
@@ -78,8 +81,7 @@ public:
             const Index *indices,
             unsigned indices_count,
             unsigned primitives_count,
-            D3DXVECTOR3 position,
-            D3DXVECTOR3 rotation);
+            D3DXVECTOR3 position);
 
     virtual unsigned get_vertices_count() { return vertices_count; }
     virtual Vertex * lock_vertex_buffer();
@@ -108,7 +110,7 @@ protected:
 public:
     MeshModel(IDirect3DDevice9 *device, VertexShader &shader,
               const TCHAR * mesh_file, const D3DCOLOR color,
-              D3DXVECTOR3 position, D3DXVECTOR3 rotation);
+              D3DXVECTOR3 position);
 
     virtual unsigned get_vertices_count();
     virtual Vertex * lock_vertex_buffer();
@@ -136,7 +138,7 @@ protected:
 public:
     PointModel(IDirect3DDevice9 *device, VertexShader &shader,
                const Vertex * src_vertices, unsigned src_vertices_count, unsigned step,
-               D3DXVECTOR3 position, D3DXVECTOR3 rotation);
+               D3DXVECTOR3 position);
 
     virtual unsigned get_vertices_count();
     virtual Vertex * lock_vertex_buffer();
