@@ -1,13 +1,9 @@
 #include "Application.h"
-#include "Stopwatch.h"
 #include "matrices.h"
 #include <time.h>
 
-using CrashAndSqueeze::Core::ForcesArray;
 using CrashAndSqueeze::Math::Matrix;
-using CrashAndSqueeze::Math::Vector;
 using CrashAndSqueeze::Math::VECTOR_SIZE;
-using CrashAndSqueeze::Math::Real;
 using CrashAndSqueeze::Core::IndexArray;
 using CrashAndSqueeze::Parallel::TaskQueue;
 using CrashAndSqueeze::Parallel::AbstractTask;
@@ -35,7 +31,16 @@ namespace
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.2;
 
-    const TCHAR *     SHOW_MODES_CAPTIONS[Application::_SHOW_MODES_COUNT] = 
+    enum ShowMode
+    {
+        SHOW_GRAPHICAL_VERTICES,
+        SHOW_CURRENT_POSITIONS,
+        SHOW_EQUILIBRIUM_POSITIONS,
+        SHOW_INITIAL_POSITIONS,
+        _SHOW_MODES_COUNT
+    };
+
+    const TCHAR *     SHOW_MODES_CAPTIONS[_SHOW_MODES_COUNT] = 
                       {
                           _T("Show: Graphical"),
                           _T("Show: Current"),
@@ -92,22 +97,6 @@ namespace
         out_matrix.m[LAST][LAST] = 1;
     }
 
-    class IntegrateRigidCallback : public ::CrashAndSqueeze::Core::VelocitiesChangedCallback
-    {
-    private:
-        RigidBody * rigid_body;
-    public:
-        IntegrateRigidCallback(RigidBody * rigid_body) : rigid_body(rigid_body) {}
-        virtual void invoke(const Vector & linear_velocity_change, const Vector & angular_velocity_change)
-        {
-            rigid_body->add_to_linear_velocity(linear_velocity_change);
-            rigid_body->add_to_angular_velocity(angular_velocity_change);
-        }
-    };
-}
-
-namespace
-{
     //---------------- SHADER CONSTANTS ---------------------------
     //    c0-c3 is the view matrix
     const unsigned    SHADER_REG_VIEW_MX = 0;
@@ -153,12 +142,18 @@ namespace
     //    c197-c199 are ZEROS! (3x4 zero matrix)
 }
 
+void IntegrateRigidCallback::invoke(const Vector & linear_velocity_change, const Vector & angular_velocity_change)
+{
+    rigid_body->add_to_linear_velocity(linear_velocity_change);
+    rigid_body->add_to_angular_velocity(angular_velocity_change);
+}
+
 Application::Application(Logger &logger) :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(6.1f, 1.1f, -1.16858f), // Constants selected for better view of the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
-    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false), post_transform(rotate_x_matrix(D3DX_PI/2)),
+    forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), post_transform(rotate_x_matrix(D3DX_PI/2)),
     impact_axis(0), is_updating_vertices_on_gpu(true)
 {
 
@@ -285,8 +280,9 @@ void Application::render(PerformanceReporter &internal_reporter)
     
     for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
     {
-        AbstractModel * display_model   = (SHOW_GRAPHICAL_VERTICES == show_mode || NULL == (*iter).low_model) ? (*iter).high_model : (*iter).low_model;
-        PhysicalModel * physical_model  = (*iter).physical_model;
+        PhysicalModelEntity * model_entity = *iter;
+        AbstractModel * displayed_model   = model_entity->get_displayed_model(show_mode);
+        PhysicalModel * physical_model    = model_entity->get_physical_model();
 
         // if updating displayed vertices on GPU then setup matrices for it
         if(is_updating_vertices_on_gpu)
@@ -313,7 +309,7 @@ void Application::render(PerformanceReporter &internal_reporter)
             set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*clusters_num, ZEROS );
             set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*clusters_num, ZEROS );
         }
-        draw_model(display_model);
+        draw_model( displayed_model );
     }
     for (AbstractModels::iterator iter = visual_only_models.begin(); iter != visual_only_models.end(); ++iter)
     {
@@ -375,50 +371,29 @@ void Application::add_visual_only_model(AbstractModel &model)
 
 PhysicalModel * Application::add_physical_model(AbstractModel & high_model, AbstractModel & low_model)
 {
-    PhysicalModelEntity model_entity = {NULL};
-
-    model_entity.high_model = &high_model;
-
-    Vertex * high_vertices = high_model.lock_vertex_buffer();
-    Vertex * low_vertices = low_model.lock_vertex_buffer();
-    model_entity.physical_model =
-        new PhysicalModel(low_vertices,
-                          low_model.get_vertices_count(),
-                          VERTEX_INFO,
-                          
-                          high_vertices,
-                          high_model.get_vertices_count(),
-                          VERTEX_INFO,
-                          
-                          CLUSTERS_BY_AXES,
-                          CLUSTER_PADDING_COEFF,
-
-                          &prim_factory,
-
-                          NULL,
-                          VERTEX_MASS);
-    
-    high_model.unlock_vertex_buffer();
-    low_model.unlock_vertex_buffer();
-
-    model_entity.low_model = & low_model;
-
-    for(int i = 0; i < THREADS_COUNT; ++i)
-    {
-        // TODO: Oops, it will fail for two or more physical models
-        threads[i].start(model_entity.physical_model, &logger);
-    }
-
     static const int BUFFER_SIZE = 128;
     char description[BUFFER_SIZE];
     sprintf_s(description, BUFFER_SIZE, "%i low-vertices (mapped on %i hi-vertices) in %i=%ix%ix%i clusters on %i threads",
                                         low_model.get_vertices_count(), high_model.get_vertices_count(),
                                         TOTAL_CLUSTERS_COUNT, CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2],
                                         THREADS_COUNT);
-    model_entity.performance_reporter = new PerformanceReporter(logger, description);
+
+    PhysicalModelEntity * model_entity = new PhysicalModelEntity(high_model,
+                                                                 low_model,
+                                                                 is_updating_vertices_on_gpu,
+                                                                 description,
+                                                                 logger);
+    PhysicalModel * physical_model = model_entity->get_physical_model();
  
     physical_models.push_back( model_entity );
-    return model_entity.physical_model;
+
+    for(int i = 0; i < THREADS_COUNT; ++i)
+    {
+        // TODO: Oops, it will fail for two or more physical models
+        threads[i].start(physical_model, &logger);
+    }
+
+    return physical_model;
 }
 
 void Application::set_forces(ForcesArray & forces)
@@ -429,7 +404,7 @@ void Application::set_forces(ForcesArray & forces)
 void Application::set_impact(::CrashAndSqueeze::Core::IRegion & region,
                              const Vector &velocity,
                              const Vector &rotation_center,
-                             Model & model)
+                             AbstractModel & model)
 {
     if(NULL == impact_model)
     {
@@ -480,17 +455,6 @@ void Application::move_impact_nearer(Real dist, const Vector & rotation_axis)
         return;
     }
     move_impact(direction.normalized()*dist);
-}
-
-void Application::rotate_models(float phi)
-{
-    for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
-    {
-        (*iter).high_model->rotate(phi);
-        
-        if(NULL != (*iter).low_model)
-            (*iter).low_model->rotate(phi);
-    }
 }
 
 void Application::set_show_mode(int new_show_mode)
@@ -607,7 +571,6 @@ void Application::run()
     Stopwatch stopwatch;
     Stopwatch total_stopwatch;
     PerformanceReporter render_performance_reporter(logger, "rendering");
-    PerformanceReporter update_performance_reporter(logger, "updating");
     PerformanceReporter total_performance_reporter(logger, "total");
     PerformanceReporter internal_render_performance_reporter(logger, "device->Present");
 
@@ -653,50 +616,23 @@ void Application::run()
                 // for each model entity
                 for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
                 {
-                    PhysicalModel       * physical_model       = iter->physical_model;
-                    AbstractModel       * high_model           = iter->high_model;
-                    PerformanceReporter * performance_reporter = iter->performance_reporter;
-                    RigidBody           * rigid_body           = & iter->rigid_body;
-                    
-                    Vector linear_velocity_change, angular_velocity_chage;
+                    PhysicalModelEntity * model_entity = *iter;
 
                     stopwatch.start();
-                    if(false == physical_model->wait_for_step())
-                    {
-                        throw PhysicsError();
-                    }
-
+                    model_entity->wait_for_deformation();
                     logger.add_message("Step **finished**");
 
                     // do some kinematics and interaction meanwhile
-                    rigid_body->integrate(dt);
-                    high_model->set_position(math_vector_to_d3dxvector(rigid_body->get_position()));
-                    D3DXMATRIX rotation;
-                    build_d3d_matrix(rigid_body->get_orientation(), Vector::ZERO, rotation);
-                    high_model->set_rotation(rotation);
-
+                    model_entity->compute_kinematics(dt);
                     if(impact_happened && NULL != impact_region)
                     {
-                        physical_model->hit(*impact_region, impact_velocity);
+                        model_entity->hit(*impact_region, impact_velocity);
                         impact_happened = false;
                     }
 
                     // then start next step
-
-                    IntegrateRigidCallback callback(rigid_body);
-                    physical_model->prepare_tasks(*forces, dt, &callback);
-                    logger.add_message("Tasks --READY--");
-
-                    physical_model->react_to_events();
-
-                    if(false == physical_model->wait_for_clusters())
-                    {
-                        throw PhysicsError();
-                    }
-
-                    double time = stopwatch.stop();
+                    model_entity->compute_deformation(forces, dt);
                     logger.add_message("Clusters ~~finished~~");
-                    performance_reporter->add_measurement(time);
                 }
                 ++physics_frames;
                 emultate_one_step = false;
@@ -708,39 +644,8 @@ void Application::run()
                 // for each model entity
                 for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
                 {
-                    PhysicalModel       * physical_model       = (*iter).physical_model;
-                    
-                    AbstractModel *model;
-                    if(SHOW_GRAPHICAL_VERTICES == show_mode)
-                        model = (*iter).high_model;
-                    else
-                        model = (*iter).low_model;
-
-                    if( ! (is_updating_vertices_on_gpu && SHOW_GRAPHICAL_VERTICES == show_mode) )
-                    {
-                        Vertex *vertices = model->lock_vertex_buffer();
-                        int vertices_count = model->get_vertices_count();
-
-                        switch(show_mode)
-                        {
-                        case SHOW_GRAPHICAL_VERTICES:
-                            stopwatch.start();
-                            physical_model->update_vertices(vertices, vertices_count, VERTEX_INFO);
-                            update_performance_reporter.add_measurement(stopwatch.stop());
-                            break;
-                        case SHOW_CURRENT_POSITIONS:
-                            physical_model->update_current_positions(vertices, vertices_count, VERTEX_INFO);
-                            break;
-                        case SHOW_EQUILIBRIUM_POSITIONS:
-                            physical_model->update_equilibrium_positions(vertices, vertices_count, VERTEX_INFO);
-                            break;
-                        case SHOW_INITIAL_POSITIONS:
-                            physical_model->update_initial_positions(vertices, vertices_count, VERTEX_INFO);
-                            break;
-                        }
-
-                        model->unlock_vertex_buffer();
-                    }
+                    PhysicalModelEntity * model_entity = *iter;
+                    model_entity->update_geometry(show_mode);
                 }
 
                 vertices_update_needed = false;
@@ -758,9 +663,9 @@ void Application::run()
 
     for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
     {
-        (*iter).performance_reporter->report_results();
+        PhysicalModelEntity * model_entity = *iter;
+        model_entity->report_performance();
     }
-    update_performance_reporter.report_results();
     render_performance_reporter.report_results();
     internal_render_performance_reporter.report_results();
     total_performance_reporter.report_results();
@@ -800,7 +705,8 @@ void Application::stop_threads()
     }
     for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
     {
-        (*iter).physical_model->wait_for_step();
+        PhysicalModelEntity * model_entity = *iter;
+        model_entity->wait_for_deformation();
     }
 }
 
@@ -808,11 +714,8 @@ void Application::delete_model_stuff()
 {
     for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
     {
-        if(NULL != (*iter).physical_model)
-            delete (*iter).physical_model;
-
-        if(NULL != (*iter).performance_reporter)
-            delete (*iter).performance_reporter;
+        PhysicalModelEntity * model_entity = *iter;
+        delete model_entity;
     }
 }
 
@@ -827,4 +730,131 @@ Application::~Application()
 {
     delete_model_stuff();
     release_interfaces();
+}
+
+PhysicalModelEntity::PhysicalModelEntity(AbstractModel & high_model,
+                                         AbstractModel & low_model,
+                                         bool is_updating_vertices_on_gpu,
+                                         const char *perf_rep_desc,
+                                         Logger & logger)
+: high_model(&high_model), low_model(&low_model),
+  velocities_changed_callback(&rigid_body),
+  is_updating_vertices_on_gpu(is_updating_vertices_on_gpu), prim_factory(false)
+{
+    // Create physical model
+    Vertex * high_vertices = high_model.lock_vertex_buffer();
+    Vertex * low_vertices = low_model.lock_vertex_buffer();
+    physical_model =
+        new PhysicalModel(low_vertices,
+                          low_model.get_vertices_count(),
+                          VERTEX_INFO,
+                          
+                          high_vertices,
+                          high_model.get_vertices_count(),
+                          VERTEX_INFO,
+                          
+                          CLUSTERS_BY_AXES,
+                          CLUSTER_PADDING_COEFF,
+
+                          &prim_factory,
+
+                          NULL,
+                          VERTEX_MASS);
+    
+    high_model.unlock_vertex_buffer();
+    low_model.unlock_vertex_buffer();
+
+    // create performance reporter
+    performance_reporter = new PerformanceReporter(logger, perf_rep_desc);
+    update_performance_reporter = new PerformanceReporter(logger, "updating");
+}
+
+void PhysicalModelEntity::wait_for_deformation()
+{
+    physics_stopwatch.start();
+    if(false == physical_model->wait_for_step())
+    {
+        throw PhysicsError();
+    }
+}
+
+void PhysicalModelEntity::hit(const ::CrashAndSqueeze::Core::IRegion &region, const Vector & velocity)
+{
+    physical_model->hit(region, velocity);
+}
+
+void PhysicalModelEntity::compute_kinematics(double dt)
+{
+    rigid_body.integrate(dt);
+    high_model->set_position(math_vector_to_d3dxvector(rigid_body.get_position()));
+    D3DXMATRIX rotation;
+    build_d3d_matrix(rigid_body.get_orientation(), Vector::ZERO, rotation);
+    high_model->set_rotation(rotation);
+}
+
+void PhysicalModelEntity::compute_deformation(ForcesArray * forces, double dt)
+{
+    physical_model->prepare_tasks(*forces, dt, &velocities_changed_callback);
+
+    physical_model->react_to_events();
+
+    if(false == physical_model->wait_for_clusters())
+    {
+        throw PhysicsError();
+    }
+    performance_reporter->add_measurement(physics_stopwatch.stop());
+}
+
+AbstractModel * PhysicalModelEntity::get_displayed_model(int show_mode)
+{
+    AbstractModel *displayed_model;
+    if(SHOW_GRAPHICAL_VERTICES == show_mode)
+        displayed_model = high_model;
+    else
+        displayed_model = low_model;
+    return displayed_model;
+}
+
+void PhysicalModelEntity::update_geometry(int show_mode)
+{
+    AbstractModel *displayed_model = get_displayed_model(show_mode);
+
+    if( ! (is_updating_vertices_on_gpu && SHOW_GRAPHICAL_VERTICES == show_mode) )
+    {
+        Vertex *vertices = displayed_model->lock_vertex_buffer();
+        int vertices_count = displayed_model->get_vertices_count();
+
+        switch(show_mode)
+        {
+        case SHOW_GRAPHICAL_VERTICES:
+            update_stopwatch.start();
+            physical_model->update_vertices(vertices, vertices_count, VERTEX_INFO);
+            update_performance_reporter->add_measurement(update_stopwatch.stop());
+            break;
+        case SHOW_CURRENT_POSITIONS:
+            physical_model->update_current_positions(vertices, vertices_count, VERTEX_INFO);
+            break;
+        case SHOW_EQUILIBRIUM_POSITIONS:
+            physical_model->update_equilibrium_positions(vertices, vertices_count, VERTEX_INFO);
+            break;
+        case SHOW_INITIAL_POSITIONS:
+            physical_model->update_initial_positions(vertices, vertices_count, VERTEX_INFO);
+            break;
+        }
+
+        displayed_model->unlock_vertex_buffer();
+    }
+}
+
+void PhysicalModelEntity::report_performance()
+{
+    performance_reporter->report_results();
+    update_performance_reporter->report_results();
+}
+
+PhysicalModelEntity::~PhysicalModelEntity()
+{
+    delete physical_model;
+    delete performance_reporter;
+    delete update_performance_reporter;
 }

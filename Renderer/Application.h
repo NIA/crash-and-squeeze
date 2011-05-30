@@ -10,22 +10,69 @@
 #include "parallel.h"
 #include "logger.h"
 #include "worker_thread.h"
+#include "Stopwatch.h"
 
 extern const unsigned VECTORS_IN_MATRIX;
 
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
-typedef ::CrashAndSqueeze::Core::RigidBody RigidBody;
+using ::CrashAndSqueeze::Core::RigidBody;
+using ::CrashAndSqueeze::Core::ForcesArray;
+using ::CrashAndSqueeze::Math::Real;
+using ::CrashAndSqueeze::Math::Vector;
+using ::CrashAndSqueeze::Core::IRegion;
 
-struct PhysicalModelEntity
+class IntegrateRigidCallback : public ::CrashAndSqueeze::Core::VelocitiesChangedCallback
 {
+private:
+    RigidBody * rigid_body;
+public:
+    IntegrateRigidCallback(RigidBody * rigid_body) : rigid_body(rigid_body) {}
+    virtual void invoke(const Vector & linear_velocity_change, const Vector & angular_velocity_change);
+};
+
+class PhysicalModelEntity
+{
+private:
     AbstractModel       *high_model;
     AbstractModel       *low_model;
     PhysicalModel       *physical_model;
-    PerformanceReporter *performance_reporter;
+    
+    IntegrateRigidCallback velocities_changed_callback;
     RigidBody           rigid_body;
+    
+    Stopwatch           physics_stopwatch;
+    PerformanceReporter *performance_reporter;
+    Stopwatch           update_stopwatch;
+    PerformanceReporter *update_performance_reporter;
+
+    WinFactory prim_factory;
+
+    bool is_updating_vertices_on_gpu;
+
+public:
+    PhysicalModelEntity(AbstractModel &high_model,
+                        AbstractModel &low_model,
+                        bool is_updating_vertices_on_gpu,
+                        const char *perf_rep_desc,
+                        Logger & logger);
+
+    void wait_for_deformation();
+    void hit(const IRegion &region, const Vector & velocity);
+    void compute_kinematics(double dt);
+    void compute_deformation(ForcesArray * forces, double dt);
+
+    void update_geometry(int show_mode);
+    void prepare_for_render(int show_mode);
+    AbstractModel * get_displayed_model(int show_mode);
+
+    void report_performance();
+
+    PhysicalModel * get_physical_model() { return physical_model; }
+
+    ~PhysicalModelEntity();
 };
 
-typedef std::vector<PhysicalModelEntity> ModelEntities;
+typedef std::vector<PhysicalModelEntity*> ModelEntities;
 typedef std::vector<AbstractModel*> AbstractModels;
 
 class Application
@@ -61,20 +108,18 @@ private:
     ModelEntities physical_models;
     AbstractModels visual_only_models;
 
-    ::CrashAndSqueeze::Core::ForcesArray * forces;
+    ForcesArray * forces;
     bool forces_enabled;
 
-    ::CrashAndSqueeze::Core::IRegion * impact_region;
-    ::CrashAndSqueeze::Math::Vector impact_velocity;
-    ::CrashAndSqueeze::Math::Vector impact_rot_center;
+    IRegion * impact_region;
+    Vector impact_velocity;
+    Vector impact_rot_center;
     int impact_axis; // index of impact rotation axis
-    Model * impact_model;
+    AbstractModel * impact_model;
     bool impact_happened;
-    void move_impact(const ::CrashAndSqueeze::Math::Vector & vector);
-    void rotate_impact(const ::CrashAndSqueeze::Math::Vector & rotation_axis);
-    void move_impact_nearer(::CrashAndSqueeze::Math::Real distance, const ::CrashAndSqueeze::Math::Vector & rotation_axis);
-
-    WinFactory prim_factory;
+    void move_impact(const Vector & vector);
+    void rotate_impact(const Vector & rotation_axis);
+    void move_impact_nearer(Real distance, const Vector & rotation_axis);
 
     static const int THREADS_COUNT = 2;
     WorkerThread threads[THREADS_COUNT];
@@ -120,7 +165,6 @@ private:
 
     void set_show_mode(int new_show_mode);
 
-    void rotate_models(float phi);
     void process_key(unsigned code, bool shift, bool ctrl, bool alt);
 
     void draw_text(const TCHAR * text, RECT rect, D3DCOLOR color, bool align_right = false);
@@ -142,11 +186,11 @@ public:
     PhysicalModel * add_physical_model(AbstractModel & high_model, AbstractModel & low_model);
     void add_visual_only_model(AbstractModel & model);
 
-    void set_forces(::CrashAndSqueeze::Core::ForcesArray & forces);
-    void set_impact(::CrashAndSqueeze::Core::IRegion & region,
-                    const ::CrashAndSqueeze::Math::Vector &velocity,
-                    const ::CrashAndSqueeze::Math::Vector &rotation_center,
-                    Model &model);
+    void set_forces(ForcesArray & forces);
+    void set_impact(IRegion & region,
+                    const Vector &velocity,
+                    const Vector &rotation_center,
+                    AbstractModel &model);
     void set_updating_vertices_on_gpu(bool value) { is_updating_vertices_on_gpu = value; }
 
     void run();
@@ -156,15 +200,6 @@ public:
     void unset_wireframe();
 
     ~Application();
-
-    enum ShowMode
-    {
-        SHOW_GRAPHICAL_VERTICES,
-        SHOW_CURRENT_POSITIONS,
-        SHOW_EQUILIBRIUM_POSITIONS,
-        SHOW_INITIAL_POSITIONS,
-        _SHOW_MODES_COUNT
-    };
 
 private:
     // No copying!
