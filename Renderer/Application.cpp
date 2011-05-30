@@ -72,7 +72,7 @@ namespace
         LONG height() { return bottom - top; }
     };
 
-    void build_d3d_matrix(Matrix transformation, Vector pos, /*out*/ D3DXMATRIX &out_matrix)
+    void build_d3d_matrix(const Matrix & transformation, Vector pos, /*out*/ D3DXMATRIX & out_matrix)
     {
         const int LAST = VECTORS_IN_MATRIX - 1; // index of last row/col in D3DXMATRIX
 
@@ -91,6 +91,19 @@ namespace
         
         out_matrix.m[LAST][LAST] = 1;
     }
+
+    class IntegrateRigidCallback : public ::CrashAndSqueeze::Core::VelocitiesChangedCallback
+    {
+    private:
+        RigidBody * rigid_body;
+    public:
+        IntegrateRigidCallback(RigidBody * rigid_body) : rigid_body(rigid_body) {}
+        virtual void invoke(const Vector & linear_velocity_change, const Vector & angular_velocity_change)
+        {
+            rigid_body->add_to_linear_velocity(linear_velocity_change);
+            rigid_body->add_to_angular_velocity(angular_velocity_change);
+        }
+    };
 }
 
 namespace
@@ -640,8 +653,10 @@ void Application::run()
                 // for each model entity
                 for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
                 {
-                    PhysicalModel       * physical_model       = (*iter).physical_model;
-                    PerformanceReporter * performance_reporter = (*iter).performance_reporter;
+                    PhysicalModel       * physical_model       = iter->physical_model;
+                    AbstractModel       * high_model           = iter->high_model;
+                    PerformanceReporter * performance_reporter = iter->performance_reporter;
+                    RigidBody           * rigid_body           = & iter->rigid_body;
                     
                     Vector linear_velocity_change, angular_velocity_chage;
 
@@ -653,12 +668,23 @@ void Application::run()
 
                     logger.add_message("Step **finished**");
 
+                    // do some kinematics and interaction meanwhile
+                    rigid_body->integrate(dt);
+                    high_model->set_position(math_vector_to_d3dxvector(rigid_body->get_position()));
+                    D3DXMATRIX rotation;
+                    build_d3d_matrix(rigid_body->get_orientation(), Vector::ZERO, rotation);
+                    high_model->set_rotation(rotation);
+
                     if(impact_happened && NULL != impact_region)
                     {
                         physical_model->hit(*impact_region, impact_velocity);
                         impact_happened = false;
                     }
-                    physical_model->prepare_tasks(*forces, dt, NULL);
+
+                    // then start next step
+
+                    IntegrateRigidCallback callback(rigid_body);
+                    physical_model->prepare_tasks(*forces, dt, &callback);
                     logger.add_message("Tasks --READY--");
 
                     physical_model->react_to_events();

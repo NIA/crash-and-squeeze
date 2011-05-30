@@ -14,6 +14,7 @@
 extern const unsigned VECTORS_IN_MATRIX;
 
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
+typedef ::CrashAndSqueeze::Core::RigidBody RigidBody;
 
 struct PhysicalModelEntity
 {
@@ -21,6 +22,7 @@ struct PhysicalModelEntity
     AbstractModel       *low_model;
     PhysicalModel       *physical_model;
     PerformanceReporter *performance_reporter;
+    RigidBody           rigid_body;
 };
 
 typedef std::vector<PhysicalModelEntity> ModelEntities;
