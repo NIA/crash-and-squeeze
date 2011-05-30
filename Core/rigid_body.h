@@ -30,6 +30,8 @@ namespace CrashAndSqueeze
 
             void set_linear_velocity(const Math::Vector & value) { linear_velocity = value; }
             void set_angular_velocity(const Math::Vector & value) { angular_velocity = value; }
+            void add_to_linear_velocity(const Math::Vector & value) { linear_velocity += value; }
+            void add_to_angular_velocity(const Math::Vector & value) { angular_velocity += value; }
             void set_motion(const IBody &body);
 
             void integrate(Math::Real dt,
