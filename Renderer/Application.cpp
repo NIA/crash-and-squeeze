@@ -233,6 +233,15 @@ void  Application::set_alpha_test()
     }
 }
 
+void Application::draw_model(AbstractModel * model)
+{
+    // Set up
+    ( model->get_shader() ).set();
+
+    set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, post_transform*model->get_transformation() );
+        
+    model->draw();
+}
 
 void Application::render(PerformanceReporter &internal_reporter)
 {
@@ -261,46 +270,41 @@ void Application::render(PerformanceReporter &internal_reporter)
     set_shader_float(  SHADER_REG_SPECULAR_F,         SHADER_VAL_SPECULAR_F);
     set_shader_point(  SHADER_REG_EYE,                camera.get_eye());
     
-    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+    for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
     {
-        AbstractModel * display_model = (SHOW_GRAPHICAL_VERTICES == show_mode || NULL == (*iter).low_model) ? (*iter).high_model : (*iter).low_model;
-        PhysicalModel       * physical_model       = (*iter).physical_model;
+        AbstractModel * display_model   = (SHOW_GRAPHICAL_VERTICES == show_mode || NULL == (*iter).low_model) ? (*iter).high_model : (*iter).low_model;
+        PhysicalModel * physical_model  = (*iter).physical_model;
 
-        // Set up
-        ( display_model->get_shader() ).set();
-
-        set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, post_transform*display_model->get_transformation() );
-        
-        if(NULL != physical_model)
+        // if updating displayed vertices on GPU then setup matrices for it
+        if(is_updating_vertices_on_gpu)
         {
-            // if updating displayed vertices on GPU then setup matrices for it
-            if(is_updating_vertices_on_gpu)
+            // step of 3 vectors between consequent 3x4 matrices
+            int step = VECTORS_IN_MATRIX-1;
+            int clusters_num = physical_model->get_clusters_num();
+            // for each cluster...
+            for(int i = 0; i < clusters_num; ++i)
             {
-                // step of 3 vectors between consequent 3x4 matrices
-                int step = VECTORS_IN_MATRIX-1;
-                int clusters_num = physical_model->get_clusters_num();
-                // for each cluster...
-                for(int i = 0; i < clusters_num; ++i)
-                {
-                    // ...set initial center of mass...
-                    D3DXVECTOR3 init_pos = math_vector_to_d3dxvector(physical_model->get_cluster_initial_center(i));
-                    set_shader_vector( SHADER_REG_CLUSTER_INIT_CENTER + i, init_pos);
-                    
-                    // ...and transformation matrices for positions...
-                    D3DXMATRIX cluster_matrix;
-                    build_d3d_matrix(physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i), cluster_matrix);
-                    set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*i, cluster_matrix);
+                // ...set initial center of mass...
+                D3DXVECTOR3 init_pos = math_vector_to_d3dxvector(physical_model->get_cluster_initial_center(i));
+                set_shader_vector( SHADER_REG_CLUSTER_INIT_CENTER + i, init_pos);
+                
+                // ...and transformation matrices for positions...
+                D3DXMATRIX cluster_matrix;
+                build_d3d_matrix(physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i), cluster_matrix);
+                set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*i, cluster_matrix);
 
-                    // ...and normals
-                    build_d3d_matrix(physical_model->get_cluster_normal_transformation(i), Vector::ZERO, cluster_matrix);
-                    set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*i, cluster_matrix);
-                }
-                set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*clusters_num, ZEROS );
-                set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*clusters_num, ZEROS );
+                // ...and normals
+                build_d3d_matrix(physical_model->get_cluster_normal_transformation(i), Vector::ZERO, cluster_matrix);
+                set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*i, cluster_matrix);
             }
+            set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*clusters_num, ZEROS );
+            set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*clusters_num, ZEROS );
         }
-        
-        display_model->draw();
+        draw_model(display_model);
+    }
+    for (AbstractModels::iterator iter = visual_only_models.begin(); iter != visual_only_models.end(); ++iter)
+    {
+        draw_model( *iter );
     }
 
     // Draw text info
@@ -351,63 +355,56 @@ IDirect3DDevice9 * Application::get_device()
     return device;
 }
 
-PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical, AbstractModel *low_model)
+void Application::add_visual_only_model(AbstractModel &model)
 {
-    ModelEntity model_entity = {NULL};
+    visual_only_models.push_back(&model);
+}
+
+PhysicalModel * Application::add_physical_model(AbstractModel & high_model, AbstractModel & low_model)
+{
+    PhysicalModelEntity model_entity = {NULL};
 
     model_entity.high_model = &high_model;
 
-    if(physical)
+    Vertex * high_vertices = high_model.lock_vertex_buffer();
+    Vertex * low_vertices = low_model.lock_vertex_buffer();
+    model_entity.physical_model =
+        new PhysicalModel(low_vertices,
+                          low_model.get_vertices_count(),
+                          VERTEX_INFO,
+                          
+                          high_vertices,
+                          high_model.get_vertices_count(),
+                          VERTEX_INFO,
+                          
+                          CLUSTERS_BY_AXES,
+                          CLUSTER_PADDING_COEFF,
+
+                          &prim_factory,
+
+                          NULL,
+                          VERTEX_MASS);
+    
+    high_model.unlock_vertex_buffer();
+    low_model.unlock_vertex_buffer();
+
+    model_entity.low_model = & low_model;
+
+    for(int i = 0; i < THREADS_COUNT; ++i)
     {
-        if(NULL == low_model)
-            throw NullPointerError();
-
-        Vertex * high_vertices = high_model.lock_vertex_buffer();
-        Vertex * low_vertices = low_model->lock_vertex_buffer();
-        model_entity.physical_model =
-            new PhysicalModel(low_vertices,
-                              low_model->get_vertices_count(),
-                              VERTEX_INFO,
-                              
-                              high_vertices,
-                              high_model.get_vertices_count(),
-                              VERTEX_INFO,
-                              
-                              CLUSTERS_BY_AXES,
-                              CLUSTER_PADDING_COEFF,
-
-                              &prim_factory,
-
-                              NULL,
-                              VERTEX_MASS);
-        
-        high_model.unlock_vertex_buffer();
-        low_model->unlock_vertex_buffer();
-
-        model_entity.low_model = low_model;
-
-        for(int i = 0; i < THREADS_COUNT; ++i)
-        {
-            // TODO: Oops, it will fail for two or more physical models
-            threads[i].start(model_entity.physical_model, &logger);
-        }
-
-        static const int BUFFER_SIZE = 128;
-        char description[BUFFER_SIZE];
-        sprintf_s(description, BUFFER_SIZE, "%i low-vertices (mapped on %i hi-vertices) in %i=%ix%ix%i clusters on %i threads",
-                                            low_model->get_vertices_count(), high_model.get_vertices_count(),
-                                            TOTAL_CLUSTERS_COUNT, CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2],
-                                            THREADS_COUNT);
-        model_entity.performance_reporter = new PerformanceReporter(logger, description);
-    }
-    else
-    {
-        model_entity.low_model = NULL;
-        model_entity.physical_model = NULL;
-        model_entity.performance_reporter = NULL;
+        // TODO: Oops, it will fail for two or more physical models
+        threads[i].start(model_entity.physical_model, &logger);
     }
 
-    model_entities.push_back( model_entity );
+    static const int BUFFER_SIZE = 128;
+    char description[BUFFER_SIZE];
+    sprintf_s(description, BUFFER_SIZE, "%i low-vertices (mapped on %i hi-vertices) in %i=%ix%ix%i clusters on %i threads",
+                                        low_model.get_vertices_count(), high_model.get_vertices_count(),
+                                        TOTAL_CLUSTERS_COUNT, CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2],
+                                        THREADS_COUNT);
+    model_entity.performance_reporter = new PerformanceReporter(logger, description);
+ 
+    physical_models.push_back( model_entity );
     return model_entity.physical_model;
 }
 
@@ -425,7 +422,7 @@ void Application::set_impact(::CrashAndSqueeze::Core::IRegion & region,
     {
         impact_region = & region;
         impact_velocity = velocity;
-        add_model(model);
+        add_visual_only_model(model);
         impact_model = & model;
         impact_rot_center = rotation_center;
     }
@@ -474,7 +471,7 @@ void Application::move_impact_nearer(Real dist, const Vector & rotation_axis)
 
 void Application::rotate_models(float phi)
 {
-    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+    for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
     {
         (*iter).high_model->rotate(phi);
         
@@ -641,46 +638,39 @@ void Application::run()
             if(emulation_enabled || emultate_one_step)
             {
                 // for each model entity
-                for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+                for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
                 {
                     PhysicalModel       * physical_model       = (*iter).physical_model;
                     PerformanceReporter * performance_reporter = (*iter).performance_reporter;
                     
-                    if( NULL != physical_model )
+                    Vector linear_velocity_change, angular_velocity_chage;
+
+                    stopwatch.start();
+                    if(false == physical_model->wait_for_step())
                     {
-                        Vector linear_velocity_change, angular_velocity_chage;
-
-                        stopwatch.start();
-                        if(false == physical_model->wait_for_step())
-                        {
-                            throw PhysicsError();
-                        }
-
-                        logger.add_message("Step **finished**");
-
-                        if(impact_happened && NULL != impact_region)
-                        {
-                            physical_model->hit(*impact_region, impact_velocity);
-                            impact_happened = false;
-                        }
-                        physical_model->prepare_tasks(*forces, dt, NULL);
-                        logger.add_message("Tasks --READY--");
-
-                        physical_model->react_to_events();
-
-                        if(false == physical_model->wait_for_clusters())
-                        {
-                            throw PhysicsError();
-                        }
-
-                        double time = stopwatch.stop();
-                        logger.add_message("Clusters ~~finished~~");
-
-                        if( NULL != performance_reporter )
-                        {
-                            performance_reporter->add_measurement(time);
-                        }
+                        throw PhysicsError();
                     }
+
+                    logger.add_message("Step **finished**");
+
+                    if(impact_happened && NULL != impact_region)
+                    {
+                        physical_model->hit(*impact_region, impact_velocity);
+                        impact_happened = false;
+                    }
+                    physical_model->prepare_tasks(*forces, dt, NULL);
+                    logger.add_message("Tasks --READY--");
+
+                    physical_model->react_to_events();
+
+                    if(false == physical_model->wait_for_clusters())
+                    {
+                        throw PhysicsError();
+                    }
+
+                    double time = stopwatch.stop();
+                    logger.add_message("Clusters ~~finished~~");
+                    performance_reporter->add_measurement(time);
                 }
                 ++physics_frames;
                 emultate_one_step = false;
@@ -690,43 +680,40 @@ void Application::run()
             if(vertices_update_needed)
             {
                 // for each model entity
-                for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+                for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
                 {
                     PhysicalModel       * physical_model       = (*iter).physical_model;
                     
-                    if( NULL != physical_model )
+                    AbstractModel *model;
+                    if(SHOW_GRAPHICAL_VERTICES == show_mode)
+                        model = (*iter).high_model;
+                    else
+                        model = (*iter).low_model;
+
+                    if( ! (is_updating_vertices_on_gpu && SHOW_GRAPHICAL_VERTICES == show_mode) )
                     {
-                        AbstractModel *model;
-                        if(SHOW_GRAPHICAL_VERTICES == show_mode)
-                            model = (*iter).high_model;
-                        else
-                            model = (*iter).low_model;
+                        Vertex *vertices = model->lock_vertex_buffer();
+                        int vertices_count = model->get_vertices_count();
 
-                        if( ! (is_updating_vertices_on_gpu && SHOW_GRAPHICAL_VERTICES == show_mode) )
+                        switch(show_mode)
                         {
-                            Vertex *vertices = model->lock_vertex_buffer();
-                            int vertices_count = model->get_vertices_count();
-
-                            switch(show_mode)
-                            {
-                            case SHOW_GRAPHICAL_VERTICES:
-                                stopwatch.start();
-                                physical_model->update_vertices(vertices, vertices_count, VERTEX_INFO);
-                                update_performance_reporter.add_measurement(stopwatch.stop());
-                                break;
-                            case SHOW_CURRENT_POSITIONS:
-                                physical_model->update_current_positions(vertices, vertices_count, VERTEX_INFO);
-                                break;
-                            case SHOW_EQUILIBRIUM_POSITIONS:
-                                physical_model->update_equilibrium_positions(vertices, vertices_count, VERTEX_INFO);
-                                break;
-                            case SHOW_INITIAL_POSITIONS:
-                                physical_model->update_initial_positions(vertices, vertices_count, VERTEX_INFO);
-                                break;
-                            }
-
-                            model->unlock_vertex_buffer();
+                        case SHOW_GRAPHICAL_VERTICES:
+                            stopwatch.start();
+                            physical_model->update_vertices(vertices, vertices_count, VERTEX_INFO);
+                            update_performance_reporter.add_measurement(stopwatch.stop());
+                            break;
+                        case SHOW_CURRENT_POSITIONS:
+                            physical_model->update_current_positions(vertices, vertices_count, VERTEX_INFO);
+                            break;
+                        case SHOW_EQUILIBRIUM_POSITIONS:
+                            physical_model->update_equilibrium_positions(vertices, vertices_count, VERTEX_INFO);
+                            break;
+                        case SHOW_INITIAL_POSITIONS:
+                            physical_model->update_initial_positions(vertices, vertices_count, VERTEX_INFO);
+                            break;
                         }
+
+                        model->unlock_vertex_buffer();
                     }
                 }
 
@@ -743,10 +730,9 @@ void Application::run()
 
     // -- report performance results --
 
-    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+    for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
     {
-        if( NULL != (*iter).performance_reporter )
-            (*iter).performance_reporter->report_results();
+        (*iter).performance_reporter->report_results();
     }
     update_performance_reporter.report_results();
     render_performance_reporter.report_results();
@@ -786,16 +772,15 @@ void Application::stop_threads()
     {
         threads[i].stop();
     }
-    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+    for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
     {
-        if(NULL != (*iter).physical_model)
-            (*iter).physical_model->wait_for_step();
+        (*iter).physical_model->wait_for_step();
     }
 }
 
 void Application::delete_model_stuff()
 {
-    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+    for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
     {
         if(NULL != (*iter).physical_model)
             delete (*iter).physical_model;

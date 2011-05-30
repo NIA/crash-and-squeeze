@@ -313,7 +313,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                  D3DXVECTOR3(0, 0, 0),
                                  D3DXVECTOR3(0, 0, 0));
         
-        PhysicalModel * phys_mod = app.add_model(car, true, &low_car);
+        PhysicalModel * phys_mod = app.add_physical_model(car, low_car);
         if(NULL == phys_mod)
             throw NullPointerError();
 

@@ -15,7 +15,7 @@ extern const unsigned VECTORS_IN_MATRIX;
 
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
 
-struct ModelEntity
+struct PhysicalModelEntity
 {
     AbstractModel       *high_model;
     AbstractModel       *low_model;
@@ -23,7 +23,8 @@ struct ModelEntity
     PerformanceReporter *performance_reporter;
 };
 
-typedef std::vector<ModelEntity> ModelEntities;
+typedef std::vector<PhysicalModelEntity> ModelEntities;
+typedef std::vector<AbstractModel*> AbstractModels;
 
 class Application
 {
@@ -55,7 +56,8 @@ private:
 
     Window window;
 
-    ModelEntities model_entities;
+    ModelEntities physical_models;
+    AbstractModels visual_only_models;
 
     ::CrashAndSqueeze::Core::ForcesArray * forces;
     bool forces_enabled;
@@ -121,6 +123,7 @@ private:
 
     void draw_text(const TCHAR * text, RECT rect, D3DCOLOR color, bool align_right = false);
     void draw_text_info();
+    void draw_model(AbstractModel * model);
     void render(PerformanceReporter &internal_reporter);
 
     // Deinitialization steps:
@@ -134,7 +137,9 @@ public:
 
     // Adds given model to Application's list of models;
     // creates a physical model if `physical` is true (and returns it);
-    PhysicalModel * add_model(AbstractModel &high_model, bool physical = false, AbstractModel *low_model = NULL);
+    PhysicalModel * add_physical_model(AbstractModel & high_model, AbstractModel & low_model);
+    void add_visual_only_model(AbstractModel & model);
+
     void set_forces(::CrashAndSqueeze::Core::ForcesArray & forces);
     void set_impact(::CrashAndSqueeze::Core::IRegion & region,
                     const ::CrashAndSqueeze::Math::Vector &velocity,
