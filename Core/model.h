@@ -227,6 +227,15 @@ namespace CrashAndSqueeze
             void update_initial_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
 
             // -- Properties --
+
+            const Math::Vector & get_center_of_mass() { return body->get_center_of_mass(); }
+            const Math::Real     get_total_mass()     { return body->get_total_mass(); }
+            const Math::Matrix & get_inertia_tensor() { return body->get_inertia_tensor(); }
+
+            // gets size along the given dimension (0 to 2)
+            const Math::Real get_size(int dimension) { return max_pos[dimension]-min_pos[dimension]; }
+
+            // -- Simple getters --
             
             virtual int get_vertices_num() const { return vertices.size(); }
             int get_clusters_num() const { return clusters.size(); }
