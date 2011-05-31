@@ -381,6 +381,7 @@ namespace CrashAndSqueeze
         void Model::hit(const IRegion &region, const Vector & velocity)
         {
             hit_vertices_indices.clear();
+            Real affected_mass = 0;
 
             // -- Find vertices in this region --
 
@@ -389,7 +390,10 @@ namespace CrashAndSqueeze
                 PhysicalVertex &v = vertices[i];
 
                 if( region.contains(v.get_pos()) )
+                {
                     hit_vertices_indices.push_back(i);
+                    affected_mass += v.get_mass();
+                }
             }
 
             // -- Report warning if none found --
@@ -399,19 +403,22 @@ namespace CrashAndSqueeze
                 Logger::warning("in Model::hit: there is no vertex inside given region", __FILE__, __LINE__);
                 return;
             }
+            
+            // scale velocity so that we have required change of total velocity
+            Vector scaled_velocity = velocity * body->get_total_mass()/affected_mass;
 
             // -- Add the same velocity to all vertices in region --
 
             for(int i = 0; i < hit_vertices_indices.size(); ++i)
             {
-                vertices[ hit_vertices_indices[i] ].add_to_velocity(velocity);
+                vertices[ hit_vertices_indices[i] ].add_to_velocity(scaled_velocity);
             }
 
             // -- Invoke reactions if needed --
 
             for(int i = 0; i < hit_reactions.size(); ++i)
             {
-                hit_reactions[i]->invoke_if_needed(hit_vertices_indices, velocity);
+                hit_reactions[i]->invoke_if_needed(hit_vertices_indices, scaled_velocity);
             }
         }
 
