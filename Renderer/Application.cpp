@@ -278,6 +278,13 @@ void Application::render(PerformanceReporter &internal_reporter)
     set_shader_float(  SHADER_REG_SPECULAR_F,         SHADER_VAL_SPECULAR_F);
     set_shader_point(  SHADER_REG_EYE,                camera.get_eye());
     
+
+    if( ! physical_models.empty() && NULL != impact_model )
+    {
+        PhysicalModelEntity *model_entity = physical_models.front(); // first model
+        impact_model->attach_to( model_entity->get_displayed_model(show_mode) );
+    }
+
     for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
     {
         PhysicalModelEntity * model_entity = *iter;

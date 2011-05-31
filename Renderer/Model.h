@@ -18,6 +18,8 @@ private:
     bool draw_cw;
     bool draw_ccw;
 
+    AbstractModel *attached_to;
+
     void update_matrix();
 
 protected:
@@ -47,6 +49,8 @@ public:
 
     void set_draw_cw(bool value) { draw_cw = value; }
     void set_draw_ccw(bool value) { draw_ccw = value; }
+
+    void attach_to(AbstractModel *another_model);
     
     void draw() const;
     virtual ~AbstractModel() {}

@@ -6,7 +6,8 @@ extern const unsigned VECTORS_IN_MATRIX;
 // -- AbstractModel --
 
 AbstractModel::AbstractModel(IDirect3DDevice9 *device, VertexShader &shader, D3DXVECTOR3 position)
-: device(device), position(position), rotation(rotation), shader(shader), zoom(1), draw_cw(true), draw_ccw(false)
+: device(device), position(position), rotation(rotation), shader(shader), zoom(1), draw_cw(true), draw_ccw(false),
+  attached_to(NULL)
 {
     rotation = rotate_x_matrix(0); // unity matrix
     update_matrix();
@@ -25,6 +26,10 @@ IDirect3DDevice9 *AbstractModel::get_device() const
 void AbstractModel::update_matrix()
 {
     transformation = shift_matrix(position, zoom)*rotation;
+    if(NULL != attached_to)
+    {
+        transformation = attached_to->get_transformation() * transformation;
+    }
 }
 
 void AbstractModel::rotate(float phi)
@@ -54,6 +59,12 @@ void AbstractModel::set_position(const D3DXVECTOR3 & new_pos)
 void AbstractModel::set_rotation(const D3DXMATRIX & new_rot)
 {
     rotation = new_rot;
+    update_matrix();
+}
+
+void AbstractModel::attach_to(AbstractModel *another_model)
+{
+    attached_to = another_model;
     update_matrix();
 }
 
