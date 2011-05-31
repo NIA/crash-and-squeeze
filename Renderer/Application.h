@@ -33,21 +33,21 @@ public:
 class PhysicalModelEntity
 {
 private:
-    AbstractModel       *high_model;
-    AbstractModel       *low_model;
-    PhysicalModel       *physical_model;
+    AbstractModel         * high_model;
+    AbstractModel         * low_model;
+    PhysicalModel         * physical_model;
     
-    IntegrateRigidCallback velocities_changed_callback;
-    RigidBody           rigid_body;
-    
-    Stopwatch           physics_stopwatch;
-    PerformanceReporter *performance_reporter;
-    Stopwatch           update_stopwatch;
-    PerformanceReporter *update_performance_reporter;
+    IntegrateRigidCallback  velocities_changed_callback;
+    RigidBody               rigid_body;
 
-    WinFactory prim_factory;
+    Stopwatch               physics_stopwatch;
+    PerformanceReporter   * performance_reporter;
+    Stopwatch               update_stopwatch;
+    PerformanceReporter   * update_performance_reporter;
 
-    bool is_updating_vertices_on_gpu;
+    WinFactory              prim_factory;
+
+    bool                    is_updating_vertices_on_gpu;
 
 public:
     PhysicalModelEntity(AbstractModel &high_model,
