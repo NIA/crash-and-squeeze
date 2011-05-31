@@ -30,6 +30,9 @@ namespace
     const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 6};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.2;
+    // a value of friction force, divided by mass
+    // (you may think that it is a combination of constatns mu*g: F/m = mu*N/m = mu*m*g/m = mu*g)
+    const Real        FRICTION_ACC_VALUE = 0.25;
 
     enum ShowMode
     {
@@ -792,7 +795,37 @@ void PhysicalModelEntity::hit(const ::CrashAndSqueeze::Core::IRegion &region, co
 
 void PhysicalModelEntity::compute_kinematics(double dt)
 {
-    rigid_body.integrate(dt);
+    Vector friction_linear_acc = Vector::ZERO;
+    Vector friction_angular_acc = Vector::ZERO;
+    // friction
+    if(FRICTION_ACC_VALUE > 0)
+    {
+        Vector linear_velocity = rigid_body.get_linear_velocity();
+        Vector angular_velocity = rigid_body.get_angular_velocity();
+        if( linear_velocity.norm() < FRICTION_ACC_VALUE*dt )
+        {
+            friction_linear_acc = - linear_velocity/dt;
+        }
+        else
+        {
+            friction_linear_acc = - linear_velocity.normalized()*FRICTION_ACC_VALUE;
+        }
+        // coef 1/8 is rather arbitrary, because it is true only for linear stick
+        Real friction_angular_acc_value = 1.0/8*FRICTION_ACC_VALUE*physical_model->get_size(2);
+        if( angular_velocity.norm() < friction_angular_acc_value*dt )
+        {
+            friction_angular_acc = - angular_velocity/dt;
+        }
+        else
+        {
+            friction_angular_acc = - angular_velocity.normalized()*friction_angular_acc_value;
+        }
+    }
+
+    // do computation
+    rigid_body.integrate(dt, friction_linear_acc, friction_angular_acc);
+    
+    // update model properties
     high_model->set_position(math_vector_to_d3dxvector(rigid_body.get_position()));
     D3DXMATRIX rotation;
     build_d3d_matrix(rigid_body.get_orientation(), Vector::ZERO, rotation);
