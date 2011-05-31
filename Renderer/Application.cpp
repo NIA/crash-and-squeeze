@@ -33,6 +33,8 @@ namespace
     // a value of friction force, divided by mass
     // (you may think that it is a combination of constatns mu*g: F/m = mu*N/m = mu*m*g/m = mu*g)
     const Real        FRICTION_ACC_VALUE = 0.25;
+    // determines which part of impact velocity becomes the velocity of deformation
+    const Real        DEFORMATION_VELOCITY_COEFF = 0.1;
 
     enum ShowMode
     {
@@ -790,7 +792,19 @@ void PhysicalModelEntity::wait_for_deformation()
 
 void PhysicalModelEntity::hit(const ::CrashAndSqueeze::Core::IRegion &region, const Vector & velocity)
 {
-    physical_model->hit(region, velocity);
+    // two results of hit: deformation...
+    Vector deformation_velocity = velocity*DEFORMATION_VELOCITY_COEFF;
+    physical_model->hit(region, deformation_velocity);
+    
+    // ...and change in global motion
+    Vector impact_velocity = velocity - deformation_velocity;
+    
+    Vector hit_relative_pos = region.get_center() - physical_model->get_center_of_mass();
+    // TODO: optimize matrix inversion by caching
+    Vector impact_angular_velocity = physical_model->get_inertia_tensor().inverted()
+                                   * cross_product(hit_relative_pos, impact_velocity*physical_model->get_total_mass());
+    rigid_body.add_to_linear_velocity(impact_velocity);
+    rigid_body.add_to_angular_velocity(impact_angular_velocity);
 }
 
 void PhysicalModelEntity::compute_kinematics(double dt)

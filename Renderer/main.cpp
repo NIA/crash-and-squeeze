@@ -405,7 +405,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                math_vector_to_d3dxvector(hit_region.get_center()));
         hit_region_model.set_draw_ccw(true);
 
-        app.set_impact( hit_region, Vector(0,-110,0.0), Vector(0, 1.15, 0), hit_region_model);
+        double impact_velocity = 1;
+        app.set_impact( hit_region, Vector(0,-impact_velocity,0), Vector(0, 1.15, 0), hit_region_model);
 
         // -------------------------- G O ! ! ! -----------------------
         app.run();
