@@ -56,14 +56,13 @@ public:
                         const char *perf_rep_desc,
                         Logger & logger);
 
-    void wait_for_deformation();
     void hit(const IRegion &region, const Vector & velocity);
     void compute_kinematics(double dt);
     void compute_deformation(ForcesArray * forces, double dt);
+    void wait_for_deformation();
 
-    void update_geometry(int show_mode);
-    void prepare_for_render(int show_mode);
     AbstractModel * get_displayed_model(int show_mode);
+    void update_geometry(int show_mode);
 
     void report_performance();
 

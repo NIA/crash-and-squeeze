@@ -781,14 +781,6 @@ PhysicalModelEntity::PhysicalModelEntity(AbstractModel & high_model,
     update_performance_reporter = new PerformanceReporter(logger, "updating");
 }
 
-void PhysicalModelEntity::wait_for_deformation()
-{
-    physics_stopwatch.start();
-    if(false == physical_model->wait_for_step())
-    {
-        throw PhysicsError();
-    }
-}
 
 void PhysicalModelEntity::hit(const ::CrashAndSqueeze::Core::IRegion &region, const Vector & velocity)
 {
@@ -857,6 +849,15 @@ void PhysicalModelEntity::compute_deformation(ForcesArray * forces, double dt)
         throw PhysicsError();
     }
     performance_reporter->add_measurement(physics_stopwatch.stop());
+}
+
+void PhysicalModelEntity::wait_for_deformation()
+{
+    physics_stopwatch.start();
+    if(false == physical_model->wait_for_step())
+    {
+        throw PhysicsError();
+    }
 }
 
 AbstractModel * PhysicalModelEntity::get_displayed_model(int show_mode)
