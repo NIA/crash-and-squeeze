@@ -19,7 +19,9 @@ using ::CrashAndSqueeze::Core::RigidBody;
 using ::CrashAndSqueeze::Core::ForcesArray;
 using ::CrashAndSqueeze::Math::Real;
 using ::CrashAndSqueeze::Math::Vector;
+using ::CrashAndSqueeze::Math::Matrix;
 using ::CrashAndSqueeze::Core::IRegion;
+using ::CrashAndSqueeze::Core::SphericalRegion;
 
 class IntegrateRigidCallback : public ::CrashAndSqueeze::Core::VelocitiesChangedCallback
 {
@@ -49,6 +51,8 @@ private:
 
     bool                    is_updating_vertices_on_gpu;
 
+    bool is_colliding_with(const IRegion & region, /*out*/ Vector & collision_point_local, /*out*/ Vector & collision_point_global);
+
 public:
     PhysicalModelEntity(AbstractModel &high_model,
                         AbstractModel &low_model,
@@ -56,7 +60,14 @@ public:
                         const char *perf_rep_desc,
                         Logger & logger);
 
-    void hit(const IRegion &region, const Vector & velocity);
+    void setup_body(const Vector & position,
+                    const Matrix & orientation,
+                    const Vector & linear_velocity,
+                    const Vector & angular_velocity);
+    
+    void hit(const IRegion & region, const Vector & velocity);
+    void collide_with(const SphericalRegion & region);
+    
     void compute_kinematics(double dt);
     void compute_deformation(ForcesArray * forces, double dt);
     void wait_for_deformation();
@@ -110,12 +121,11 @@ private:
     ForcesArray * forces;
     bool forces_enabled;
 
-    IRegion * impact_region;
+    SphericalRegion * impact_region;
     Vector impact_velocity;
     Vector impact_rot_center;
     int impact_axis; // index of impact rotation axis
     AbstractModel * impact_model;
-    bool impact_happened;
     void move_impact(const Vector & vector);
     void rotate_impact(const Vector & rotation_axis);
     void move_impact_nearer(Real distance, const Vector & rotation_axis);
@@ -182,11 +192,13 @@ public:
 
     // Adds given model to Application's list of models;
     // creates a physical model if `physical` is true (and returns it);
-    PhysicalModel * add_physical_model(AbstractModel & high_model, AbstractModel & low_model);
+    PhysicalModel * add_physical_model(AbstractModel & high_model, AbstractModel & low_model,
+                                       const Vector & linear_velocity = Vector::ZERO,
+                                       const Vector & angular_velocity = Vector::ZERO);
     void add_visual_only_model(AbstractModel & model);
 
     void set_forces(ForcesArray & forces);
-    void set_impact(IRegion & region,
+    void set_impact(SphericalRegion & region,
                     const Vector &velocity,
                     const Vector &rotation_center,
                     AbstractModel &model);

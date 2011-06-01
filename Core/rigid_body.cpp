@@ -12,11 +12,18 @@ namespace CrashAndSqueeze
     {
         RigidBody::RigidBody(const Vector & position, const Matrix & orientation,
                              const Vector & linear_velocity, const Vector & angular_velocity)
-            : position(position),
-              orientation(orientation),
-              linear_velocity(linear_velocity),
-              angular_velocity(angular_velocity)
-        {}
+        {
+            setup(position, orientation, linear_velocity, angular_velocity);
+        }
+
+        void RigidBody::setup(const Vector & position, const Matrix & orientation,
+                              const Vector & linear_velocity, const Vector & angular_velocity)
+        {
+            this->position = position;
+            this->orientation = orientation;
+            this->linear_velocity = linear_velocity;
+            this->angular_velocity = angular_velocity;
+        }
 
         void RigidBody::set_motion(const IBody &body)
         {

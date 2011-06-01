@@ -2,7 +2,6 @@
 #include "matrices.h"
 #include <time.h>
 
-using CrashAndSqueeze::Math::Matrix;
 using CrashAndSqueeze::Math::VECTOR_SIZE;
 using CrashAndSqueeze::Core::IndexArray;
 using CrashAndSqueeze::Parallel::TaskQueue;
@@ -35,6 +34,8 @@ namespace
     const Real        FRICTION_ACC_VALUE = 0.25;
     // determines which part of impact velocity becomes the velocity of deformation
     const Real        DEFORMATION_VELOCITY_COEFF = 0.1;
+    const Real        HIT_RADIUS = 0.2;
+    const Real        IMPACT_ELASTICITY = 1;
 
     enum ShowMode
     {
@@ -102,6 +103,20 @@ namespace
         out_matrix.m[LAST][LAST] = 1;
     }
 
+    void extract_pos_and_transform(const D3DXMATRIX &in_matrix, /*out*/ Vector & out_pos, /*out*/ Matrix & out_transform)
+    {
+        const int LAST = VECTORS_IN_MATRIX - 1; // index of last row/col in D3DXMATRIX
+
+        // copy position
+        for(int i = 0; i < VECTOR_SIZE; ++i)
+            out_pos[i] = static_cast<Real>(in_matrix.m[i][LAST]);
+
+        // copy transformation
+        for(int i = 0; i < VECTOR_SIZE; ++i)
+            for(int j = 0; j < VECTOR_SIZE; ++j)
+                out_transform.set_at(i, j, static_cast<float>(in_matrix.m[i][j]));
+    }
+
     //---------------- SHADER CONSTANTS ---------------------------
     //    c0-c3 is the view matrix
     const unsigned    SHADER_REG_VIEW_MX = 0;
@@ -157,7 +172,7 @@ Application::Application(Logger &logger) :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(6.1f, 1.1f, -1.16858f), // Constants selected for better view of the scene
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
-    vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
+    vertices_update_needed(false), impact_region(NULL), wireframe(INITIAL_WIREFRAME_STATE),
     forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), post_transform(rotate_x_matrix(D3DX_PI/2)),
     impact_axis(0), is_updating_vertices_on_gpu(true)
 {
@@ -283,13 +298,6 @@ void Application::render(PerformanceReporter &internal_reporter)
     set_shader_float(  SHADER_REG_SPECULAR_F,         SHADER_VAL_SPECULAR_F);
     set_shader_point(  SHADER_REG_EYE,                camera.get_eye());
     
-
-    if( ! physical_models.empty() && NULL != impact_model )
-    {
-        PhysicalModelEntity *model_entity = physical_models.front(); // first model
-        impact_model->attach_to( model_entity->get_displayed_model(show_mode) );
-    }
-
     for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
     {
         PhysicalModelEntity * model_entity = *iter;
@@ -381,7 +389,8 @@ void Application::add_visual_only_model(AbstractModel &model)
     visual_only_models.push_back(&model);
 }
 
-PhysicalModel * Application::add_physical_model(AbstractModel & high_model, AbstractModel & low_model)
+PhysicalModel * Application::add_physical_model(AbstractModel & high_model, AbstractModel & low_model,
+                                                const Vector & linear_velocity, const Vector & angular_velocity)
 {
     static const int BUFFER_SIZE = 128;
     char description[BUFFER_SIZE];
@@ -395,10 +404,14 @@ PhysicalModel * Application::add_physical_model(AbstractModel & high_model, Abst
                                                                  is_updating_vertices_on_gpu,
                                                                  description,
                                                                  logger);
-    PhysicalModel * physical_model = model_entity->get_physical_model();
- 
+    Vector position;
+    Matrix orientation;
+    extract_pos_and_transform(high_model.get_transformation(), position, orientation);
+    model_entity->setup_body(position, orientation, linear_velocity, angular_velocity),
+
     physical_models.push_back( model_entity );
 
+    PhysicalModel * physical_model = model_entity->get_physical_model();
     for(int i = 0; i < THREADS_COUNT; ++i)
     {
         // TODO: Oops, it will fail for two or more physical models
@@ -413,7 +426,7 @@ void Application::set_forces(ForcesArray & forces)
     this->forces = & forces;
 }
 
-void Application::set_impact(::CrashAndSqueeze::Core::IRegion & region,
+void Application::set_impact(SphericalRegion & region,
                              const Vector &velocity,
                              const Vector &rotation_center,
                              AbstractModel & model)
@@ -566,9 +579,6 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
     case VK_TAB:
         set_show_mode( ( show_mode + (shift ? - 1 : 1) + _SHOW_MODES_COUNT )%_SHOW_MODES_COUNT );
         break;
-    case VK_RETURN:
-        impact_happened = true;
-        break;
     case VK_F1:
         show_help = !show_help;
         break;
@@ -636,11 +646,7 @@ void Application::run()
 
                     // do some kinematics and interaction meanwhile
                     model_entity->compute_kinematics(dt);
-                    if(impact_happened && NULL != impact_region)
-                    {
-                        model_entity->hit(*impact_region, impact_velocity);
-                        impact_happened = false;
-                    }
+                    model_entity->collide_with(*impact_region);
 
                     // then start next step
                     model_entity->compute_deformation(forces, dt);
@@ -781,6 +787,13 @@ PhysicalModelEntity::PhysicalModelEntity(AbstractModel & high_model,
     update_performance_reporter = new PerformanceReporter(logger, "updating");
 }
 
+void PhysicalModelEntity::setup_body(const Vector & position,
+                const Matrix & orientation,
+                const Vector & linear_velocity,
+                const Vector & angular_velocity)
+{
+    rigid_body.setup(position, orientation, linear_velocity, angular_velocity);
+}
 
 void PhysicalModelEntity::hit(const ::CrashAndSqueeze::Core::IRegion &region, const Vector & velocity)
 {
@@ -797,6 +810,58 @@ void PhysicalModelEntity::hit(const ::CrashAndSqueeze::Core::IRegion &region, co
                                    * cross_product(hit_relative_pos, impact_velocity*physical_model->get_total_mass());
     rigid_body.add_to_linear_velocity(impact_velocity);
     rigid_body.add_to_angular_velocity(impact_angular_velocity);
+}
+
+bool PhysicalModelEntity::is_colliding_with(const IRegion & region,
+                                            /*out*/ Vector & collision_point_local,
+                                            /*out*/ Vector & collision_point_global)
+{
+    for(int i = 0; i < physical_model->get_vertices_num(); ++i)
+    {
+        // position of vertex in model space
+        Vector pos_local = physical_model->get_vertex(i).get_pos();
+        // same as previous, but relative to center of mass
+        Vector relative_pos = pos_local - physical_model->get_center_of_mass();
+        // position in global space
+        Vector pos_global = rigid_body.get_position() + rigid_body.get_orientation()*relative_pos;
+        if(region.contains(pos_global))
+        {
+            collision_point_local = pos_local;
+            collision_point_global = pos_global;
+            return true;
+        }
+    }
+    return false;
+}
+
+void PhysicalModelEntity::collide_with(const SphericalRegion &region)
+{
+    Vector collision_point_local;
+    Vector collision_point_global;
+    if(is_colliding_with(region, collision_point_local, collision_point_global))
+    {
+        MessageBox(NULL, _T("Collision!"), _T("Debugging!!!"), MB_OK);
+        Vector normal = (collision_point_global - region.get_center());
+        if( ! normal.is_zero() )
+            normal.normalize();
+        else
+            normal = Vector(0, 0, 1);
+
+        Vector velocity_of_collision_point = rigid_body.get_linear_velocity()
+                                           + cross_product(rigid_body.get_angular_velocity(), collision_point_global);
+        // component of velocity along the normal, inside.
+        Real collision_velocity = - velocity_of_collision_point * normal;
+        // if it is < 0 => moving away, not collision
+        if(collision_velocity < 0)
+        {
+            return;
+        }
+        Vector hit_velocity_global = (1 + IMPACT_ELASTICITY)*collision_velocity*normal;
+        Vector hit_velocity_local = rigid_body.get_orientation().transposed()*hit_velocity_global;
+        SphericalRegion hit_region(collision_point_local, HIT_RADIUS);
+
+        hit(hit_region, hit_velocity_local);
+    }
 }
 
 void PhysicalModelEntity::compute_kinematics(double dt)

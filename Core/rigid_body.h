@@ -23,6 +23,11 @@ namespace CrashAndSqueeze
                       const Math::Vector & linear_velocity = Math::Vector::ZERO,
                       const Math::Vector & angular_velocity = Math::Vector::ZERO);
 
+            void setup(const Math::Vector & position,
+                       const Math::Matrix & orientation,
+                       const Math::Vector & linear_velocity,
+                       const Math::Vector & angular_velocity);
+
             virtual /*override*/ const Math::Vector & get_position() const { return position; }
             const Math::Matrix & get_orientation() const { return orientation; }
             virtual /*override*/ const Math::Vector & get_linear_velocity() const { return linear_velocity; }
