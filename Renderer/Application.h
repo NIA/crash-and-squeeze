@@ -41,6 +41,7 @@ private:
     
     IntegrateRigidCallback  velocities_changed_callback;
     RigidBody               rigid_body;
+    Vector                  initial_center;
 
     Stopwatch               physics_stopwatch;
     PerformanceReporter   * performance_reporter;
@@ -50,8 +51,6 @@ private:
     WinFactory              prim_factory;
 
     bool                    is_updating_vertices_on_gpu;
-
-    bool is_colliding_with(const IRegion & region, /*out*/ Vector & collision_point_local, /*out*/ Vector & collision_point_global);
 
 public:
     PhysicalModelEntity(AbstractModel &high_model,
@@ -65,7 +64,7 @@ public:
                     const Vector & linear_velocity,
                     const Vector & angular_velocity);
     
-    void hit(const IRegion & region, const Vector & velocity);
+    void hit(const IRegion & region, const Vector & velocity_local, const Vector & velocity_global);
     void collide_with(const SphericalRegion & region);
     
     void compute_kinematics(double dt);

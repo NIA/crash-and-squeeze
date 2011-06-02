@@ -292,7 +292,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                   HIGH_CYLINDER_INDICES - 2,
                                   D3DXVECTOR3(0, 0, 0));
 
-        MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0));
+        MeshModel car(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(-2, 0, 0));
         Vertex * car_vertices = car.lock_vertex_buffer();
         PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0));
         car.unlock_vertex_buffer();
@@ -311,7 +311,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                  LOW_CYLINDER_INDICES - 2,
                                  D3DXVECTOR3(0, 0, 0));
         
-        PhysicalModel * phys_mod = app.add_physical_model(car, low_car, Vector(0,1,0));
+        PhysicalModel * phys_mod = app.add_physical_model(car, low_car, Vector(1,0,0));
         if(NULL == phys_mod)
             throw NullPointerError();
 
@@ -385,7 +385,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         forces.push_back(&force);
         app.set_forces(forces);
 
-        SphericalRegion hit_region( Vector(0,3.2,-0.9), 0.25 );
+        SphericalRegion hit_region( Vector(1,0.7,0.5), 0.5 );
 
         // ------------------ V i s u a l i z a t i o n -----------------------
         sphere_vertices = new Vertex[SPHERE_VERTICES];

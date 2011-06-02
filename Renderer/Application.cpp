@@ -31,11 +31,11 @@ namespace
     const Real        CLUSTER_PADDING_COEFF = 0.2;
     // a value of friction force, divided by mass
     // (you may think that it is a combination of constatns mu*g: F/m = mu*N/m = mu*m*g/m = mu*g)
-    const Real        FRICTION_ACC_VALUE = 0.25;
+    const Real        FRICTION_ACC_VALUE = 0.0;
     // determines which part of impact velocity becomes the velocity of deformation
     const Real        DEFORMATION_VELOCITY_COEFF = 0.1;
     const Real        HIT_RADIUS = 0.2;
-    const Real        IMPACT_ELASTICITY = 1;
+    const Real        IMPACT_ELASTICITY = 0.5;
 
     enum ShowMode
     {
@@ -782,6 +782,8 @@ PhysicalModelEntity::PhysicalModelEntity(AbstractModel & high_model,
     high_model.unlock_vertex_buffer();
     low_model.unlock_vertex_buffer();
 
+    initial_center = physical_model->get_center_of_mass();
+
     // create performance reporter
     performance_reporter = new PerformanceReporter(logger, perf_rep_desc);
     update_performance_reporter = new PerformanceReporter(logger, "updating");
@@ -792,17 +794,17 @@ void PhysicalModelEntity::setup_body(const Vector & position,
                 const Vector & linear_velocity,
                 const Vector & angular_velocity)
 {
-    rigid_body.setup(position, orientation, linear_velocity, angular_velocity);
+    rigid_body.setup(position + initial_center, orientation, linear_velocity, angular_velocity);
 }
 
-void PhysicalModelEntity::hit(const ::CrashAndSqueeze::Core::IRegion &region, const Vector & velocity)
+void PhysicalModelEntity::hit(const IRegion &region, const Vector & velocity_local, const Vector & velocity_global)
 {
     // two results of hit: deformation...
-    Vector deformation_velocity = velocity*DEFORMATION_VELOCITY_COEFF;
+    Vector deformation_velocity = velocity_local*DEFORMATION_VELOCITY_COEFF;
     physical_model->hit(region, deformation_velocity);
     
     // ...and change in global motion
-    Vector impact_velocity = velocity - deformation_velocity;
+    Vector impact_velocity = velocity_global*(1 - DEFORMATION_VELOCITY_COEFF);
     
     Vector hit_relative_pos = region.get_center() - physical_model->get_center_of_mass();
     // TODO: optimize matrix inversion by caching
@@ -812,33 +814,28 @@ void PhysicalModelEntity::hit(const ::CrashAndSqueeze::Core::IRegion &region, co
     rigid_body.add_to_angular_velocity(impact_angular_velocity);
 }
 
-bool PhysicalModelEntity::is_colliding_with(const IRegion & region,
-                                            /*out*/ Vector & collision_point_local,
-                                            /*out*/ Vector & collision_point_global)
-{
-    for(int i = 0; i < physical_model->get_vertices_num(); ++i)
-    {
-        // position of vertex in model space
-        Vector pos_local = physical_model->get_vertex(i).get_pos();
-        // same as previous, but relative to center of mass
-        Vector relative_pos = pos_local - physical_model->get_center_of_mass();
-        // position in global space
-        Vector pos_global = rigid_body.get_position() + rigid_body.get_orientation()*relative_pos;
-        if(region.contains(pos_global))
-        {
-            collision_point_local = pos_local;
-            collision_point_global = pos_global;
-            return true;
-        }
-    }
-    return false;
-}
-
 void PhysicalModelEntity::collide_with(const SphericalRegion &region)
 {
     Vector collision_point_local;
+    Vector collision_point_relative;
     Vector collision_point_global;
-    if(is_colliding_with(region, collision_point_local, collision_point_global))
+    bool collision_happened = false;
+    for(int i = 0; i < physical_model->get_vertices_num(); ++i)
+    {
+        // position of vertex in model space
+        collision_point_local = physical_model->get_vertex(i).get_equilibrium_pos();
+        // same as previous, but relative to center of mass
+        collision_point_relative = collision_point_local - physical_model->get_center_of_mass();
+        // position in global space
+        collision_point_global = rigid_body.get_position() + rigid_body.get_orientation()*collision_point_relative;
+        if(region.contains(collision_point_global))
+        {
+            collision_happened = true;
+            break;
+        }
+    }
+
+    if(collision_happened)
     {
         MessageBox(NULL, _T("Collision!"), _T("Debugging!!!"), MB_OK);
         Vector normal = (collision_point_global - region.get_center());
@@ -848,7 +845,7 @@ void PhysicalModelEntity::collide_with(const SphericalRegion &region)
             normal = Vector(0, 0, 1);
 
         Vector velocity_of_collision_point = rigid_body.get_linear_velocity()
-                                           + cross_product(rigid_body.get_angular_velocity(), collision_point_global);
+                                           + cross_product(rigid_body.get_angular_velocity(), collision_point_relative);
         // component of velocity along the normal, inside.
         Real collision_velocity = - velocity_of_collision_point * normal;
         // if it is < 0 => moving away, not collision
@@ -856,11 +853,17 @@ void PhysicalModelEntity::collide_with(const SphericalRegion &region)
         {
             return;
         }
-        Vector hit_velocity_global = (1 + IMPACT_ELASTICITY)*collision_velocity*normal;
+        const Real M = physical_model->get_total_mass();
+        const Matrix & I = physical_model->get_inertia_tensor();
+        const Vector & r = collision_point_relative;
+
+        Vector hit_velocity_global =         (1 + IMPACT_ELASTICITY)*collision_velocity*normal
+                                  // -------------------------------------------------------------------------
+                                   / ( 1 + M*normal*(I.inverted()*cross_product(cross_product(r, normal),r)) );
+
         Vector hit_velocity_local = rigid_body.get_orientation().transposed()*hit_velocity_global;
         SphericalRegion hit_region(collision_point_local, HIT_RADIUS);
-
-        hit(hit_region, hit_velocity_local);
+        hit(hit_region, hit_velocity_local, hit_velocity_global);
     }
 }
 
@@ -897,10 +900,14 @@ void PhysicalModelEntity::compute_kinematics(double dt)
     rigid_body.integrate(dt, friction_linear_acc, friction_angular_acc);
     
     // update model properties
-    high_model->set_position(math_vector_to_d3dxvector(rigid_body.get_position()));
+    D3DXVECTOR3 position = math_vector_to_d3dxvector(rigid_body.get_position() - physical_model->get_center_of_mass());
     D3DXMATRIX rotation;
     build_d3d_matrix(rigid_body.get_orientation(), Vector::ZERO, rotation);
+    
+    high_model->set_position(position);
     high_model->set_rotation(rotation);
+    low_model->set_position(position);
+    low_model->set_rotation(rotation);
 }
 
 void PhysicalModelEntity::compute_deformation(ForcesArray * forces, double dt)

@@ -187,6 +187,7 @@ namespace CrashAndSqueeze
             }
             
             body = new Body(vertices);
+            body->compute_properties();
             return true;
         }
         
