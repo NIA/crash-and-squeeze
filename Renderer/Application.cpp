@@ -782,8 +782,6 @@ PhysicalModelEntity::PhysicalModelEntity(AbstractModel & high_model,
     high_model.unlock_vertex_buffer();
     low_model.unlock_vertex_buffer();
 
-    initial_center = physical_model->get_center_of_mass();
-
     // create performance reporter
     performance_reporter = new PerformanceReporter(logger, perf_rep_desc);
     update_performance_reporter = new PerformanceReporter(logger, "updating");
@@ -794,7 +792,10 @@ void PhysicalModelEntity::setup_body(const Vector & position,
                 const Vector & linear_velocity,
                 const Vector & angular_velocity)
 {
-    rigid_body.setup(position + initial_center, orientation, linear_velocity, angular_velocity);
+    rigid_body.setup(position + physical_model->get_center_of_mass(),
+                     orientation,
+                     linear_velocity,
+                     angular_velocity);
 }
 
 void PhysicalModelEntity::hit(const IRegion &region, const Vector & velocity_local, const Vector & velocity_global)
@@ -837,7 +838,6 @@ void PhysicalModelEntity::collide_with(const SphericalRegion &region)
 
     if(collision_happened)
     {
-        MessageBox(NULL, _T("Collision!"), _T("Debugging!!!"), MB_OK);
         Vector normal = (collision_point_global - region.get_center());
         if( ! normal.is_zero() )
             normal.normalize();
@@ -900,7 +900,9 @@ void PhysicalModelEntity::compute_kinematics(double dt)
     rigid_body.integrate(dt, friction_linear_acc, friction_angular_acc);
     
     // update model properties
-    D3DXVECTOR3 position = math_vector_to_d3dxvector(rigid_body.get_position() - physical_model->get_center_of_mass());
+    D3DXVECTOR3 position = math_vector_to_d3dxvector(rigid_body.get_position()
+                                                   - rigid_body.get_orientation()*physical_model->get_center_of_mass()
+                                                     );
     D3DXMATRIX rotation;
     build_d3d_matrix(rigid_body.get_orientation(), Vector::ZERO, rotation);
     

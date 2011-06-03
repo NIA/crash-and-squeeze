@@ -41,7 +41,6 @@ private:
     
     IntegrateRigidCallback  velocities_changed_callback;
     RigidBody               rigid_body;
-    Vector                  initial_center;
 
     Stopwatch               physics_stopwatch;
     PerformanceReporter   * performance_reporter;
