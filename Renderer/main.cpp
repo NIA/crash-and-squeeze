@@ -26,7 +26,7 @@ using CrashAndSqueeze::Collections::Array;
 
 namespace
 {
-    bool DISABLE_MESSAGE_BOXES = true;
+    bool DISABLE_MESSAGE_BOXES = false;
 
     const TCHAR *SIMPLE_SHADER_FILENAME = _T("simple.vsh");
     const TCHAR *LIGHTING_SHADER_FILENAME = _T("deform+lighting.vsh");
@@ -96,7 +96,7 @@ namespace
         void invoke(const char * message, const char * file, int line)
         {
             logger.log("WARNING [Crash-And-Squeeze]", message, file, line);
-            my_message_box(_T("Physical subsystem warning! See log"), _T("Crash-And-Squeeze warning!"), MB_OK | MB_ICONEXCLAMATION, true);
+            my_message_box(_T("Physical subsystem warning! See log"), _T("Crash-And-Squeeze warning!"), MB_OK | MB_ICONEXCLAMATION);
         }
     };
 
