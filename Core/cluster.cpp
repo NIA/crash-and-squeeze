@@ -79,7 +79,9 @@ namespace CrashAndSqueeze
               total_deformation(Matrix::IDENTITY),
               plasticity_state(Matrix::IDENTITY),
               plasticity_state_inv_trans(Matrix::IDENTITY),
-              plastic_deformation_measure(0)
+              plastic_deformation_measure(0),
+              graphical_pos_transform(Matrix::IDENTITY),
+              graphical_nrm_transform(Matrix::IDENTITY)
         {
         }
 
