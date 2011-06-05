@@ -73,6 +73,9 @@ public:
     AbstractModel * get_displayed_model(int show_mode);
     void update_geometry(int show_mode);
 
+    Real get_linear_velocity();
+    Real get_angular_velocity();
+
     void report_performance();
 
     PhysicalModel * get_physical_model() { return physical_model; }

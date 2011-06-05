@@ -366,6 +366,13 @@ void Application::draw_text_info()
         previous_text_bottom += TEXT_LINE_HEIGHT;
         // F1 for help
         draw_text(_T("Press F1 for help"), MyRect(TEXT_MARGIN, previous_text_bottom, TEXT_WIDTH, TEXT_HEIGHT), TEXT_COLOR);
+        previous_text_bottom += TEXT_LINE_HEIGHT;
+        // Velocities
+        
+        TCHAR buffer[512];
+        PhysicalModelEntity *model_entity = physical_models.front();
+        _stprintf_s(buffer, _T("v = %6.2f, w = %6.2f"), model_entity->get_linear_velocity(), model_entity->get_angular_velocity());
+        draw_text(buffer, MyRect(TEXT_MARGIN, previous_text_bottom, TEXT_WIDTH, TEXT_HEIGHT), TEXT_COLOR);
     }
 }
 
@@ -984,6 +991,16 @@ void PhysicalModelEntity::update_geometry(int show_mode)
 
         displayed_model->unlock_vertex_buffer();
     }
+}
+
+Real PhysicalModelEntity::get_linear_velocity()
+{
+    return rigid_body.get_linear_velocity().norm();
+}
+
+Real PhysicalModelEntity::get_angular_velocity()
+{
+    return rigid_body.get_angular_velocity().norm();
 }
 
 void PhysicalModelEntity::report_performance()
