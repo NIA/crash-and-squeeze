@@ -792,7 +792,7 @@ void PhysicalModelEntity::setup_body(const Vector & position,
                 const Vector & linear_velocity,
                 const Vector & angular_velocity)
 {
-    rigid_body.setup(position + physical_model->get_center_of_mass(),
+    rigid_body.setup(position + orientation*physical_model->get_center_of_mass(),
                      orientation,
                      linear_velocity,
                      angular_velocity);
@@ -805,39 +805,48 @@ void PhysicalModelEntity::hit(const IRegion &region, const Vector & velocity_loc
     physical_model->hit(region, deformation_velocity);
     
     // ...and change in global motion
-    Vector impact_velocity = velocity_global*(1 - DEFORMATION_VELOCITY_COEFF);
+    Vector impact_velocity_global = velocity_global * (1 - DEFORMATION_VELOCITY_COEFF);
+    Vector impact_velocity_local  = velocity_local  * (1 - DEFORMATION_VELOCITY_COEFF);
     
-    Vector hit_relative_pos = region.get_center() - physical_model->get_center_of_mass();
     // TODO: optimize matrix inversion by caching
-    Vector impact_angular_velocity = physical_model->get_inertia_tensor().inverted()
-                                   * cross_product(hit_relative_pos, impact_velocity*physical_model->get_total_mass());
-    rigid_body.add_to_linear_velocity(impact_velocity);
+    const Matrix & T = rigid_body.get_orientation();
+    const Matrix & I = physical_model->get_inertia_tensor();
+    const Vector   r = region.get_center() - physical_model->get_center_of_mass();
+    const Real     M = physical_model->get_total_mass();
+    const Vector & v = impact_velocity_local;
+    Vector impact_angular_velocity = T * ( I.inverted() * cross_product(r, M*v) );
+    rigid_body.add_to_linear_velocity(impact_velocity_global);
     rigid_body.add_to_angular_velocity(impact_angular_velocity);
 }
 
 void PhysicalModelEntity::collide_with(const SphericalRegion &region)
 {
-    Vector collision_point_local;
-    Vector collision_point_relative;
-    Vector collision_point_global;
-    bool collision_happened = false;
+    Vector collision_point_local = Vector::ZERO;
+    int collision_points_found = 0;
     for(int i = 0; i < physical_model->get_vertices_num(); ++i)
     {
         // position of vertex in model space
-        collision_point_local = physical_model->get_vertex(i).get_equilibrium_pos();
+        Vector local = physical_model->get_vertex(i).get_equilibrium_pos();
         // same as previous, but relative to center of mass
-        collision_point_relative = collision_point_local - physical_model->get_center_of_mass();
+        Vector relative = local - physical_model->get_center_of_mass();
         // position in global space
-        collision_point_global = rigid_body.get_position() + rigid_body.get_orientation()*collision_point_relative;
-        if(region.contains(collision_point_global))
+        Vector global = rigid_body.get_position() + rigid_body.get_orientation()*relative;
+        if(region.contains(global))
         {
-            collision_happened = true;
+            ++collision_points_found;
+            collision_point_local += local;
             break;
         }
     }
 
-    if(collision_happened)
+    if(collision_points_found > 0)
     {
+        // compute average point
+        collision_point_local /= collision_points_found;
+        Vector collision_point_relative_local = collision_point_local - physical_model->get_center_of_mass();;
+        Vector collision_point_relative_global = rigid_body.get_orientation()*collision_point_relative_local;
+        Vector collision_point_global = rigid_body.get_position() + collision_point_relative_global;
+
         Vector normal = (collision_point_global - region.get_center());
         if( ! normal.is_zero() )
             normal.normalize();
@@ -845,7 +854,7 @@ void PhysicalModelEntity::collide_with(const SphericalRegion &region)
             normal = Vector(0, 0, 1);
 
         Vector velocity_of_collision_point = rigid_body.get_linear_velocity()
-                                           + cross_product(rigid_body.get_angular_velocity(), collision_point_relative);
+                                           + cross_product(rigid_body.get_angular_velocity(), collision_point_relative_global);
         // component of velocity along the normal, inside.
         Real collision_velocity = - velocity_of_collision_point * normal;
         // if it is < 0 => moving away, not collision
@@ -855,13 +864,15 @@ void PhysicalModelEntity::collide_with(const SphericalRegion &region)
         }
         const Real M = physical_model->get_total_mass();
         const Matrix & I = physical_model->get_inertia_tensor();
-        const Vector & r = collision_point_relative;
+        const Vector & r = collision_point_relative_local;
 
-        Vector hit_velocity_global =         (1 + IMPACT_ELASTICITY)*collision_velocity*normal
-                                  // -------------------------------------------------------------------------
-                                   / ( 1 + M*normal*(I.inverted()*cross_product(cross_product(r, normal),r)) );
+        Vector normal_local = rigid_body.get_orientation().transposed()*normal;
 
-        Vector hit_velocity_local = rigid_body.get_orientation().transposed()*hit_velocity_global;
+        Vector hit_velocity_local =        (1 + IMPACT_ELASTICITY)*collision_velocity*normal_local
+                                 // -------------------------------------------------------------------------
+                                  / ( 1 + M*normal_local*(I.inverted()*cross_product(cross_product(r, normal_local),r)) );
+
+        Vector hit_velocity_global = rigid_body.get_orientation()*hit_velocity_local;
         SphericalRegion hit_region(collision_point_local, HIT_RADIUS);
         hit(hit_region, hit_velocity_local, hit_velocity_global);
     }
