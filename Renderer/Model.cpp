@@ -92,6 +92,17 @@ void AbstractModel::draw() const
     }
 }
 
+void AbstractModel::repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color)
+{
+    Vertex *vertices = lock_vertex_buffer();
+    for(int i = 0; i < vertex_indices.size(); ++i)
+    {
+        int vertex_index = vertex_indices[i];
+        vertices[vertex_index].color = color;
+    }
+    unlock_vertex_buffer();
+}
+
 // -- Model --
 
 Model::Model(   IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, VertexShader &shader,
@@ -158,17 +169,6 @@ Vertex * Model::lock_vertex_buffer()
 void Model::unlock_vertex_buffer()
 {
     vertex_buffer->Unlock();
-}
-
-void Model::repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color)
-{
-    Vertex *vertices = lock_vertex_buffer();
-    for(int i = 0; i < vertex_indices.size(); ++i)
-    {
-        int vertex_index = vertex_indices[i];
-        vertices[vertex_index].color = color;
-    }
-    unlock_vertex_buffer();
 }
 
 void Model::release_interfaces()

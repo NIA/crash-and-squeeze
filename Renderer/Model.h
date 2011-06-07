@@ -47,6 +47,8 @@ public:
     virtual Vertex * lock_vertex_buffer() = 0;
     virtual void unlock_vertex_buffer() = 0;
 
+    void repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color);
+
     void set_draw_cw(bool value) { draw_cw = value; }
     void set_draw_ccw(bool value) { draw_ccw = value; }
 
@@ -90,8 +92,6 @@ public:
     virtual unsigned get_vertices_count() { return vertices_count; }
     virtual Vertex * lock_vertex_buffer();
     virtual void unlock_vertex_buffer();
-
-    void repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color);
 
     virtual ~Model();
 private:
