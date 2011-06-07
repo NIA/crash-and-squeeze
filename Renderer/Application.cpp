@@ -129,7 +129,7 @@ namespace
     //    c12 is directional light vector
     const unsigned    SHADER_REG_DIRECTIONAL_VECTOR = 12;
 #if defined(_DEMO_SIDE)
-    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, -1.0f, 0.3f);
+    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.2f, -0.5f, 0.6f);
 #elif defined(_DEMO_FRONT)
     const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, 1.0f, 0.3f);
 #endif

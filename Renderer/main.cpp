@@ -316,7 +316,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         Vector box_min, box_max, box_end;
 
 #if defined(_DEMO_SIDE)
-        z_cells = 10;
+        z_cells = 8;
         y_cells = 6;
         box_min = Vector(0.5, 0.2, -1.8);
         box_max = Vector(1.5, 1.9, 1.4);
@@ -332,6 +332,28 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                                 box_end + iy*y_step + iz*z_step);
                 RepaintReaction * reaction = 
                     new RepaintReaction(*box, *phys_mod, car, 0.12, 0.3);
+
+                phys_mod->add_shape_deformation_reaction(*reaction);
+                regions.push_back(box);
+                reactions.push_back(reaction);
+            }
+        }
+        z_cells = 8;
+        x_cells = 6;
+        box_min = Vector(-1.1, 1.9, -1.8);
+        box_max = Vector(1.1, 2.1, 1.4);
+        x_step = (box_max[0] - box_min[0])/x_cells*Vector(1,0,0);
+        z_step = (box_max[2] - box_min[2])/z_cells*Vector(0,0,1);
+        box_end = box_min + x_step + z_step;
+        box_end[1] = box_max[1];
+        for(int ix = 0; ix < x_cells; ++ix)
+        {
+            for(int iz = 0; iz < z_cells; ++iz)
+            {
+                BoxRegion * box = new BoxRegion(box_min + ix*x_step + iz*z_step,
+                                                box_end + ix*x_step + iz*z_step);
+                RepaintReaction * reaction = 
+                    new RepaintReaction(*box, *phys_mod, car, 0.12, 0.35);
 
                 phys_mod->add_shape_deformation_reaction(*reaction);
                 regions.push_back(box);
