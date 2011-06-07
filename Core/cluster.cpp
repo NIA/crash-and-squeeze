@@ -136,7 +136,12 @@ namespace CrashAndSqueeze
             if(0 == get_physical_vertices_num())
                 return;
 
+            Vector old_center_of_mass = center_of_mass;
             update_center_of_mass();
+            if(distance(center_of_mass, initial_center_of_mass) < distance(old_center_of_mass, initial_center_of_mass))
+            {
+                center_of_mass = old_center_of_mass;
+            }
             compute_transformations();
             update_equilibrium_positions(false);
             apply_goal_positions(dt);
