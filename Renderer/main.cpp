@@ -311,14 +311,18 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 
         // ------------------------- R e a c t i o n s ------------------
 
+        int x_cells, y_cells, z_cells;
+        Vector x_step, y_step, z_step;
+        Vector box_min, box_max, box_end;
+
 #if defined(_DEMO_SIDE)
-        const int z_cells = 10;
-        const int y_cells = 6;
-        const Vector box_min(0.5, 0.2, -1.8);
-        const Vector box_max(1.5, 1.9, 1.4);
-        const Vector y_step = (box_max[1] - box_min[1])/y_cells*Vector(0,1,0);
-        const Vector z_step = (box_max[2] - box_min[2])/z_cells*Vector(0,0,1);
-        Vector box_end = box_min + y_step + z_step;
+        z_cells = 10;
+        y_cells = 6;
+        box_min = Vector(0.5, 0.2, -1.8);
+        box_max = Vector(1.5, 1.9, 1.4);
+        y_step = (box_max[1] - box_min[1])/y_cells*Vector(0,1,0);
+        z_step = (box_max[2] - box_min[2])/z_cells*Vector(0,0,1);
+        box_end = box_min + y_step + z_step;
         box_end[0] = box_max[0];
         for(int iy = 0; iy < y_cells; ++iy)
         {
@@ -335,10 +339,6 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
             }
         }
 #elif defined(_DEMO_FRONT)
-        int x_cells, y_cells, z_cells;
-        Vector x_step, y_step, z_step;
-        Vector box_min, box_max, box_end;
-
         z_cells = 4;
         y_cells = 4;
         box_min = Vector(0.8, 0.2, 2);
