@@ -11,7 +11,7 @@ const unsigned VECTORS_IN_MATRIX = sizeof(D3DXMATRIX)/sizeof(D3DXVECTOR4);
 
 namespace
 {
-    const int         WINDOW_SIZE = 1000;
+    const int         WINDOW_SIZE = 600;
     const D3DCOLOR    BACKGROUND_COLOR = D3DCOLOR_XRGB( 255, 255, 255 );
     const D3DCOLOR    TEXT_COLOR = D3DCOLOR_XRGB( 255, 255, 0 );
     const int         TEXT_HEIGHT = 20;
@@ -36,6 +36,7 @@ namespace
     const Real        DEFORMATION_VELOCITY_COEFF = 0.1;
     const Real        HIT_RADIUS = 0.2;
     const Real        IMPACT_ELASTICITY = 0.5;
+    const int         KINEMATIC_REPEATS = 2;
 
     enum ShowMode
     {
@@ -170,8 +171,8 @@ void IntegrateRigidCallback::invoke(const Vector & linear_velocity_change, const
 
 Application::Application(Logger &logger) :
     d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(6.1f, 1.1f, -1.16858f), // Constants selected for better view of the scene
-    directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
-    emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
+    directional_light_enabled(true), point_light_enabled(false), spot_light_enabled(false), ambient_light_enabled(true),
+    emulation_enabled(false), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), wireframe(INITIAL_WIREFRAME_STATE),
     forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), post_transform(rotate_x_matrix(D3DX_PI/2)),
     impact_axis(0), is_updating_vertices_on_gpu(true)
@@ -337,7 +338,7 @@ void Application::render(PerformanceReporter &internal_reporter)
     }
 
     // Draw text info
-    draw_text_info();
+    //draw_text_info();
 
     // End the scene
     check_render( device->EndScene() );
@@ -652,8 +653,11 @@ void Application::run()
                     logger.add_message("Step **finished**");
 
                     // do some kinematics and interaction meanwhile
-                    model_entity->compute_kinematics(dt);
-                    model_entity->collide_with(*impact_region);
+                    for(int i = 0; i < KINEMATIC_REPEATS; ++i)
+                    {
+                        model_entity->compute_kinematics(dt/KINEMATIC_REPEATS);
+                        model_entity->collide_with(*impact_region);
+                    }
 
                     // then start next step
                     model_entity->compute_deformation(forces, dt);

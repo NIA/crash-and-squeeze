@@ -27,7 +27,7 @@ namespace CrashAndSqueeze
         // and A is optimal linear transformation.
         // Thus 1 matches only rotated and shifted shape,
         // 0 allows any linear transformation
-        const Real Cluster::DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.7;
+        const Real Cluster::DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0;
         
         // plasticity parameter: a threshold of strain, after
         // which deformation becomes non-reversible
