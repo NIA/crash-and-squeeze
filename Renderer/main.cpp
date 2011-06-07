@@ -292,14 +292,14 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         
         // -------------------------- M o d e l -----------------------
 
-#ifdef _DEMO_SIDE
+#if defined(_DEMO_SIDE)
         MeshModel car(app.get_device(), deform_shader, MESH_FILENAME, OBJECT_COLOR, D3DXVECTOR3(-2, 0, -0.0f));
-#endif //ifdef _DEMO_SIDE
-
-#ifdef _DEMO_FRONT
+#elif defined(_DEMO_FRONT)
         MeshModel car(app.get_device(), deform_shader, MESH_FILENAME, OBJECT_COLOR, D3DXVECTOR3(-5, 0, 0.1f));
         car.set_rotation(rotate_y_matrix(D3DX_PI/2));
-#endif //ifdef _DEMO_FRONT
+#elif defined(_DEMO_FRAME)
+        MeshModel car(app.get_device(), deform_shader, MESH_FILENAME, OBJECT_COLOR, D3DXVECTOR3(-2, -1, -0.0f));
+#endif
 
         Vertex * car_vertices = car.lock_vertex_buffer();
         PointModel low_car(app.get_device(), simple_shader, car_vertices, car.get_vertices_count(), 4, D3DXVECTOR3(0, 0, 0));
@@ -311,9 +311,11 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 
         // ------------------------- R e a c t i o n s ------------------
 
+#if defined(_DEMO_SIDE) || defined(_DEMO_FRONT)
         int x_cells, y_cells, z_cells;
         Vector x_step, y_step, z_step;
         Vector box_min, box_max, box_end;
+#endif
 
 #if defined(_DEMO_SIDE)
         z_cells = 8;
@@ -436,21 +438,34 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         SphericalRegion expected_hit( Vector(1, 1.4, -0.5), 0.5 );
 #elif defined(_DEMO_FRONT)
         SphericalRegion expected_hit( Vector(0.66, 0.65, 3), 0.5 );
+#elif defined(_DEMO_FRAME)
+        SphericalRegion expected_hit( Vector(1, 0.4, -0.5), 0.5 );
 #endif
-        RegionWithVertices rwv(expected_hit, *phys_mod, car);
-        FrictionHitReaction friction_reaction(rwv.get_physical_vertices(), 0.1, &app);
+        RegionWithVertices friction_rwv(expected_hit, *phys_mod, car);
+        FrictionHitReaction friction_reaction(friction_rwv.get_physical_vertices(), 0.1, &app);
         phys_mod->add_hit_reaction(friction_reaction);
+
+#if defined(_DEMO_FRAME)
+        //  -------------------------- F r a m e ------------------------
+        //BoxRegion frame_box(Vector(-0.5, 0.25, -1.5), Vector(0.5, 0.5, 1.5));
+        BoxRegion frame_box(Vector(0.8, 0, -0.8), Vector(1.5, 0.5, 0.8));
+        RegionWithVertices frame_rwv(frame_box, *phys_mod, car);
+        car.repaint_vertices(frame_rwv.get_graphical_vertices(), FRAME_COLOR);
+        low_car.repaint_vertices(frame_rwv.get_physical_vertices(), FRAME_COLOR);
+        phys_mod->set_frame(frame_rwv.get_physical_vertices());
+#endif
 
         // -------------------------- F o r c e s -----------------------
         ForcesArray empty;
         app.set_forces(empty);
 
-#ifdef _DEMO_SIDE
+#if defined(_DEMO_SIDE)
         SphericalRegion hit_region( Vector(2,1.4,-0.5), 0.5 );
-#endif //ifdef _DEMO_SIDE
-#ifdef _DEMO_FRONT
+#elif defined(_DEMO_FRONT)
         SphericalRegion hit_region( Vector(2,0.65,-0.8), 0.5 );
-#endif //ifdef _DEMO_FRONT
+#elif defined(_DEMO_FRAME)
+        SphericalRegion hit_region( Vector(2,-0.6,-0.5), 0.5 );
+#endif
 
         // --------------------------- I m p a c t -----------------------
         sphere_vertices = new Vertex[SPHERE_VERTICES];

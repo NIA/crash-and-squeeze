@@ -39,6 +39,9 @@ namespace
 #elif defined(_DEMO_FRONT)
     const Real        DEFORMATION_VELOCITY_COEFF = 0.12;
     const Real        HIT_RADIUS = 0.3;
+#elif defined(_DEMO_FRAME)
+    const Real        DEFORMATION_VELOCITY_COEFF = 0.3;
+    const Real        HIT_RADIUS = 0.6;
 #endif
     const Real        IMPACT_ELASTICITY = 0.5;
     const int         KINEMATIC_REPEATS = 2;
@@ -132,6 +135,8 @@ namespace
     const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.2f, -0.5f, 0.6f);
 #elif defined(_DEMO_FRONT)
     const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, 1.0f, 0.3f);
+#elif defined(_DEMO_FRAME)
+    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.2f, -0.5f, -0.6f);
 #endif
     //    c13 is directional light color
     const unsigned    SHADER_REG_DIRECTIONAL_COLOR = 13;
@@ -195,6 +200,8 @@ Application::Application(Logger &logger) :
         camera.set_position(6.1f, 0.75f, -1.19f);
 #elif defined(_DEMO_FRONT)
         camera.set_position(6.1f, 1.1f, 0.2f);
+#elif defined(_DEMO_FRAME)
+        camera.set_position(5.5f, 2.1f, -0.78f);
 #endif
         init_font();
     }
