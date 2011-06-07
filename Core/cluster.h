@@ -6,6 +6,8 @@
 #include "Math/matrix.h"
 #include "Collections/array.h"
 
+#define _DEMO_SIDE
+
 namespace CrashAndSqueeze
 {
     namespace Core

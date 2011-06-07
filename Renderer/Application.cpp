@@ -11,7 +11,7 @@ const unsigned VECTORS_IN_MATRIX = sizeof(D3DXMATRIX)/sizeof(D3DXVECTOR4);
 
 namespace
 {
-    const int         WINDOW_SIZE = 600;
+    const int         WINDOW_SIZE = 700;
     const D3DCOLOR    BACKGROUND_COLOR = D3DCOLOR_XRGB( 255, 255, 255 );
     const D3DCOLOR    TEXT_COLOR = D3DCOLOR_XRGB( 255, 255, 0 );
     const int         TEXT_HEIGHT = 20;
@@ -31,10 +31,15 @@ namespace
     const Real        CLUSTER_PADDING_COEFF = 0.2;
     // a value of friction force, divided by mass
     // (you may think that it is a combination of constatns mu*g: F/m = mu*N/m = mu*m*g/m = mu*g)
-    const Real        FRICTION_ACC_VALUE = 0.0;
+    const Real        FRICTION_ACC_VALUE = 6;
     // determines which part of impact velocity becomes the velocity of deformation
+#if defined(_DEMO_SIDE)
     const Real        DEFORMATION_VELOCITY_COEFF = 0.1;
-    const Real        HIT_RADIUS = 0.2;
+    const Real        HIT_RADIUS = 0.6;
+#elif defined(_DEMO_FRONT)
+    const Real        DEFORMATION_VELOCITY_COEFF = 0.15;
+    const Real        HIT_RADIUS = 0.3;
+#endif
     const Real        IMPACT_ELASTICITY = 0.5;
     const int         KINEMATIC_REPEATS = 2;
 
@@ -123,7 +128,11 @@ namespace
     const unsigned    SHADER_REG_VIEW_MX = 0;
     //    c12 is directional light vector
     const unsigned    SHADER_REG_DIRECTIONAL_VECTOR = 12;
-    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, 0.5f, 1.0f);
+#if defined(_DEMO_SIDE)
+    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, -1.0f, 0.3f);
+#elif defined(_DEMO_FRONT)
+    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, 1.0f, 0.3f);
+#endif
     //    c13 is directional light color
     const unsigned    SHADER_REG_DIRECTIONAL_COLOR = 13;
     const D3DCOLOR    SHADER_VAL_DIRECTIONAL_COLOR = D3DCOLOR_XRGB(230, 230, 230);
@@ -170,7 +179,7 @@ void IntegrateRigidCallback::invoke(const Vector & linear_velocity_change, const
 }
 
 Application::Application(Logger &logger) :
-    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE), camera(6.1f, 1.1f, -1.16858f), // Constants selected for better view of the scene
+    d3d(NULL), device(NULL), window(WINDOW_SIZE, WINDOW_SIZE),
     directional_light_enabled(true), point_light_enabled(false), spot_light_enabled(false), ambient_light_enabled(true),
     emulation_enabled(false), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), wireframe(INITIAL_WIREFRAME_STATE),
@@ -182,6 +191,11 @@ Application::Application(Logger &logger) :
     {
         init_device();
         set_show_mode(SHOW_GRAPHICAL_VERTICES);
+#if defined(_DEMO_SIDE)
+        camera.set_position(6.1f, 0.75f, -1.19f);
+#elif defined(_DEMO_FRONT)
+        camera.set_position(6.1f, 1.1f, 0.8f);
+#endif
         init_font();
     }
     // using catch(...) because every caught exception is rethrown
@@ -726,6 +740,15 @@ void Application::unset_wireframe()
     check_state( device->SetRenderState( D3DRS_FILLMODE, D3DFILL_SOLID ) );
 }
 
+void Application::set_friction(bool enabled)
+{
+    for (ModelEntities::iterator iter = physical_models.begin(); iter != physical_models.end(); ++iter )
+    {
+        PhysicalModelEntity * model_entity = *iter;
+        model_entity->set_friction(enabled);
+    }
+}
+
 void Application::stop_threads()
 {
     for (int i = 0; i < THREADS_COUNT; ++i)
@@ -768,7 +791,8 @@ PhysicalModelEntity::PhysicalModelEntity(AbstractModel & high_model,
                                          Logger & logger)
 : high_model(&high_model), low_model(&low_model),
   velocities_changed_callback(&rigid_body),
-  is_updating_vertices_on_gpu(is_updating_vertices_on_gpu), prim_factory(false)
+  is_updating_vertices_on_gpu(is_updating_vertices_on_gpu), prim_factory(false),
+  is_friction_enabled(false)
 {
     // Create physical model
     Vertex * high_vertices = high_model.lock_vertex_buffer();
@@ -894,7 +918,7 @@ void PhysicalModelEntity::compute_kinematics(double dt)
     Vector friction_linear_acc = Vector::ZERO;
     Vector friction_angular_acc = Vector::ZERO;
     // friction
-    if(FRICTION_ACC_VALUE > 0)
+    if(FRICTION_ACC_VALUE > 0 && is_friction_enabled)
     {
         Vector linear_velocity = rigid_body.get_linear_velocity();
         Vector angular_velocity = rigid_body.get_angular_velocity();

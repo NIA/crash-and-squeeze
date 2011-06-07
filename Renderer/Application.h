@@ -50,6 +50,7 @@ private:
     WinFactory              prim_factory;
 
     bool                    is_updating_vertices_on_gpu;
+    bool                    is_friction_enabled;
 
 public:
     PhysicalModelEntity(AbstractModel &high_model,
@@ -77,6 +78,8 @@ public:
     Real get_angular_velocity();
 
     void report_performance();
+
+    void set_friction(bool enabled) { is_friction_enabled = enabled; }
 
     PhysicalModel * get_physical_model() { return physical_model; }
 
@@ -204,6 +207,8 @@ public:
                     const Vector &rotation_center,
                     AbstractModel &model);
     void set_updating_vertices_on_gpu(bool value) { is_updating_vertices_on_gpu = value; }
+
+    void set_friction(bool enabled);
 
     void run();
 
