@@ -37,7 +37,7 @@ namespace
     const Real        DEFORMATION_VELOCITY_COEFF = 0.1;
     const Real        HIT_RADIUS = 0.6;
 #elif defined(_DEMO_FRONT)
-    const Real        DEFORMATION_VELOCITY_COEFF = 0.15;
+    const Real        DEFORMATION_VELOCITY_COEFF = 0.12;
     const Real        HIT_RADIUS = 0.3;
 #endif
     const Real        IMPACT_ELASTICITY = 0.5;
@@ -194,7 +194,7 @@ Application::Application(Logger &logger) :
 #if defined(_DEMO_SIDE)
         camera.set_position(6.1f, 0.75f, -1.19f);
 #elif defined(_DEMO_FRONT)
-        camera.set_position(6.1f, 1.1f, 0.8f);
+        camera.set_position(6.1f, 1.1f, 0.2f);
 #endif
         init_font();
     }

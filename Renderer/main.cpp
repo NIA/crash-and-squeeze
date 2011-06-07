@@ -297,7 +297,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 #endif //ifdef _DEMO_SIDE
 
 #ifdef _DEMO_FRONT
-        MeshModel car(app.get_device(), deform_shader, MESH_FILENAME, OBJECT_COLOR, D3DXVECTOR3(-5, 0, -0.0f));
+        MeshModel car(app.get_device(), deform_shader, MESH_FILENAME, OBJECT_COLOR, D3DXVECTOR3(-5, 0, 0.1f));
         car.set_rotation(rotate_y_matrix(D3DX_PI/2));
 #endif //ifdef _DEMO_FRONT
 
@@ -335,6 +335,78 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
             }
         }
 #elif defined(_DEMO_FRONT)
+        int x_cells, y_cells, z_cells;
+        Vector x_step, y_step, z_step;
+        Vector box_min, box_max, box_end;
+
+        z_cells = 4;
+        y_cells = 4;
+        box_min = Vector(0.8, 0.2, 2);
+        box_max = Vector(1.5, 1.1, 2.9);
+        y_step = (box_max[1] - box_min[1])/y_cells*Vector(0,1,0);
+        z_step = (box_max[2] - box_min[2])/z_cells*Vector(0,0,1);
+        box_end = box_min + y_step + z_step;
+        box_end[0] = box_max[0];
+        for(int iy = 0; iy < y_cells; ++iy)
+        {
+            for(int iz = 0; iz < z_cells; ++iz)
+            {
+                BoxRegion * box = new BoxRegion(box_min + iy*y_step + iz*z_step,
+                                                box_end + iy*y_step + iz*z_step);
+                RepaintReaction * reaction = 
+                    new RepaintReaction(*box, *phys_mod, car, 0.12, 0.35);
+
+                phys_mod->add_shape_deformation_reaction(*reaction);
+                regions.push_back(box);
+                reactions.push_back(reaction);
+            }
+        }
+        
+        z_cells = 4;
+        x_cells = 6;
+        box_min = Vector(-1.1, 1.1, 2.2);
+        box_max = Vector(1.1, 1.6, 2.9);
+        x_step = (box_max[0] - box_min[0])/x_cells*Vector(1,0,0);
+        z_step = (box_max[2] - box_min[2])/z_cells*Vector(0,0,1);
+        box_end = box_min + x_step + z_step;
+        box_end[1] = box_max[1];
+        for(int ix = 0; ix < x_cells; ++ix)
+        {
+            for(int iz = 0; iz < z_cells; ++iz)
+            {
+                BoxRegion * box = new BoxRegion(box_min + ix*x_step + iz*z_step,
+                                                box_end + ix*x_step + iz*z_step);
+                RepaintReaction * reaction = 
+                    new RepaintReaction(*box, *phys_mod, car, 0.12, 0.35);
+
+                phys_mod->add_shape_deformation_reaction(*reaction);
+                regions.push_back(box);
+                reactions.push_back(reaction);
+            }
+        }
+        
+        x_cells = 6;
+        y_cells = 4;
+        box_min = Vector(-1.1, 0.2, 2.85);
+        box_max = Vector(1.1, 1.2, 3.3);
+        y_step = (box_max[1] - box_min[1])/y_cells*Vector(0,1,0);
+        z_step = (box_max[2] - box_min[2])/z_cells*Vector(0,0,1);
+        box_end = box_min + x_step + y_step;
+        box_end[2] = box_max[2];
+        for(int ix = 0; ix < x_cells; ++ix)
+        {
+            for(int iy = 0; iy < y_cells; ++iy)
+            {
+                BoxRegion * box = new BoxRegion(box_min + ix*x_step + iy*y_step,
+                                                box_end + ix*x_step + iy*y_step);
+                RepaintReaction * reaction = 
+                    new RepaintReaction(*box, *phys_mod, car, 0.12, 0.35);
+
+                phys_mod->add_shape_deformation_reaction(*reaction);
+                regions.push_back(box);
+                reactions.push_back(reaction);
+            }
+        }
 #endif
 
         app.set_friction(false);
