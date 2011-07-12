@@ -6,7 +6,7 @@
 #include "Math/matrix.h"
 #include "Collections/array.h"
 
-#define _DEMO_FRAME
+#define _DEMO_FRONT
 
 namespace CrashAndSqueeze
 {

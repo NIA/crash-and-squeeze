@@ -295,7 +295,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 #if defined(_DEMO_SIDE)
         MeshModel car(app.get_device(), deform_shader, MESH_FILENAME, OBJECT_COLOR, D3DXVECTOR3(-2, 0, -0.0f));
 #elif defined(_DEMO_FRONT)
-        MeshModel car(app.get_device(), deform_shader, MESH_FILENAME, OBJECT_COLOR, D3DXVECTOR3(-5, 0, 0.1f));
+        MeshModel car(app.get_device(), deform_shader, MESH_FILENAME, OBJECT_COLOR, D3DXVECTOR3(-8, 0, 0.1f));
         car.set_rotation(rotate_y_matrix(D3DX_PI/2));
 #elif defined(_DEMO_FRAME)
         MeshModel car(app.get_device(), deform_shader, MESH_FILENAME, OBJECT_COLOR, D3DXVECTOR3(-2, -1, -0.0f));
