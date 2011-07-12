@@ -61,8 +61,11 @@ namespace CrashAndSqueeze
             // OR adds it to array and returns it, if there is none
             T & find_or_add(T const & item, CompareFunc compare = default_compare);
 
-            T & operator[](int index);
-            const T & operator[](int index) const;
+            T & get(int index);
+            const T & get(int index) const;
+            
+            T & operator[](int index) { return get(index); }
+            const T & operator[](int index) const { return get(index); }
 
             // after call to this function array cannot grow anymore
             void freeze() { frozen = true; }
@@ -242,7 +245,7 @@ namespace CrashAndSqueeze
         }
 
         template<class T>
-        T & Array<T>::operator[](int index)
+        T & Array<T>::get(int index)
         {
             #ifndef NDEBUG
             if(false == check_index(index))
@@ -253,7 +256,7 @@ namespace CrashAndSqueeze
         }
         
         template<class T>
-        const T & Array<T>::operator[](int index) const
+        const T & Array<T>::get(int index) const
         {
             #ifndef NDEBUG
             if(false == check_index(index))
