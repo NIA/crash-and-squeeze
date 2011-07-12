@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <cfloat>
 
 // Helpers for 'proper' comparing floating point numbers: assuming equal those ones,
 // whose difference is less than given epsilon
@@ -10,6 +11,7 @@ namespace CrashAndSqueeze
     {
         // floating-point type of internal calculations
         typedef double Real;
+        const Real MAX_REAL = DBL_MAX; 
         
         const Real DEFAULT_REAL_PRECISION = 1e-9;
 

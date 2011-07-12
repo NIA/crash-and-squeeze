@@ -141,18 +141,6 @@ protected:
         }
     }
 
-    void check_axis_indices(int index, int axis_indices[VECTOR_SIZE], int clusters_by_axes[VECTOR_SIZE])
-    {
-        EXPECT_EQ( index, Model::axis_indices_to_index(axis_indices, clusters_by_axes) );
-        
-        int result[VECTOR_SIZE];
-        Model::index_to_axis_indices(index, clusters_by_axes, result);
-        for(int i = 0; i < VECTOR_SIZE; ++i)
-        {
-            EXPECT_EQ( axis_indices[i], result[i] ) << "result[" << i << "] incorrect";
-        }
-    }
-
     void compute_next_step(Model &m, const ForcesArray &forces, VelocitiesChangedCallback & vcb)
     {
         m.wait_for_step();
@@ -210,33 +198,6 @@ TEST_F(ModelTest, BadForces)
     ForcesArray bad;
     bad.push_back(NULL);
     EXPECT_THROW( compute_next_step(m, bad, vcb), CoreTesterException );
-}
-
-TEST_F(ModelTest, AxisIndicesTrivial)
-{
-    int clusters_by_axes[VECTOR_SIZE] = { 1, 1, 1 };
-    int index = 0;
-    int axis_indices[VECTOR_SIZE] = { 0, 0, 0 };
-
-    check_axis_indices(index, axis_indices, clusters_by_axes);
-}
-
-TEST_F(ModelTest, AxisIndicesCenter)
-{
-    int clusters_by_axes[VECTOR_SIZE] = { 3, 5, 7 };
-    int index = (3*5*7 - 1)/2;
-    int axis_indices[VECTOR_SIZE] = { 1, 2, 3 };
-
-    check_axis_indices(index, axis_indices, clusters_by_axes);
-}
-
-TEST_F(ModelTest, AxisIndicesEnd)
-{
-    int clusters_by_axes[VECTOR_SIZE] = { 2, 3, 6 };
-    int index = 2*3*6 - 1;
-    int axis_indices[VECTOR_SIZE] = { 2-1, 3-1, 6-1 };
-
-    check_axis_indices(index, axis_indices, clusters_by_axes);
 }
 
 bool vectors_almost_equal(const Vector &v1, const Vector &v2, Real accuracy)

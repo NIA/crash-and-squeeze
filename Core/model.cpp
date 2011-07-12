@@ -90,6 +90,7 @@ namespace CrashAndSqueeze
               body(NULL),
               frame(NULL),
 
+              cluster_regions(NULL),
               null_cluster_index(0),
 
               velocities_changed_callback(NULL),
@@ -125,13 +126,16 @@ namespace CrashAndSqueeze
                 // Init clusters
                 for(int i = 0; i < VECTOR_SIZE; ++i)
                     this->clusters_by_axes[i] = clusters_by_axes[i];
-                
-                if( false != init_clusters() )
-                {
-                    // Update cluster indices for graphical vertices
-                    update_cluster_indices(source_graphical_vertices, graphical_vetrices_num, graphical_vertex_info);
 
-                    init_tasks();
+                if( false != create_auto_cluster_regions() )
+                {
+                    if( false != init_clusters() )
+                    {
+                        // Update cluster indices for graphical vertices
+                        update_cluster_indices(source_graphical_vertices, graphical_vetrices_num, graphical_vertex_info);
+
+                        init_tasks();
+                    }
                 }
             }
         }
@@ -201,21 +205,15 @@ namespace CrashAndSqueeze
                 source_graphical_vertex = add_to_pointer(source_graphical_vertex, vertex_info.get_vertex_size());
             }
         }
-        
-        bool Model::init_clusters()
+
+        bool Model::create_auto_cluster_regions()
         {
             int clusters_num = 1;
             for(int i = 0; i < VECTOR_SIZE; ++i)
                 clusters_num *= clusters_by_axes[i];
 
-            // after last cluster
-            null_cluster_index = static_cast<ClusterIndex>(clusters_num);
-
-            clusters.create_items(clusters_num);
-            clusters.freeze();
-
             const Vector dimensions = max_pos - min_pos;
-            
+
             for(int i = 0; i < VECTOR_SIZE; ++i)
             {
                 if(0 == clusters_by_axes[i])
@@ -225,6 +223,39 @@ namespace CrashAndSqueeze
                 }
                 cluster_sizes[i] = dimensions[i]/clusters_by_axes[i];
             }
+
+            cluster_regions = new RegionsArray(clusters_num);
+
+            const Vector padding = cluster_sizes*cluster_padding_coeff;
+
+            for(int ix = 0; ix < clusters_by_axes[0]; ++ix)
+            {
+                for(int iy = 0; iy < clusters_by_axes[1]; ++iy)
+                {
+                    for(int iz = 0; iz < clusters_by_axes[2]; ++iz)
+                    {
+                        Vector min_corner = min_pos
+                                          + Vector(ix*cluster_sizes[0],
+                                                   iy*cluster_sizes[1],
+                                                   iz*cluster_sizes[2])
+                                          - padding;
+                        Vector max_corner = min_corner + cluster_sizes + 2*padding;
+                        cluster_regions->push_back( new BoxRegion(min_corner, max_corner) );
+                    }
+                }
+            }
+            return true;
+        }
+
+        bool Model::init_clusters()
+        {
+            int clusters_num = cluster_regions->size();
+
+            // after last cluster
+            null_cluster_index = static_cast<ClusterIndex>(clusters_num);
+
+            clusters.create_items(clusters_num);
+            clusters.freeze();
 
             Collections::Array<Cluster *> found_clusters;
 
@@ -261,84 +292,41 @@ namespace CrashAndSqueeze
 
             return true;
         }
-        
-        int Model::axis_indices_to_index(const int indices[VECTOR_SIZE], const int clusters_by_axes[VECTOR_SIZE])
-        {
-            return indices[0] + indices[1]*clusters_by_axes[0] + indices[2]*clusters_by_axes[0]*clusters_by_axes[1];
-        }
-
-        void Model::index_to_axis_indices(int index, const int clusters_by_axes[VECTOR_SIZE], /* out */ int indices[VECTOR_SIZE])
-        {
-            int horisontal_layer_size = clusters_by_axes[0]*clusters_by_axes[1];
-            indices[2] = index / horisontal_layer_size;
-            indices[1] = (index % horisontal_layer_size) / clusters_by_axes[0];
-            indices[0] = (index % horisontal_layer_size) % clusters_by_axes[0];
-        }
-
-        bool Model::get_nearest_cluster_indices(const Math::Vector position, /*out*/ int cluster_indices[VECTOR_SIZE])
-        {
-            for(int j = 0; j < VECTOR_SIZE; ++j)
-            {
-                if(equal(0, cluster_sizes[j]))
-                {
-                    Logger::error("in Model::get_nearest_cluster_indices: cluster with a zero dimension, probably creating model with a zero or too little dimension", __FILE__, __LINE__);
-                    return false;
-                }
-                cluster_indices[j] = static_cast<int>(position[j]/cluster_sizes[j]);
-                
-                if(cluster_indices[j] < 0)
-                    cluster_indices[j] = 0;
-                if(cluster_indices[j] > clusters_by_axes[j] - 1)
-                    cluster_indices[j] = clusters_by_axes[j] - 1;
-            }
-
-            return true;
-        }
-
         bool Model::find_clusters_for_vertex(IVertex &vertex, /*out*/ Collections::Array<Cluster *> & found_clusters)
         {
-            const Vector padding = cluster_sizes*cluster_padding_coeff;
-
-            // -- find position, measured off the min_pos --
-            const Vector position = vertex.get_pos() - min_pos;
-
-            // -- choose a cluster --
-
-            int cluster_indices[VECTOR_SIZE];
-            if( false == get_nearest_cluster_indices(position, cluster_indices) )
+            if(0 == cluster_regions->size())
                 return false;
-            int cluster_index = axis_indices_to_index(cluster_indices, clusters_by_axes);
 
             found_clusters.clear();
-            found_clusters.push_back( &clusters[cluster_index] );
-            vertex.include_to_one_more_cluster(cluster_index);
 
-            // -- and, probably, to his neighbours --
-            for(int j = 0; j < VECTOR_SIZE; ++j)
+            // While looking for cluster containing this vertex,find the one
+            // with minimal distance (it will be used, if none containing found)
+            Real min_distance = Math::MAX_REAL;
+            int min_distance_index = -1;
+            for(int i = 0; i < cluster_regions->size(); ++i)
             {
-                // -- previous cluster --
-
-                if( cluster_indices[j] - 1 >= 0 &&
-                    abs(position[j] - cluster_indices[j]*cluster_sizes[j]) < padding[j] )
+                const IRegion * region = cluster_regions->get(i);
+                if( region->contains(vertex.get_pos()) )
                 {
-                    --cluster_indices[j];
-                    int cluster_index = axis_indices_to_index(cluster_indices, clusters_by_axes);
-                    found_clusters.push_back( &clusters[cluster_index] );
-                    vertex.include_to_one_more_cluster(cluster_index);
-                    ++cluster_indices[j];
+                    vertex.include_to_one_more_cluster(i);
+                    found_clusters.push_back( &clusters[i] );
                 }
-
-                // -- next cluster --
-
-                if( cluster_indices[j] + 1 <= clusters_by_axes[j] - 1 &&
-                    abs((cluster_indices[j] + 1)*cluster_sizes[j] - position[j]) < padding[j] )
+                else
                 {
-                    ++cluster_indices[j];
-                    int cluster_index = axis_indices_to_index(cluster_indices, clusters_by_axes);
-                    found_clusters.push_back( &clusters[cluster_index] );
-                    vertex.include_to_one_more_cluster(cluster_index);
-                    --cluster_indices[j];
+                    double dst = distance( vertex.get_pos(), region->get_center() );
+                    if(dst < min_distance)
+                    {
+                        min_distance = dst;
+                        min_distance_index = i;
+                    }
                 }
+            }
+
+            // If not found good cluster...
+            if(0 == vertex.get_including_clusters_num())
+            {
+                vertex.include_to_one_more_cluster(min_distance_index);
+                found_clusters.push_back( &clusters[min_distance_index] );
             }
 
             return true;

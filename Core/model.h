@@ -26,6 +26,8 @@ namespace CrashAndSqueeze
             virtual void invoke(const Math::Vector &linear_velocity_change, const Math::Vector &angular_velocity_change) = 0;
         };
 
+        typedef Collections::Array<IRegion*> RegionsArray;
+
         class Model : public IModel
         {
         private:
@@ -44,6 +46,7 @@ namespace CrashAndSqueeze
             // -- fields used in initialization --
             int clusters_by_axes[Math::VECTOR_SIZE];
             Math::Real cluster_padding_coeff;
+            RegionsArray * cluster_regions;
             // index of zero cluster matrix
             ClusterIndex null_cluster_index;
             
@@ -68,10 +71,11 @@ namespace CrashAndSqueeze
             void init_graphical_vertices(const void *source_vertices,
                                          const VertexInfo &vertex_info);
             
+            bool create_auto_cluster_regions();
+
             bool init_clusters();
             void update_cluster_indices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
             
-            bool get_nearest_cluster_indices(const Math::Vector position, /*out*/ int cluster_indices[Math::VECTOR_SIZE]);
             bool find_clusters_for_vertex(IVertex &vertex, /*out*/ Collections::Array<Cluster *> & found_clusters);
 
             void init_tasks();
@@ -247,13 +251,6 @@ namespace CrashAndSqueeze
             // -- static methods --
 
             static const Math::Real DEFAULT_DAMPING_CONSTANT;
-            
-            // some internal helpers, public just to be able to test them
-            static int axis_indices_to_index(const int indices[Math::VECTOR_SIZE],
-                                             const int clusters_by_axes[Math::VECTOR_SIZE]);
-            static void index_to_axis_indices(int index,
-                                              const int clusters_by_axes[Math::VECTOR_SIZE],
-                                              /* out */ int indices[Math::VECTOR_SIZE]);
         private:
             // No copying!
             Model(const Model &);
