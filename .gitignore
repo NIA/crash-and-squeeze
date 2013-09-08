@@ -40,3 +40,7 @@ _ReSharper*/
 *.tbp.dir
 # Intel VTune Amplifier XE:
 My Amplifier*
+
+# New for VS2012:
+*.opensdf
+*.sdf

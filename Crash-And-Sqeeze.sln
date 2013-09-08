@@ -1,32 +1,17 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tools", "Tools.vcproj", "{90C1E08A-3C37-4EFD-9F6B-F421CC027CE4}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tools", "Tools.vcxproj", "{90C1E08A-3C37-4EFD-9F6B-F421CC027CE4}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Google Test Framework", "GoogleTestFramework\msvc\gtest.vcproj", "{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Google Test Framework", "GoogleTestFramework\msvc\gtest.vcxproj", "{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ToolsTester", "ToolsTester\ToolsTester.vcproj", "{D381B1E2-81B0-4A96-B59C-3693053B4A9E}"
-	ProjectSection(ProjectDependencies) = postProject
-		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7} = {C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}
-		{90C1E08A-3C37-4EFD-9F6B-F421CC027CE4} = {90C1E08A-3C37-4EFD-9F6B-F421CC027CE4}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ToolsTester", "ToolsTester\ToolsTester.vcxproj", "{D381B1E2-81B0-4A96-B59C-3693053B4A9E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Renderer", "Renderer\Renderer.vcproj", "{3481A651-6B1F-43F2-A77F-0516B39689F3}"
-	ProjectSection(ProjectDependencies) = postProject
-		{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB} = {7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}
-		{90C1E08A-3C37-4EFD-9F6B-F421CC027CE4} = {90C1E08A-3C37-4EFD-9F6B-F421CC027CE4}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Renderer", "Renderer\Renderer.vcxproj", "{3481A651-6B1F-43F2-A77F-0516B39689F3}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Core", "Core\Core.vcproj", "{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}"
-	ProjectSection(ProjectDependencies) = postProject
-		{90C1E08A-3C37-4EFD-9F6B-F421CC027CE4} = {90C1E08A-3C37-4EFD-9F6B-F421CC027CE4}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Core", "Core\Core.vcxproj", "{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoreTester", "CoreTester\CoreTester.vcproj", "{8E7E1642-47BF-4252-84C3-7A2B32F1781E}"
-	ProjectSection(ProjectDependencies) = postProject
-		{7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB} = {7959FF54-9426-4C9E-AC6E-BDD2CCBC40EB}
-		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7} = {C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoreTester", "CoreTester\CoreTester.vcxproj", "{8E7E1642-47BF-4252-84C3-7A2B32F1781E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -63,8 +48,8 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		AMDCaPersistentConfig = Release|Win32
-		AMDCaPersistentStartup = Renderer
 		AMDCaProjectFile = D:\Documents\Coding\C++\_Softlab-nsk\Crash-And-Squeeze\CodeAnalyst\Crash-And-Sqeeze.caw
+		AMDCaPersistentStartup = Renderer
+		AMDCaPersistentConfig = Release|Win32
 	EndGlobalSection
 EndGlobal

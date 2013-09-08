@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Math">
+      <UniqueIdentifier>{c90db1c2-d170-4118-8636-9519ff6a05bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Logging">
+      <UniqueIdentifier>{5f91a966-62d7-451b-8b9b-64adb5d06659}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Collections">
+      <UniqueIdentifier>{640da4fd-8e93-4268-bacb-a1ff5ca7a005}</UniqueIdentifier>
+      <Extensions>Collections\*.*</Extensions>
+    </Filter>
+    <Filter Include="Parallel">
+      <UniqueIdentifier>{f403abcd-e2b9-44b5-b0c7-19f8f57e856c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Math\floating_point.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\matrix.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\plane.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\vector.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Logging\logger.h">
+      <Filter>Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="Collections\array.h">
+      <Filter>Collections</Filter>
+    </ClInclude>
+    <ClInclude Include="Parallel\abstract_task.h">
+      <Filter>Parallel</Filter>
+    </ClInclude>
+    <ClInclude Include="Parallel\ievent.h">
+      <Filter>Parallel</Filter>
+    </ClInclude>
+    <ClInclude Include="Parallel\ilock.h">
+      <Filter>Parallel</Filter>
+    </ClInclude>
+    <ClInclude Include="Parallel\iprim_factory.h">
+      <Filter>Parallel</Filter>
+    </ClInclude>
+    <ClInclude Include="Parallel\single_thread_prim.h">
+      <Filter>Parallel</Filter>
+    </ClInclude>
+    <ClInclude Include="Parallel\task_queue.h">
+      <Filter>Parallel</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Math\matrix.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\vector.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Logging\logger.cpp">
+      <Filter>Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="Parallel\single_thread_prim.cpp">
+      <Filter>Parallel</Filter>
+    </ClCompile>
+    <ClCompile Include="Parallel\task_queue.cpp">
+      <Filter>Parallel</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
