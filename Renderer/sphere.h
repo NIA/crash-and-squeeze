@@ -8,3 +8,6 @@ DWORD sphere_indices_count(Index edges_per_diameter);
 
 void sphere(float radius, D3DXVECTOR3 position, D3DCOLOR color, Index edges_per_diameter,
             /*out*/ Vertex *res_vertices, /*out*/ Index *res_indices);
+
+// Function to make an ellipse from sphere
+void squeeze_sphere(float coeff, int axis, /*in/out*/ Vertex *vertices, Index vertices_count);

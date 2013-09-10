@@ -61,6 +61,10 @@ namespace
     const DWORD SPHERE_INDICES = sphere_indices_count(SPHERE_EDGES_PER_DIAMETER);
     const D3DXCOLOR HIT_REGION_COLOR = D3DCOLOR_RGBA(255, 255, 0, 128);
 
+    const Index OVAL_EDGES_PER_DIAMETER = 30;
+    const Index OVAL_VERTICES = sphere_vertices_count(OVAL_EDGES_PER_DIAMETER);
+    const DWORD OVAL_INDICES = sphere_indices_count(OVAL_EDGES_PER_DIAMETER);
+
     inline void my_message_box(const TCHAR *message, const TCHAR *caption, UINT type, bool force = false)
     {
         if( ! DISABLE_MESSAGE_BOXES || force )
@@ -232,14 +236,15 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 
     srand( static_cast<unsigned>( time(NULL) ) );
     
-    Vertex * cubic_vertices = NULL;
-    Index * cubic_indices = NULL;
     Vertex * low_cylinder_model_vertices = NULL;
     Index * low_cylinder_model_indices = NULL;
     Vertex * high_cylinder_model_vertices = NULL;
     Index * high_cylinder_model_indices = NULL;
     Vertex * sphere_vertices = NULL;
     Index * sphere_indices = NULL;
+    
+    Vertex * oval_model_vertices = NULL;
+    Index * oval_model_indices = NULL;
     
     Array<ShapeDeformationReaction*> reactions;
     try
@@ -252,27 +257,12 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         
         // -------------------------- M o d e l -----------------------
 
-        //cubic_vertices = new Vertex[CUBIC_VERTICES_COUNT];
-        //cubic_indices = new Index[CUBIC_INDICES_COUNT];
-
-        //cubic(0.5, 0.5, 2, D3DXVECTOR3(-0.25f, -0.25f, 3), CYLINDER_COLOR,
-        //      cubic_vertices, cubic_indices);
-
-        //Model cube(app.get_device(),
-        //           D3DPT_LINELIST,
-        //           simple_shader,
-        //           cubic_vertices,
-        //           CUBIC_VERTICES_COUNT,
-        //           cubic_indices,
-        //           CUBIC_INDICES_COUNT,
-        //           CUBIC_PRIMITIVES_COUNT,
-        //           D3DXVECTOR3(0,0,0),
-        //           D3DXVECTOR3(0,0,0));
-        //app.add_model(cube, true);
         low_cylinder_model_vertices = new Vertex[LOW_CYLINDER_VERTICES];
         low_cylinder_model_indices = new Index[LOW_CYLINDER_INDICES];
         high_cylinder_model_vertices = new Vertex[HIGH_CYLINDER_VERTICES];
         high_cylinder_model_indices = new Index[HIGH_CYLINDER_INDICES];
+        oval_model_vertices = new Vertex[OVAL_VERTICES];
+        oval_model_indices = new Index[OVAL_INDICES];
         
         const float cylinder_radius = 0.25;
         const float cylinder_height = 1;
@@ -312,10 +302,40 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                  LOW_CYLINDER_INDICES - 2,
                                  D3DXVECTOR3(0, 0, 0),
                                  D3DXVECTOR3(0, 0, 0));
+
+        const float oval_radius = 1.5;
+        sphere(oval_radius, D3DXVECTOR3(0, 0, 0), CYLINDER_COLOR, OVAL_EDGES_PER_DIAMETER, oval_model_vertices, oval_model_indices);
+        // Make oval
+        squeeze_sphere(0.3, 0, oval_model_vertices, OVAL_VERTICES);
+        squeeze_sphere(0.3, 1, oval_model_vertices, OVAL_VERTICES);
+        Model high_oval_model(app.get_device(),
+                              D3DPT_TRIANGLELIST,
+                              lighting_shader,
+                              oval_model_vertices,
+                              OVAL_VERTICES,
+                              oval_model_indices,
+                              OVAL_INDICES,
+                              OVAL_INDICES/3,
+                              D3DXVECTOR3(0, 0, 0),
+                              D3DXVECTOR3(0, 0, 0));
+        // TODO: different vertices for low- and high-model (see //! below)
+        Model  low_oval_model(app.get_device(),
+                              D3DPT_TRIANGLELIST,
+                              simple_shader,
+                              oval_model_vertices, //!
+                              OVAL_VERTICES,       //!
+                              oval_model_indices,  //!
+                              OVAL_INDICES,        //!
+                              OVAL_INDICES/3,      //!
+                              D3DXVECTOR3(0, 0, 0),
+                              D3DXVECTOR3(0, 0, 0));
         
-        PhysicalModel * phys_mod = app.add_model(car, true, &low_car);
+        //PhysicalModel * phys_mod = app.add_model(car, true, &low_car);
+        PhysicalModel * phys_mod = app.add_model(high_oval_model, true, &low_oval_model);
         if(NULL == phys_mod)
             throw NullPointerError();
+
+        paint_model(high_oval_model);
 
         IndexArray frame;
         const Index LOW_VERTICES_PER_SIDE = LOW_EDGES_PER_BASE*LOW_EDGES_PER_HEIGHT;
@@ -341,6 +361,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         IndexArray vertex_indices[SHAPES_COUNT*SUBSHAPES_COUNT];
         // ...and fill it
         int subshape_index = 0;
+        /* !!
         for(int i = 0; i < SHAPES_COUNT; ++i)
         {
             for(int j = 0; j < SUBSHAPES_COUNT; ++j)
@@ -358,6 +379,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                 ++subshape_index;
             }
         }
+        !! */
 
         IndexArray hit_point(1);
         hit_point.push_back(390); // oops, hard-coded...
@@ -365,8 +387,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         MessageBoxHitReaction weak_hit_reaction(hit_point, 1, _T("[All OK] Weak hit occured!"));
         MessageBoxHitReaction strong_hit_reaction(hit_point, 100, _T("[!BUG!] Strong hit occured!"));
 
-        phys_mod->add_hit_reaction(weak_hit_reaction);
-        phys_mod->add_hit_reaction(strong_hit_reaction);
+        //! phys_mod->add_hit_reaction(weak_hit_reaction);
+        //! phys_mod->add_hit_reaction(strong_hit_reaction);
 
         CylindricalRegion inside(Vector(0,0,cylinder_z+cylinder_height), Vector(0,0,cylinder_z), cylinder_radius - 0.1);
         CylindricalRegion outside(Vector(0,0,cylinder_z+cylinder_height), Vector(0,0,cylinder_z), cylinder_radius + 0.012);
@@ -377,8 +399,8 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         MessageBoxRegionReaction inside_reaction(shape, inside, true, _T("[OK] Entered inside!"));
         MessageBoxRegionReaction outside_reaction(shape, outside, false, _T("[OK] Left out!"));
 
-        phys_mod->add_region_reaction(inside_reaction);
-        phys_mod->add_region_reaction(outside_reaction);
+        //phys_mod->add_region_reaction(inside_reaction);
+        //phys_mod->add_region_reaction(outside_reaction);
 
         // -------------------------- F o r c e s -----------------------
         ForcesArray forces;
@@ -408,16 +430,16 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
                                D3DXVECTOR3(0, 0, 0));
         hit_region_model.set_draw_ccw(true);
 
-        app.set_impact( hit_region, Vector(0,-110,0.0), Vector(0, 1.15, 0), hit_region_model);
+        app.set_impact( hit_region, Vector(0,-30,0.0), Vector(0, 0, 0), hit_region_model);
 
         // -------------------------- G O ! ! ! -----------------------
         app.run();
-        delete_array(&cubic_indices);
-        delete_array(&cubic_vertices);
         delete_array(&low_cylinder_model_indices);
         delete_array(&low_cylinder_model_vertices);
         delete_array(&high_cylinder_model_indices);
         delete_array(&high_cylinder_model_vertices);
+        delete_array(&oval_model_indices);
+        delete_array(&oval_model_vertices);
         delete_array(&sphere_indices);
         delete_array(&sphere_vertices);
 
@@ -428,12 +450,12 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     }
     catch(RuntimeError &e)
     {
-        delete_array(&cubic_indices);
-        delete_array(&cubic_vertices);
         delete_array(&low_cylinder_model_indices);
         delete_array(&low_cylinder_model_vertices);
         delete_array(&high_cylinder_model_indices);
         delete_array(&high_cylinder_model_vertices);
+        delete_array(&oval_model_indices);
+        delete_array(&oval_model_vertices);
         delete_array(&sphere_indices);
         delete_array(&sphere_vertices);
         for(int i = 0; i < reactions.size(); ++i)

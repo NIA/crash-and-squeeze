@@ -81,3 +81,12 @@ void sphere(float radius, D3DXVECTOR3 position, D3DCOLOR color, Index edges_per_
         }
     }
 }
+
+void squeeze_sphere(float coeff, int axis, /*in/out*/ Vertex *vertices, Index vertices_count) {
+    _ASSERT(axis >= 0 && axis < 3);
+
+    for(Index i = 0; i < vertices_count; ++i) {
+        vertices[i].pos[axis] *= coeff;
+        // TODO: transform NORMALS!!!
+    }
+}
