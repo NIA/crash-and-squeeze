@@ -118,7 +118,7 @@ public:
 class NullPointerError : public RuntimeError
 {
 public:
-    NullPointerError() : RuntimeError( _T("Unexpected NULL pointer") ) {}
+    NullPointerError(const TCHAR * message = _T("Unexpected NULL pointer")) : RuntimeError( message ) {}
 };
 class D3DXFontError : public RuntimeError
 {
