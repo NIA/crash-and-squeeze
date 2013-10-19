@@ -31,7 +31,7 @@ namespace
     const int         ROTATION_AXES_COUNT = 3;
     const Vector      ROTATION_AXES[ROTATION_AXES_COUNT] = {Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)};
     const float       VERTEX_MASS = 1;
-    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 2, 6};
+    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 3, 4};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.2;
 

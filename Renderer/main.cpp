@@ -16,6 +16,7 @@ using CrashAndSqueeze::Core::PlaneForce;
 using CrashAndSqueeze::Core::SphericalRegion;
 using CrashAndSqueeze::Core::IRegion;
 using CrashAndSqueeze::Core::CylindricalRegion;
+using CrashAndSqueeze::Core::BoxRegion;
 using CrashAndSqueeze::Core::ShapeDeformationReaction;
 using CrashAndSqueeze::Core::HitReaction;
 using CrashAndSqueeze::Core::RegionReaction;
@@ -27,7 +28,7 @@ using CrashAndSqueeze::Collections::Array;
 namespace
 {
     bool DISABLE_MESSAGE_BOXES = true;
-    bool PAINT_MODEL = true;
+    bool PAINT_MODEL = false;
 
     const TCHAR *SIMPLE_SHADER_FILENAME = _T("simple.vsh");
     const TCHAR *LIGHTING_SHADER_FILENAME = _T("deform+lighting.vsh");
@@ -62,7 +63,7 @@ namespace
     const DWORD SPHERE_INDICES = sphere_indices_count(SPHERE_EDGES_PER_DIAMETER);
     const D3DXCOLOR HIT_REGION_COLOR = D3DCOLOR_RGBA(255, 255, 0, 128);
 
-    const Index OVAL_EDGES_PER_DIAMETER = 30;
+    const Index OVAL_EDGES_PER_DIAMETER = 100;
     const Index OVAL_VERTICES = sphere_vertices_count(OVAL_EDGES_PER_DIAMETER);
     const DWORD OVAL_INDICES = sphere_indices_count(OVAL_EDGES_PER_DIAMETER);
 
@@ -126,29 +127,78 @@ namespace
         }
     }
 
+    class RegionWithVertices
+    {
+    private:
+        IRegion & region;
+        IndexArray physical_vertices;
+        IndexArray graphical_vertices;
+
+    public:
+        RegionWithVertices(IRegion & region, PhysicalModel & phy_model, AbstractModel & gfx_model)
+            : region(region)
+        {
+            for(int i = 0; i < phy_model.get_vertices_num(); ++i)
+            {
+                if( region.contains(phy_model.get_vertex(i).get_pos()) )
+                    physical_vertices.push_back(i);
+            }
+            Vertex * buffer = gfx_model.lock_vertex_buffer();
+            int gfx_vertices_count = static_cast<int>(gfx_model.get_vertices_count());
+            for(int i = 0; i < gfx_vertices_count; ++i)
+            {
+                if( region.contains( d3dxvector_to_math_vector(buffer[i].pos) ) )
+                    graphical_vertices.push_back(i);
+            }
+            gfx_model.unlock_vertex_buffer();
+        }
+
+        IRegion & get_region() { return region; }
+        IndexArray & get_physical_vertices() { return physical_vertices; }
+        IndexArray & get_graphical_vertices() { return graphical_vertices; }
+    };
+
     class RepaintReaction : public ShapeDeformationReaction
     {
     private:
         Model &model;
-        IndexArray one_vertex;
+        Real max_distance;
+        RegionWithVertices rgnwv;
+
+        D3DXCOLOR no_deform_color;
+        D3DXCOLOR max_deform_color;
 
     public:
-        RepaintReaction(const IndexArray &shape_vertex_indices, Real threshold_distance, Model &model)
-            : ShapeDeformationReaction(shape_vertex_indices, threshold_distance), model(model), one_vertex(1)
+        RepaintReaction(IRegion &region,
+                        PhysicalModel &phy_mod,
+                        Model &gfx_mod,
+                        Real threshold_distance,
+                        Real max_distance,
+                        D3DXCOLOR no_deform_color = NO_DEFORM_COLOR,
+                        D3DXCOLOR max_deform_color = MAX_DEFORM_COLOR)
+            : rgnwv(region, phy_mod, gfx_mod),
+              ShapeDeformationReaction(rgnwv.get_physical_vertices(), threshold_distance),
+              model(gfx_mod), max_distance(max_distance),
+              no_deform_color(no_deform_color), max_deform_color(max_deform_color)
         {
-            one_vertex.push_back(0);
-            one_vertex.freeze();
+            // TEST REGION!
+            //model.repaint_vertices(rgnwv.get_graphical_vertices(), D3DCOLOR_XRGB(255,255,0));
         }
 
         virtual void invoke(int vertex_index, Real distance)
         {
-            UNREFERENCED_PARAMETER(distance);
+            UNREFERENCED_PARAMETER(vertex_index);
 
-            model.repaint_vertices(get_shape_vertex_indices(), MEDIUM_DEFORM_COLOR);
-            one_vertex[0] = vertex_index;
-            model.repaint_vertices(one_vertex, MAX_DEFORM_COLOR);
+            D3DXCOLOR color;
+            Real coeff = (distance - get_threshold_distance())/(max_distance - get_threshold_distance());
+            if(coeff > 1)
+                coeff = 1;
+
+            D3DXColorLerp(&color, &no_deform_color, &max_deform_color, static_cast<float>(coeff));
+            model.repaint_vertices(rgnwv.get_graphical_vertices(), color);
         }
     };
+
 
     class DummyReaction : public ShapeDeformationReaction
     {
@@ -479,13 +529,14 @@ namespace
         virtual void prepare()
         {
             // == PREPARE OVAL DEMO ==
+            const D3DCOLOR OVAL_COLOR = D3DCOLOR_XRGB(170, 140, 120);
 
             // - Create models -
-            const float oval_radius = 1.5;
-            sphere(oval_radius, D3DXVECTOR3(0, 0, 0), CYLINDER_COLOR, OVAL_EDGES_PER_DIAMETER, low_model_vertices, low_model_indices);
+            const float oval_radius = 2;
+            sphere(oval_radius, D3DXVECTOR3(0, 0, 0), OVAL_COLOR, OVAL_EDGES_PER_DIAMETER, low_model_vertices, low_model_indices);
             // Make oval
-            squeeze_sphere(0.3f, 0, low_model_vertices, OVAL_VERTICES);
-            squeeze_sphere(0.3f, 1, low_model_vertices, OVAL_VERTICES);
+            squeeze_sphere(0.75f, 0, low_model_vertices, OVAL_VERTICES);
+            squeeze_sphere(0.5f, 1, low_model_vertices, OVAL_VERTICES);
             // TODO: different vertices for low- and high-model (see //! below)
             Model * high_oval_model = new Model(
                 app.get_device(),
@@ -510,10 +561,42 @@ namespace
                 D3DXVECTOR3(0, 0, 0),
                 D3DXVECTOR3(0, 0, 0));
             
-            add_physical_model(high_oval_model, low_oval_model);
+            PhysicalModel * phys_mod = add_physical_model(high_oval_model, low_oval_model);
+
+            // - Reactions -
+            int x_cells, y_cells, z_cells;
+            Vector x_step, y_step, z_step;
+            Vector box_min, box_max, box_end;
+            Array<ShapeDeformationReaction*> reactions;
+            Array<IRegion*> regions;
+    
+
+            z_cells = 8;
+            x_cells = 6;
+            box_min = Vector(-2, -0.6, -0.8);
+            box_max = Vector(-1, 0.6, 0.8);
+            x_step = (box_max[0] - box_min[0])/x_cells*Vector(1,0,0);
+            z_step = (box_max[2] - box_min[2])/z_cells*Vector(0,0,1);
+            box_end = box_min + x_step + z_step;
+            box_end[1] = box_max[1];
+            for(int ix = 0; ix < x_cells; ++ix)
+            {
+                for(int iz = 0; iz < z_cells; ++iz)
+                {
+                    BoxRegion * box = new BoxRegion(box_min + ix*x_step + iz*z_step,
+                                                    box_end + ix*x_step + iz*z_step);
+
+                    RepaintReaction * reaction = 
+                        new RepaintReaction(*box, *phys_mod, *high_oval_model, 0.08, 0.2, OVAL_COLOR);
+
+                    phys_mod->add_shape_deformation_reaction(*reaction);
+                    regions.push_back(box);
+                    reactions.push_back(reaction);
+                }
+            }
 
             // - Set impact -
-            set_impact(Vector(0,2.2,0), Vector(0, 0, 0), Vector(0,-30,0.0));
+            set_impact(Vector(0,1.5,0), Vector(0, 0, 0), Vector(0,-110,0.0));
         }
     };
 #pragma warning( pop )
