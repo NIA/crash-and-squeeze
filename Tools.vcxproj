@@ -78,6 +78,7 @@
     <ClInclude Include="Math\floating_point.h" />
     <ClInclude Include="Math\matrix.h" />
     <ClInclude Include="Math\plane.h" />
+    <ClInclude Include="Math\quadratic.h" />
     <ClInclude Include="Math\vector.h" />
     <ClInclude Include="Logging\logger.h" />
     <ClInclude Include="Collections\array.h" />
@@ -90,6 +91,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Math\matrix.cpp" />
+    <ClCompile Include="Math\quadratic.cpp" />
     <ClCompile Include="Math\vector.cpp" />
     <ClCompile Include="Logging\logger.cpp" />
     <ClCompile Include="Parallel\single_thread_prim.cpp" />

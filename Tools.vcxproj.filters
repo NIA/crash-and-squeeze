@@ -52,6 +52,9 @@
     <ClInclude Include="Parallel\task_queue.h">
       <Filter>Parallel</Filter>
     </ClInclude>
+    <ClInclude Include="Math\quadratic.h">
+      <Filter>Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Math\matrix.cpp">
@@ -68,6 +71,9 @@
     </ClCompile>
     <ClCompile Include="Parallel\task_queue.cpp">
       <Filter>Parallel</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\quadratic.cpp">
+      <Filter>Math</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
