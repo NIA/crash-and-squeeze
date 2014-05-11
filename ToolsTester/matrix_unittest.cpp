@@ -3,12 +3,6 @@
 
 using namespace ::CrashAndSqueeze::Math;
 
-inline std::ostream &operator<<(std::ostream &stream, const Matrix &m)
-{
-    return stream << "{{" << m.get_at(0,0) << ", " << m.get_at(0,1) << ", " << m.get_at(0,2) << "}, "
-                  <<  "{" << m.get_at(1,0) << ", " << m.get_at(1,1) << ", " << m.get_at(1,2) << "}, "
-                  <<  "{" << m.get_at(2,0) << ", " << m.get_at(2,1) << ", " << m.get_at(2,2) << "}}";
-}
 
 class MatrixTest : public ::testing::Test
 {
@@ -113,6 +107,14 @@ TEST_F(MatrixTest, ConstructAndRead)
     EXPECT_EQ( 9, m1.get_at(0,0) );
     EXPECT_EQ( 8, m1.get_at(0,1) );
     EXPECT_EQ( 1, m1.get_at(2,2) );
+}
+
+TEST_F(MatrixTest, ConstructAlternative)
+{
+    Matrix m1_like(9, 8, 7,
+                   6, 5, 4,
+                   3, 2, 1);
+    EXPECT_EQ(m1, m1_like);
 }
 
 TEST_F(MatrixTest, GetAtIndex)

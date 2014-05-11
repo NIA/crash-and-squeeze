@@ -46,6 +46,10 @@ namespace CrashAndSqueeze
             Matrix() {}
             
             Matrix(const Real values[MATRIX_ELEMENTS_NUM]);
+
+            Matrix(Real x00, Real x01, Real x02,
+                   Real x10, Real x11, Real x12,
+                   Real x20, Real x21, Real x22);
             
             // construct matrix as outer product of two vectors: matrix product of left_vector to transposed right_vector
             Matrix(const Vector &left_vector, const Vector &right_vector);

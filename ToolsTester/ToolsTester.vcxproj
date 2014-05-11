@@ -96,6 +96,7 @@
     <ClCompile Include="logger_unittest.cpp" />
     <ClCompile Include="matrix_unittest.cpp" />
     <ClCompile Include="plane_unittest.cpp" />
+    <ClCompile Include="qx_unittest.cpp" />
     <ClCompile Include="task_queue_unittest.cpp" />
     <ClCompile Include="tools_tester.cpp" />
     <ClCompile Include="vector_unittest.cpp" />

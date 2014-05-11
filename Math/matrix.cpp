@@ -14,6 +14,21 @@ namespace CrashAndSqueeze
             memcpy(this->values, values, sizeof(this->values));
         }
 
+        Matrix::Matrix(Real x00, Real x01, Real x02,
+                       Real x10, Real x11, Real x12,
+                       Real x20, Real x21, Real x22)
+        {
+            values[0] = x00;
+            values[1] = x01;
+            values[2] = x02;
+            values[3] = x10;
+            values[4] = x11;
+            values[5] = x12;
+            values[6] = x20;
+            values[7] = x21;
+            values[8] = x22;
+        }
+
         Matrix::Matrix(const Vector &left_vector, const Vector &right_vector)
         {
             values[0] = left_vector[0]*right_vector[0];

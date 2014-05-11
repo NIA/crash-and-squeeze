@@ -1,6 +1,6 @@
 #pragma once
 #include <gtest/gtest.h>
-#include "Math/vector.h"
+#include "Math/matrix.h"
 
 using namespace ::CrashAndSqueeze::Math;
 using namespace ::CrashAndSqueeze::Logging;
@@ -8,6 +8,13 @@ using namespace ::CrashAndSqueeze::Logging;
 inline std::ostream &operator<<(std::ostream &stream, const Vector &vector)
 {
     return stream << "(" << vector[0] << ", " << vector[1] << ", " << vector[2] << ")";
+}
+
+inline std::ostream &operator<<(std::ostream &stream, const Matrix &m)
+{
+    return stream << "{{" << m.get_at(0,0) << ", " << m.get_at(0,1) << ", " << m.get_at(0,2) << "}, "
+                  <<  "{" << m.get_at(1,0) << ", " << m.get_at(1,1) << ", " << m.get_at(1,2) << "}, "
+                  <<  "{" << m.get_at(2,0) << ", " << m.get_at(2,1) << ", " << m.get_at(2,2) << "}}";
 }
 
 class ToolsTesterException {};
