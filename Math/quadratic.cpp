@@ -1,7 +1,11 @@
 #include "Math/quadratic.h"
+// TODO: avoid external dependency!
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_linalg.h>
 
 namespace CrashAndSqueeze
 {
+    using Logging::Logger;
     namespace Math
     {
         TriVector::TriVector(const Vector & v)
@@ -62,6 +66,29 @@ namespace CrashAndSqueeze
             }
         }
 
+        NineMatrix::NineMatrix(const Real values[SIZE][SIZE])
+        {
+            for (int i = 0; i < SIZE; ++i)
+            {
+                for (int j = 0; j < SIZE; ++j)
+                {
+                    set_at(i, j, values[i][j]);
+                }
+            }
+        }
+
+        Real NineMatrix::get_at(int i, int j) const
+        {
+            // TODO: check boundaries
+            return columns[j / 3].matrices[i / 3].get_at(i % 3, j % 3);
+        }
+
+        void NineMatrix::set_at(int i, int j, Real value)
+        {
+            // TODO: check boundaries
+            return columns[j / 3].matrices[i / 3].set_at(i % 3, j % 3, value);
+        }
+
         NineMatrix & NineMatrix::operator+=(const NineMatrix &another)
         {
             for (int j = 0; j < COMPONENTS_NUM; ++j)
@@ -83,9 +110,46 @@ namespace CrashAndSqueeze
             }
         }
 
-        bool NineMatrix::invert() {
-            Logging::Logger::error("NineMatrix::invert not yet implemented!", __FILE__, __LINE__);
-            return false;
+        bool NineMatrix::invert()
+        {
+            // Create GSL matrix
+            gsl_matrix * m = gsl_matrix_alloc(SIZE, SIZE);
+            // TODO: avoid such copying! Change internal representation of NineMatrix to array[81]
+            for (int i = 0; i < SIZE; ++i)
+            {
+                for (int j = 0; j < SIZE; ++j)
+                {
+                    gsl_matrix_set(m, i, j, get_at(i, j));
+                }
+            }
+            // TODO: avoid allocation! (Use gsl_matrix_view_array ?)
+            gsl_matrix * inverse = gsl_matrix_alloc (SIZE, SIZE);
+            gsl_permutation * perm = gsl_permutation_alloc (SIZE);
+            int signum; // sign of permutation - used for determinant
+
+            // Make LU decomposition of matrix m (both L and U are encoded in matrix m)
+            gsl_linalg_LU_decomp(m, perm, &signum);
+            // Find determinant from LU decomposition 
+            double det = gsl_linalg_LU_det(m, signum);
+            if (equal(0, det))
+            {
+                Logger::error("inverting singular NineMatrix (determinant == 0)", __FILE__, __LINE__);
+                return false;
+            }
+            // Invert the matrix `m`, result into `inverse`
+            gsl_linalg_LU_invert(m, perm, inverse);
+            // TODO: avoid such copying! Change internal representation of NineMatrix to array[81]
+            for (int i = 0; i < SIZE; ++i)
+            {
+                for (int j = 0; j < SIZE; ++j)
+                {
+                    set_at(i, j, gsl_matrix_get(inverse, i, j));
+                }
+            }
+            gsl_matrix_free(m);
+            gsl_matrix_free(inverse);
+            gsl_permutation_free(perm);
+            return true;
         }
     }
 }

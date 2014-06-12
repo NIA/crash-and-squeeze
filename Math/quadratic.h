@@ -108,12 +108,26 @@ namespace CrashAndSqueeze
         // it is a TriMatrix, so m[j][i] is the Matrix in i'th row and j'th column
         // WARNING: this means that order of indexes is swapped compared to normal matrix
         class NineMatrix {
-        public:
+        private:
             Triple<TriMatrix> columns;
 
+        public:
+            static const int SIZE = VECTOR_SIZE*COMPONENTS_NUM; // = 9
+
             NineMatrix() {}
+            // construct ninematrix from values (mainly for testing)
+            NineMatrix(const Real values[SIZE][SIZE]);
             // construct ninematrix as outer product of two trivectors
             NineMatrix(const TriVector &left_vector, const TriVector &right_vector);
+
+            // i, j = [0..9], i = row, j = column
+            Real get_at(int i, int j) const;
+            void set_at(int i, int j, Real value);
+
+            Matrix submatrix(int i, int j) const
+            {
+                return columns[j].matrices[i];
+            }
 
             NineMatrix & operator+=(const NineMatrix &another);
 
@@ -123,8 +137,7 @@ namespace CrashAndSqueeze
             void left_mult_by(/*in*/  const TriMatrix  & m3,
                               /*out*/ TriMatrix & res) const;
 
-            // Inverts matrix (in place). Returns true if successfully
-            // inverted, false if singular
+            // Inverts matrix (in place). Reports error if it is singular
             bool invert();
         };
 

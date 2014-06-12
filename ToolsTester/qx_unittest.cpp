@@ -144,9 +144,9 @@ TEST(QxTest, NineMatrixInit)
                               4,-2, 1,
                              -4, 2,-1);
     const NineMatrix actual(tv, tv);
-    EXPECT_EQ(expected_0_0, actual.columns[0].matrices[0]);
-    EXPECT_EQ(expected_2_0, actual.columns[0].matrices[2]);
-    EXPECT_EQ(expected_1_2, actual.columns[2].matrices[1]);
+    EXPECT_EQ(expected_0_0, actual.submatrix(0,0));
+    EXPECT_EQ(expected_2_0, actual.submatrix(2,0));
+    EXPECT_EQ(expected_1_2, actual.submatrix(1,2));
 }
 
 // TODO: test NineMatrix::operator+=
@@ -183,4 +183,59 @@ TEST(QxTest, NineMatrixMulTriMatrix)
     EXPECT_EQ(expected.matrices[0], actual.matrices[0]);
     EXPECT_EQ(expected.matrices[1], actual.matrices[1]);
     EXPECT_EQ(expected.matrices[2], actual.matrices[2]);
+}
+
+TEST(QxTest, NineMatrixInvert)
+{
+    // input
+    const Real m_values[NineMatrix::SIZE][NineMatrix::SIZE] = {
+        {1,0,0,0,0,0,0,0,0},
+        {0,1,0,0,0,2,0,0,0},
+        {0,0,1,0,0,0,0,0,0},
+        {0,0,0,0.5,0,0,-1,0,0},
+        {0,0,0,0,1,0,0,0,0},
+        {0,0,0,0,0,1,0,0,0},
+        {0,1,0,0,0,0,1,0,0},
+        {0,0,1,0,0,0,0,1,0},
+        {0,0,0,0,0,0,0,0,1}
+    };
+    NineMatrix m(m_values);
+    // expected result
+    const Real m_inv_values[NineMatrix::SIZE][NineMatrix::SIZE] = {
+        {1, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 1, 0, 0, 0, -2, 0, 0, 0},
+        {0, 0, 1, 0, 0, 0, 0, 0, 0},
+        {0, -2, 0, 2, 0, 4, 2, 0, 0},
+        {0, 0, 0, 0, 1, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 1, 0, 0, 0},
+        {0, -1, 0, 0, 0, 2, 1, 0, 0},
+        {0, 0, -1, 0, 0, 0, 0, 1, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 1}
+    };
+    NineMatrix expected(m_inv_values);
+
+    EXPECT_TRUE(m.invert());
+    // check only few submatrices
+    EXPECT_EQ(expected.submatrix(2, 0), m.submatrix(2, 0));
+    EXPECT_EQ(expected.submatrix(1, 1), m.submatrix(1, 1));
+    EXPECT_EQ(expected.submatrix(0, 1), m.submatrix(0, 1));
+}
+
+TEST(QxTest, NineMatrixBadInvert) {
+    // input (singular: line 3 and 4 equal)
+    const Real m_values[NineMatrix::SIZE][NineMatrix::SIZE] = {
+        {1,0,0,0,0,0,0,0,0},
+        {0,1,0,0,0,2,0,0,0},
+        {0,0,0,0.5,0,0,-1,0,0},
+        {0,0,0,0.5,0,0,-1,0,0},
+        {0,0,0,0,1,0,0,0,0},
+        {0,0,0,0,0,1,0,0,0},
+        {0,1,0,0,0,0,1,0,0},
+        {0,0,1,0,0,0,0,1,0},
+        {0,0,0,0,0,0,0,0,1}
+    };
+    NineMatrix m(m_values);
+    set_tester_err_callback();
+    EXPECT_THROW( m.invert(), ToolsTesterException );
+    unset_tester_err_callback();
 }
