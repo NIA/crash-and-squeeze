@@ -198,6 +198,7 @@ namespace CrashAndSqueeze
                 PhysicalVertex &v = get_physical_vertex(i);
                 Vector equilibrium_pos = get_equilibrium_offset_pos(i);
 
+
                 symmetric_term += v.get_mass()*Matrix( equilibrium_pos, equilibrium_pos );
             }
             if( symmetric_term.is_invertible() )
@@ -214,14 +215,14 @@ namespace CrashAndSqueeze
 
         void Cluster::compute_transformations()
         {
-            compute_linear_transformation();
+            compute_optimal_transformation();
 
-            linear_transformation.do_polar_decomposition(rotation, scale);
+            optimal_transformation.do_polar_decomposition(rotation, scale);
 
-            total_deformation = linear_elasticity_constant*rotation + (1 - linear_elasticity_constant)*linear_transformation;
+            total_deformation = linear_elasticity_constant*rotation + (1 - linear_elasticity_constant)*optimal_transformation;
         }
 
-        void Cluster::compute_linear_transformation()
+        void Cluster::compute_optimal_transformation()
         {
             // check that symmetric_term has been precomputed...
             if( ! check_initial_characteristics() )
@@ -229,22 +230,22 @@ namespace CrashAndSqueeze
             // ...and compute a brand new assymetric_term
             compute_asymmetric_term();
 
-            linear_transformation = asymmetric_term*symmetric_term;
+            optimal_transformation = asymmetric_term*symmetric_term;
 
             // -- enforce volume conservation --
 
-            Real det = linear_transformation.determinant();
+            Real det = optimal_transformation.determinant();
             if( ! equal(0, det) )
             {
                 if( det < 0 )
                 {
-                    Logger::warning("in Cluster::compute_linear_transformation: linear_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
+                    Logger::warning("in Cluster::compute_optimal_transformation: optimal_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
                 }
-                linear_transformation /= cube_root(det);
+                optimal_transformation /= cube_root(det);
             }
             else
             {
-                Logger::warning("in Cluster::compute_linear_transformation: linear_transformation is singular, so volume-preserving constraint cannot be enforced", __FILE__, __LINE__);
+                Logger::warning("in Cluster::compute_optimal_transformation: optimal_transformation is singular, so volume-preserving constraint cannot be enforced", __FILE__, __LINE__);
                 // but now, while polar decomposition is only for invertible matrix - it's very, very bad...
             }
         }

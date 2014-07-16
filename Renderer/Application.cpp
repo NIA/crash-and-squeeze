@@ -146,7 +146,7 @@ Application::Application(Logger &logger) :
     emulation_enabled(true), forces_enabled(false), emultate_one_step(false), alpha_test_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false), wireframe(INITIAL_WIREFRAME_STATE),
     forces(NULL), logger(logger), font(NULL), show_help(false), impact_model(NULL), prim_factory(false), post_transform(rotate_x_matrix(D3DX_PI/2)),
-    impact_axis(0), is_updating_vertices_on_gpu(true)
+    impact_axis(0), is_updating_vertices_on_gpu(false)
 {
 
     try

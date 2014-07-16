@@ -78,11 +78,11 @@ namespace CrashAndSqueeze
             // which deformation becomes non-reversible
             Math::Real yield_constant;
             
-            // plasticity paramter: a coefficient determining how fast
+            // plasticity parameter: a coefficient determining how fast
             // plasticity_state will be changed on large deformation
             Math::Real creep_constant;
 
-            // plasticity paramter: a threshold of maximum allowed strain
+            // plasticity parameter: a threshold of maximum allowed strain
             Math::Real max_deformation_constant;
 
             // -- variable (at run-time) fields --
@@ -96,14 +96,14 @@ namespace CrashAndSqueeze
             // measure of plasticity_state
             Math::Real plastic_deformation_measure;
             // optimal linear transformation satisfying shape matching (A)
-            Math::Matrix linear_transformation;
-            // first (asymmetric) term of linear_transformation (Apq)
+            Math::Matrix optimal_transformation;
+            // first (asymmetric) term of optimal_transformation (Apq)
             Math::Matrix asymmetric_term;
-            // second (symmetric) term of linear_transformation (Aqq)
+            // second (symmetric) term of optimal_transformation (Aqq)
             Math::Matrix symmetric_term;
-            // rotational part of linear_transformation (R)
+            // rotational part of optimal_transformation (R)
             Math::Matrix rotation;
-            // symmetric part of linear_transformation (S)
+            // symmetric part of optimal_transformation (S)
             Math::Matrix scale;
             // total deformation used in goal positions calculation (interpolated from R and A)
             Math::Matrix total_deformation;
@@ -123,8 +123,8 @@ namespace CrashAndSqueeze
             // computes required transformations
             void compute_transformations();
             
-            // computes linear_transformation
-            void compute_linear_transformation();
+            // computes optimal_transformation
+            void compute_optimal_transformation();
             
             // computes asymmetric_term (each step)
             void compute_asymmetric_term();
@@ -140,9 +140,6 @@ namespace CrashAndSqueeze
             
             // updates equilibrium position offsets (if plasticity_state changed) and equilibrium positions
             void update_equilibrium_positions(bool plasticity_state_changed);
-
-            // is called after updating plasticity_state
-            void update_equilibrium_positions(Math::Real dt);
 
             // updates graphical_pos_transform & graphical_nrm_transform
             void update_graphical_transformations();
