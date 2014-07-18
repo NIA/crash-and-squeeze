@@ -107,9 +107,9 @@ namespace CrashAndSqueeze
             Math::Matrix scale;
             // total deformation used in goal positions calculation (interpolated from R and A)
             Math::Matrix total_deformation;
-            // position transformation for graphical vertices (rotation*plasticity_state)
+            // position transformation for graphical vertices
             Math::Matrix graphical_pos_transform;
-            // normal transformation for graphical vertices (rotation*plasticity_state_inv_trans)
+            // normal transformation for graphical vertices (graphical_pos_transform inverted and transposed)
             Math::Matrix graphical_nrm_transform;
             
             // -- access helpers --

@@ -2,6 +2,13 @@
 #include "Logging/logger.h"
 #include "Collections/array.h"
 
+// ** Options (preprocessor switches) **
+
+// Set to 0 for more conservative graphical vertices update:
+// use equilibrium transformation (R*Sp) instead of total deformation (A)
+// to hide some oscillations (looks more realistic for metal-like objects)
+#define CAS_GRAPHICAL_TRANSFORM_TOTAL    1
+
 namespace CrashAndSqueeze
 {
     namespace Core
