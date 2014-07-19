@@ -176,8 +176,8 @@ namespace CrashAndSqueeze
         void Cluster::update_graphical_transformations()
         {
 #if CAS_GRAPHICAL_TRANSFORM_TOTAL
-            graphical_pos_transform = total_deformation;
-            graphical_nrm_transform = total_deformation.inverted().transposed();
+            graphical_pos_transform = total_deformation*plasticity_state;
+            graphical_nrm_transform = graphical_pos_transform.inverted().transposed();
 #else
             graphical_pos_transform = rotation*plasticity_state;
             graphical_nrm_transform = rotation*plasticity_state_inv_trans;
