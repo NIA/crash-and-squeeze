@@ -43,6 +43,12 @@ namespace CrashAndSqueeze
         }
         
         // -- getters/setters --
+        void Matrix::set_all(Real value)
+        {
+            for(int i = 0; i < MATRIX_ELEMENTS_NUM; ++i)
+                values[i] = value;
+        }
+
         Real Matrix::get_at_index(int index) const
         {
             #ifndef NDEBUG
@@ -164,11 +170,25 @@ namespace CrashAndSqueeze
 
         Matrix Matrix::inverted() const
         {
-            Real det = determinant();
-            if(equal(0, det))
+            Matrix inv = *this;
+            bool ok = inv.invert();
+            if (ok)
+            {
+                return inv;
+            }
+            else
             {
                 Logger::error("inverting singular matrix (determinant == 0)", __FILE__, __LINE__);
                 return Matrix::ZERO;
+            }
+        }
+
+        bool Matrix::invert()
+        {
+            Real det = determinant();
+            if(equal(0, det))
+            {
+                return false;
             }
 
             Matrix cofactors;
@@ -178,11 +198,12 @@ namespace CrashAndSqueeze
                 for(int j = 0; j < VECTOR_SIZE; ++j)
                 {
                     value = get_at((i+1)%3, (j+1)%3)*get_at((i+2)%3, (j+2)%3)
-                          - get_at((i+1)%3, (j+2)%3)*get_at((i+2)%3, (j+1)%3);
+                        - get_at((i+1)%3, (j+2)%3)*get_at((i+2)%3, (j+1)%3);
                     cofactors.set_at(j, i, value); // already transposed
                 }
             }
-            return cofactors /= det;
+            *this = cofactors /= det;
+            return true;
         }
 
         Real Matrix::squared_norm() const

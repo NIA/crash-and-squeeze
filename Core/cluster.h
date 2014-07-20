@@ -4,6 +4,9 @@
 #include "Core/graphical_vertex.h"
 #include "Math/vector.h"
 #include "Math/matrix.h"
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+#include "Math/quadratic.h"
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 #include "Collections/array.h"
 
 namespace CrashAndSqueeze
@@ -18,9 +21,15 @@ namespace CrashAndSqueeze
             // initial position of vertex measured off
             // the cluster's center of mass
             Math::Vector initial_offset_pos;
-            // position in deformed shape (plasticity_state*initial_offset_position)
-            Math::Vector equilibrium_offset_pos;
-            // position in model coordinates (center_of_mass + rotation*equilibrium_offset_pos)
+            // position in deformed shape (plasticity_state*initial_offset_position),
+            // used for computing symmetric and asymmetric terms of A (Apq and Aqq)
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            Math::TriVector equilibrium_offset_pos;
+#else
+            Math::Vector    equilibrium_offset_pos;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+            // position in model coordinates (center_of_mass + rotation*equilibrium_offset_pos),
+            // used to update PhysicalVertex's equilibrium_pos (which, in turn, is used mainly for reactions)
             Math::Vector equilibrium_pos;
             // index for stroring velocity_addition in PhysicalVertex independently of other classes
             int addition_index;
@@ -95,18 +104,31 @@ namespace CrashAndSqueeze
             Math::Matrix plasticity_state_inv_trans;
             // measure of plasticity_state
             Math::Real plastic_deformation_measure;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            // optimal quadratic transformation satisfying shape matching (A~ = [A Q M])
+            Math::TriMatrix optimal_transformation;
+            // first (asymmetric) term of optimal_transformation (Apq~)
+            Math::TriMatrix asymmetric_term;
+            // second (symmetric) term of optimal_transformation (Aqq~)
+            Math::NineMatrix symmetric_term;
+#else
             // optimal linear transformation satisfying shape matching (A)
-            Math::Matrix optimal_transformation;
+            Math::Matrix    optimal_transformation;
             // first (asymmetric) term of optimal_transformation (Apq)
-            Math::Matrix asymmetric_term;
+            Math::Matrix    asymmetric_term;
             // second (symmetric) term of optimal_transformation (Aqq)
-            Math::Matrix symmetric_term;
+            Math::Matrix     symmetric_term;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             // rotational part of optimal_transformation (R)
             Math::Matrix rotation;
             // symmetric part of optimal_transformation (S)
             Math::Matrix scale;
             // total deformation used in goal positions calculation (interpolated from R and A)
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            Math::TriMatrix total_deformation;
+#else
             Math::Matrix total_deformation;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             // position transformation for graphical vertices
             Math::Matrix graphical_pos_transform;
             // normal transformation for graphical vertices (graphical_pos_transform inverted and transposed)
@@ -171,7 +193,11 @@ namespace CrashAndSqueeze
             // returns equilibrium position of vertex
             // (measured off the initial center of mass of the cluster)
             // taking into account plasticity_state
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            const Math::TriVector & get_equilibrium_offset_pos(int index) const;
+#else
             const Math::Vector & get_equilibrium_offset_pos(int index) const;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             // returns addition index for index'th vertex
             const int get_addition_index(int index) const;
 
@@ -184,10 +210,12 @@ namespace CrashAndSqueeze
 
             const Math::Vector & get_center_of_mass() const { return center_of_mass; }
             const Math::Vector & get_initial_center_of_mass() const { return initial_center_of_mass; }
+            /*
             const Math::Matrix & get_rotation() const { return rotation; }
             const Math::Matrix & get_total_deformation() const { return total_deformation; }
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
             const Math::Matrix & get_plasticity_state_inv_tr() const { return plasticity_state_inv_trans; }
+            */
             const Math::Matrix & get_graphical_pos_transform() const { return graphical_pos_transform; }
             const Math::Matrix & get_graphical_nrm_transform() const { return graphical_nrm_transform; }
             Math::Real get_relative_plastic_deformation() const;

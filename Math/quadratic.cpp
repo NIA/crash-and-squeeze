@@ -10,6 +10,11 @@ namespace CrashAndSqueeze
     {
         TriVector::TriVector(const Vector & v)
         {
+            set_vector(v);
+        }
+
+        void TriVector::set_vector(const Vector &v)
+        {
             vectors[0] = v;
             Vector & vq = vectors[1]; // pure quadratic:
             for (int i = 0; i < VECTOR_SIZE; ++i)
@@ -20,6 +25,11 @@ namespace CrashAndSqueeze
             vm[0] = v[0]*v[1]; // x*y
             vm[1] = v[1]*v[2]; // y*z
             vm[2] = v[2]*v[0]; // z*x
+        }
+
+        CrashAndSqueeze::Math::TriVector TriVector::operator*(const Real &scalar) const
+        {
+            return TriVector(vectors[0]*scalar, vectors[1]*scalar, vectors[2]*scalar);
         }
 
         TriMatrix::TriMatrix(const Vector &left_vector, const TriVector &right_vector)
@@ -52,6 +62,14 @@ namespace CrashAndSqueeze
             // If m = [A Q M] and v = [va; vq; vm], then
             // m * v = A*va + Q*vq + M*vm
             return matrices[0]*v.vectors[0] + matrices[1]*v.vectors[1] + matrices[2]*v.vectors[2];
+        }
+
+        void TriMatrix::set_all(const Real &value)
+        {
+            for (int i = 0; i < COMPONENTS_NUM; ++i)
+            {
+                matrices[i].set_all(value);
+            }
         }
 
         NineMatrix::NineMatrix(const TriVector &left_vector, const TriVector &right_vector)
@@ -151,5 +169,14 @@ namespace CrashAndSqueeze
             gsl_permutation_free(perm);
             return true;
         }
+
+        void NineMatrix::set_all(const Real &value)
+        {
+            for (int j = 0; j < COMPONENTS_NUM; ++j)
+            {
+                columns[j].set_all(value);
+            }
+        }
+
     }
 }

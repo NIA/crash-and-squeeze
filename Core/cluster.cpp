@@ -13,6 +13,12 @@ namespace CrashAndSqueeze
     using Math::cube_root;
     using Math::Vector;
     using Math::Matrix;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+    using Math::TriVector;
+    using Math::TriMatrix;
+    using Math::NineMatrix;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+
     
     namespace Core
     {
@@ -27,11 +33,11 @@ namespace CrashAndSqueeze
         // and A is optimal linear transformation.
         // Thus 1 matches only rotated and shifted shape,
         // 0 allows any linear transformation
-        const Real Cluster::DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.7;
+        const Real Cluster::DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.1;
         
         // plasticity parameter: a threshold of strain, after
         // which deformation becomes non-reversible
-        const Real Cluster::DEFAULT_YIELD_CONSTANT = 0.1;
+        const Real Cluster::DEFAULT_YIELD_CONSTANT = 100000; // TODO: temporarily disabled, should be 0.1;
 
         // plasticity paramter: a coefficient determining how fast
         // plasticity_state will be changed on large deformation
@@ -43,7 +49,11 @@ namespace CrashAndSqueeze
         void PhysicalVertexMappingInfo::setup_initial_values(const Vector & center_of_mass)
         {
             initial_offset_pos = vertex->get_pos() - center_of_mass;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            equilibrium_offset_pos.set_vector(initial_offset_pos);
+#else
             equilibrium_offset_pos = initial_offset_pos;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             equilibrium_pos = vertex->get_pos();
         }
 
@@ -76,7 +86,11 @@ namespace CrashAndSqueeze
 
               center_of_mass(Vector::ZERO),
               rotation(Matrix::IDENTITY),
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+              total_deformation(Matrix::IDENTITY, Matrix::ZERO, Matrix::ZERO),
+#else
               total_deformation(Matrix::IDENTITY),
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
               plasticity_state(Matrix::IDENTITY),
               plasticity_state_inv_trans(Matrix::IDENTITY),
               plastic_deformation_measure(0)
@@ -159,14 +173,22 @@ namespace CrashAndSqueeze
         {
             for(int i = 0; i < get_physical_vertices_num(); ++i)
             {
-                Vector & equil_offset_pos = physical_vertex_infos[i].equilibrium_offset_pos;
-                Vector & equil_pos        = physical_vertex_infos[i].equilibrium_pos;
+                Vector & equil_pos           = physical_vertex_infos[i].equilibrium_pos;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                TriVector & equil_offset_pos = physical_vertex_infos[i].equilibrium_offset_pos;
+                if(plasticity_state_changed)
+                {
+                    equil_offset_pos.set_vector(plasticity_state * physical_vertex_infos[i].initial_offset_pos);
+                }
+                Vector new_equil_pos = center_of_mass + rotation * equil_offset_pos.to_vector();
+#else
+                Vector & equil_offset_pos    = physical_vertex_infos[i].equilibrium_offset_pos;
                 if(plasticity_state_changed)
                 {
                     equil_offset_pos = plasticity_state * physical_vertex_infos[i].initial_offset_pos;
                 }
-
                 Vector new_equil_pos = center_of_mass + rotation * equil_offset_pos;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 
                 get_physical_vertex(i).change_equilibrium_pos(new_equil_pos - equil_pos);
                 equil_pos = new_equil_pos;
@@ -176,7 +198,11 @@ namespace CrashAndSqueeze
         void Cluster::update_graphical_transformations()
         {
 #if CAS_GRAPHICAL_TRANSFORM_TOTAL
+    #if CAS_QUADRATIC_EXTENSIONS_ENABLED // TODO: use quadratic transformation for graphical vertices as well
+            graphical_pos_transform = total_deformation.to_matrix()*plasticity_state;
+    #else
             graphical_pos_transform = total_deformation*plasticity_state;
+    #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             graphical_nrm_transform = graphical_pos_transform.inverted().transposed();
 #else
             graphical_pos_transform = rotation*plasticity_state;
@@ -186,45 +212,52 @@ namespace CrashAndSqueeze
 
         void Cluster::compute_asymmetric_term()
         {
-            asymmetric_term = Matrix::ZERO;
+            asymmetric_term.set_all(0);
             for(int i = 0; i < get_physical_vertices_num(); ++i)
             {
                 PhysicalVertex &v = get_physical_vertex(i);
 
-                asymmetric_term += v.get_mass()*Matrix( v.get_pos() - center_of_mass, get_equilibrium_offset_pos(i) );
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                asymmetric_term += TriMatrix( v.get_mass()*(v.get_pos() - center_of_mass), get_equilibrium_offset_pos(i) );
+#else
+                asymmetric_term += Matrix( v.get_mass()*(v.get_pos() - center_of_mass), get_equilibrium_offset_pos(i) );
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             }
         }
 
         void Cluster::compute_symmetric_term()
         {
-            symmetric_term = Matrix::ZERO;
+            symmetric_term.set_all(0);
             for(int i = 0; i < get_physical_vertices_num(); ++i)
             {
                 PhysicalVertex &v = get_physical_vertex(i);
-                Vector equilibrium_pos = get_equilibrium_offset_pos(i);
-
-
-                symmetric_term += v.get_mass()*Matrix( equilibrium_pos, equilibrium_pos );
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                const TriVector & equilibrium_pos = get_equilibrium_offset_pos(i);
+                symmetric_term += NineMatrix( equilibrium_pos*v.get_mass(), equilibrium_pos );
+#else
+                const Vector & equilibrium_pos = get_equilibrium_offset_pos(i);
+                symmetric_term += Matrix( v.get_mass()*equilibrium_pos, equilibrium_pos );
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             }
-            if( symmetric_term.is_invertible() )
-            {
-                valid = true;
-                symmetric_term = symmetric_term.inverted();
-            }
-            else
-            {
-                valid = false;
-                symmetric_term = Matrix::ZERO;
-            }
+            valid = symmetric_term.invert();
         }
 
         void Cluster::compute_transformations()
         {
             compute_optimal_transformation();
 
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            optimal_transformation.to_matrix().do_polar_decomposition(rotation, scale);
+            // (1-b)*[A Q M] + b*[R 0 0]
+            total_deformation = optimal_transformation;
+            total_deformation *= (1 - linear_elasticity_constant);
+            total_deformation.as_matrix() += linear_elasticity_constant*rotation;
+#else
             optimal_transformation.do_polar_decomposition(rotation, scale);
-
+            // (1-b)*A + b*R
             total_deformation = linear_elasticity_constant*rotation + (1 - linear_elasticity_constant)*optimal_transformation;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+
         }
 
         void Cluster::compute_optimal_transformation()
@@ -235,18 +268,31 @@ namespace CrashAndSqueeze
             // ...and compute a brand new assymetric_term
             compute_asymmetric_term();
 
+            // A = Apq * Aqq
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            symmetric_term.left_mult_by(asymmetric_term, optimal_transformation);
+#else
             optimal_transformation = asymmetric_term*symmetric_term;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 
             // -- enforce volume conservation --
 
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            Real det = optimal_transformation.to_matrix().determinant();
+#else
             Real det = optimal_transformation.determinant();
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             if( ! equal(0, det) )
             {
                 if( det < 0 )
                 {
                     Logger::warning("in Cluster::compute_optimal_transformation: optimal_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
                 }
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                optimal_transformation.as_matrix() /= cube_root(det);
+#else
                 optimal_transformation /= cube_root(det);
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             }
             else
             {
@@ -262,9 +308,8 @@ namespace CrashAndSqueeze
             for(int i = 0; i < get_physical_vertices_num(); ++i)
             {
                 PhysicalVertex &vertex = get_physical_vertex(i);
-                Vector equilibrium_pos = get_equilibrium_offset_pos(i);
 
-                Vector goal_position = total_deformation*equilibrium_pos + center_of_mass;
+                Vector goal_position = total_deformation*get_equilibrium_offset_pos(i) + center_of_mass;
 
                 Vector velocity_addition = goal_speed_constant*(goal_position - vertex.get_pos())/dt;
 
@@ -272,7 +317,7 @@ namespace CrashAndSqueeze
             }
         }
 
-        Math::Real Cluster::get_relative_plastic_deformation() const
+        Real Cluster::get_relative_plastic_deformation() const
         {
             return plastic_deformation_measure/max_deformation_constant;
         }
@@ -332,7 +377,11 @@ namespace CrashAndSqueeze
         // returns equilibrium position of vertex
         // (measured off the center of mass of the cluster)
         // taking into account plasticity_state
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+        const TriVector & Cluster::get_equilibrium_offset_pos(int index) const
+#else
         const Vector & Cluster::get_equilibrium_offset_pos(int index) const
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
         {
             check_initial_characteristics();
             return physical_vertex_infos[index].equilibrium_offset_pos;

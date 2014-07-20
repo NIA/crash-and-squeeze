@@ -31,8 +31,8 @@ namespace CrashAndSqueeze
                 return true;
             }
         public:
-            Triple() {}
-            Triple(const T & lin, const T & quad, const T & mix)
+            explicit Triple() {}
+            explicit Triple(const T & lin, const T & quad, const T & mix)
             {
                 components[0] = lin;
                 components[1] = quad;
@@ -69,13 +69,19 @@ namespace CrashAndSqueeze
         public:
             Triple<Vector> vectors;
 
-            TriVector() {}
+            explicit TriVector() {}
             // Initialize all three parts given first (linear) part
-            TriVector(const Vector & v);
+            explicit TriVector(const Vector & v);
             // Initialize each part directly
-            TriVector(const Vector & lin, const Vector & quad, const Vector & mix)
+            explicit TriVector(const Vector & lin, const Vector & quad, const Vector & mix)
                 : vectors(lin, quad, mix)
             {}
+
+            void set_vector(const Vector &v);
+
+            TriVector operator*(const Real &scalar) const;
+
+            const Vector & to_vector() const { return vectors[0]; }
         };
 
         // A 3x9 matrix. When used in QX, it can be represented as
@@ -87,19 +93,24 @@ namespace CrashAndSqueeze
         public:
             Triple<Matrix> matrices;
 
-            TriMatrix() {}
+            explicit TriMatrix() {}
             // construct trimatrix as outer product of vector and trivector
-            TriMatrix(const Vector &left_vector, const TriVector &right_vector);
+            explicit TriMatrix(const Vector &left_vector, const TriVector &right_vector);
             // inititalize each part directly
-            TriMatrix(const Matrix & lin, const Matrix & quad, const Matrix & mix)
+            explicit TriMatrix(const Matrix & lin, const Matrix & quad, const Matrix & mix)
                 : matrices(lin, quad, mix)
             {}
+
+            void set_all(const Real &value);
 
             TriMatrix & operator+=(const TriMatrix & another);
             TriMatrix & operator*=(const Real & scalar);
             
             // Multiplication of TriMatrix and TriVector: yields Vector.
             Vector operator*(const TriVector & v) const;
+
+            const Matrix & to_matrix() const { return matrices[0]; }
+            Matrix & as_matrix() { return matrices[0]; }
         };
 
         // A 9x9 matrix (that is, 3x3=9 normal matrices)
@@ -114,15 +125,16 @@ namespace CrashAndSqueeze
         public:
             static const int SIZE = VECTOR_SIZE*COMPONENTS_NUM; // = 9
 
-            NineMatrix() {}
+            explicit NineMatrix() {}
             // construct ninematrix from values (mainly for testing)
-            NineMatrix(const Real values[SIZE][SIZE]);
+            explicit NineMatrix(const Real values[SIZE][SIZE]);
             // construct ninematrix as outer product of two trivectors
-            NineMatrix(const TriVector &left_vector, const TriVector &right_vector);
+            explicit NineMatrix(const TriVector &left_vector, const TriVector &right_vector);
 
             // i, j = [0..9], i = row, j = column
             Real get_at(int i, int j) const;
             void set_at(int i, int j, Real value);
+            void set_all(const Real &value);
 
             Matrix submatrix(int i, int j) const
             {

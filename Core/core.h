@@ -4,6 +4,8 @@
 
 // ** Options (preprocessor switches) **
 
+// Set to 0 to disable quadratic extensions
+#define CAS_QUADRATIC_EXTENSIONS_ENABLED 1
 // Set to 0 for more conservative graphical vertices update:
 // use equilibrium transformation (R*Sp) instead of total deformation (A)
 // to hide some oscillations (looks more realistic for metal-like objects)

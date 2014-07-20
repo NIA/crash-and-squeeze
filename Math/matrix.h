@@ -54,6 +54,8 @@ namespace CrashAndSqueeze
             // construct matrix as outer product of two vectors: matrix product of left_vector to transposed right_vector
             Matrix(const Vector &left_vector, const Vector &right_vector);
 
+            void set_all(Real value);
+
             static const Matrix IDENTITY;
             static const Matrix ZERO;
 
@@ -165,7 +167,11 @@ namespace CrashAndSqueeze
                 return ! equal(0, determinant());
             }
 
+            // Returns inverted matrixs. Reports error if determinant == 0
             Matrix inverted() const;
+
+            // Inverts matrix (in place). Returns false if determinant == 0 and does not report error
+            bool invert();
 
             // squared Frobenius norm of matrix
             Real squared_norm() const;
