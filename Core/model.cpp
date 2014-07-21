@@ -59,7 +59,7 @@ namespace CrashAndSqueeze
         // 0 - no damping of vibrations, 1 - maximum damping, rigid body
         const Real Model::DEFAULT_DAMPING_CONSTANT = 0.5*Body::MAX_RIGIDITY_COEFF;
 
-        Model::Model( const void *source_physical_vertices,
+        Model::Model( void *source_physical_vertices,
                       int physical_vetrices_num,
                       VertexInfo const &physical_vertex_info,
 
@@ -133,6 +133,7 @@ namespace CrashAndSqueeze
                     {
                         // Update cluster indices for graphical vertices
                         update_cluster_indices(source_graphical_vertices, graphical_vetrices_num, graphical_vertex_info);
+                        update_cluster_indices(source_physical_vertices, physical_vetrices_num, physical_vertex_info);
 
                         init_tasks();
                     }

@@ -295,8 +295,10 @@ namespace
             PhysicalModel * phys_mod = app.add_model(*high_model, true, low_model);
             if(NULL == phys_mod)
                 throw NullPointerError(_T("(Demo) Failed to add physical model!"));
-            if(PAINT_MODEL)
+            if(PAINT_MODEL) {
                 paint_model(*high_model);
+                paint_model(*low_model);
+            }
             return phys_mod;
         }
 
