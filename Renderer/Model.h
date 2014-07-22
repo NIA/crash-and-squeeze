@@ -9,6 +9,7 @@ class AbstractModel
 private:
     IDirect3DDevice9    *device;
     VertexShader        &shader;
+    AbstractModel       *subscriber;
 
     D3DXVECTOR3 position;
     D3DXVECTOR3 rotation;
@@ -34,6 +35,8 @@ public:
     IDirect3DDevice9 *get_device() const;
 
     const D3DXMATRIX &get_transformation() const;
+    const D3DXVECTOR3 &get_position() { return position; }
+    const D3DXVECTOR3 &get_rotation() { return rotation; }
     void rotate(float phi);
     void move(D3DXVECTOR3 vector);
     void set_zoom(float zoom);
@@ -41,6 +44,12 @@ public:
     virtual unsigned get_vertices_count() = 0;
     virtual Vertex * lock_vertex_buffer() = 0;
     virtual void unlock_vertex_buffer() = 0;
+
+    // Methods for making one model depend on updates of another
+    // NB: currently there can be only one subscriber
+    void add_subscriber(AbstractModel * subscriber);
+    void notify_subscriber();
+    virtual void on_notify() {} // override to handle notification
 
     void set_draw_cw(bool value) { draw_cw = value; }
     void set_draw_ccw(bool value) { draw_ccw = value; }
@@ -147,4 +156,36 @@ private:
     // No copying!
     PointModel(const PointModel&);
     PointModel &operator=(const PointModel&);
+};
+
+class NormalsModel : public AbstractModel
+{
+private:
+    AbstractModel * parent_model;
+    unsigned        normals_count;
+    IDirect3DVertexBuffer9  *vertex_buffer;
+    
+    // Options
+    bool normalize_before_showing;
+    float normal_length;
+
+    void release_interfaces();
+
+protected:
+    virtual void pre_draw() const;
+    virtual void do_draw() const;
+
+    void update_normals();
+
+public:
+    NormalsModel(AbstractModel * parent_model, VertexShader &shader,
+                 float normal_length, bool normalize_before_showing = true);
+
+    virtual unsigned get_vertices_count();
+    virtual Vertex * lock_vertex_buffer();
+    virtual void unlock_vertex_buffer();
+
+    virtual void on_notify();
+
+    virtual ~NormalsModel();
 };

@@ -87,6 +87,6 @@ void squeeze_sphere(float coeff, int axis, /*in/out*/ Vertex *vertices, Index ve
 
     for(Index i = 0; i < vertices_count; ++i) {
         vertices[i].pos[axis] *= coeff;
-        // TODO: transform NORMALS!!!
+        vertices[i].normal[axis] /= coeff;
     }
 }

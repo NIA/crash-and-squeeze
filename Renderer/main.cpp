@@ -29,9 +29,11 @@ namespace
 {
     bool DISABLE_MESSAGE_BOXES = true;
     bool PAINT_MODEL = false;
+    bool SHOW_NORMALS = true;
+    bool UPDATE_ON_GPU = false;
 
     const TCHAR *SIMPLE_SHADER_FILENAME = _T("simple.vsh");
-    const TCHAR *LIGHTING_SHADER_FILENAME = _T("deform+lighting.vsh");
+    const TCHAR *LIGHTING_SHADER_FILENAME = UPDATE_ON_GPU ? _T("deform+lighting.vsh") : _T("lighting.vsh");
     
     const TCHAR *MESH_FILENAME = _T("ford.x");
 
@@ -282,6 +284,7 @@ namespace
         AbstractModel * high_model;
         SphericalRegion * hit_region;
         Model * hit_region_model;
+        NormalsModel * normals_model; // may be null
 
         ForcesArray NO_FORCES;
 
@@ -298,6 +301,11 @@ namespace
             if(PAINT_MODEL) {
                 paint_model(*high_model);
                 paint_model(*low_model);
+            }
+            if(SHOW_NORMALS) {
+                normals_model = new NormalsModel(high_model, simple_shader, 0.1f);
+                high_model->add_subscriber(normals_model);
+                app.add_model(*normals_model, false);
             }
             return phys_mod;
         }
@@ -337,7 +345,7 @@ namespace
             : app(_app),
               simple_shader(_app.get_device(), VERTEX_DECL_ARRAY, SIMPLE_SHADER_FILENAME),
               lighting_shader(_app.get_device(), VERTEX_DECL_ARRAY, LIGHTING_SHADER_FILENAME),
-              low_model(NULL), high_model(NULL), hit_region_model(NULL), hit_region(NULL)
+              low_model(NULL), high_model(NULL), hit_region_model(NULL), hit_region(NULL), normals_model(NULL)
         {
             low_model_vertices = new Vertex[low_vertices_count];
             low_model_indices = new Index[low_indices_count];
@@ -367,6 +375,7 @@ namespace
             delete high_model;
             delete hit_region_model;
             delete hit_region;
+            delete normals_model;
         }
     };
 
@@ -626,7 +635,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     try
     {
         Application app(logger);
-        app.set_updating_vertices_on_gpu(true);
+        app.set_updating_vertices_on_gpu(UPDATE_ON_GPU);
 
         OvalDemo demo(app);
         // or - CylinderDemo demo(app);

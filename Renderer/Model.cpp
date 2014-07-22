@@ -6,7 +6,7 @@ extern const unsigned VECTORS_IN_MATRIX;
 // -- AbstractModel --
 
 AbstractModel::AbstractModel(IDirect3DDevice9 *device, VertexShader &shader, D3DXVECTOR3 position, D3DXVECTOR3 rotation)
-: device(device), position(position), rotation(rotation), shader(shader), zoom(1), draw_cw(true), draw_ccw(false)
+: device(device), position(position), rotation(rotation), shader(shader), zoom(1), draw_cw(true), draw_ccw(false), subscriber(NULL)
 {
         update_matrix();
 }
@@ -47,6 +47,16 @@ void AbstractModel::set_zoom(float zoom)
 const D3DXMATRIX &AbstractModel::get_transformation() const
 {
     return transformation;
+}
+
+void AbstractModel::add_subscriber(AbstractModel * subscriber)
+{
+    this->subscriber = subscriber;
+}
+void AbstractModel::notify_subscriber()
+{
+    if (subscriber != NULL)
+        subscriber->on_notify();
 }
 
 void AbstractModel::draw() const
@@ -288,6 +298,98 @@ void PointModel::release_interfaces()
 }
 
 PointModel::~PointModel()
+{
+    release_interfaces();
+}
+
+NormalsModel::NormalsModel(AbstractModel * parent_model, VertexShader &shader, float normal_length, bool normalize_before_showing /*= true*/)
+    : AbstractModel(parent_model->get_device(), shader, parent_model->get_position(), parent_model->get_rotation()),
+      parent_model(parent_model),
+      normals_count(parent_model->get_vertices_count()),
+      normal_length(normal_length),
+      normalize_before_showing(normalize_before_showing)
+{
+    try
+    {
+	    const unsigned buffer_size = get_vertices_count() * sizeof(Vertex);
+
+        if(FAILED( get_device()->CreateVertexBuffer( buffer_size, D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &vertex_buffer, NULL ) ))
+            throw VertexBufferInitError();
+
+        update_normals();
+    }
+    // using catch(...) because every caught exception is rethrown
+    catch(...)
+    {
+        release_interfaces();
+        throw;
+    }
+}
+
+unsigned NormalsModel::get_vertices_count()
+{
+    return normals_count*2;
+}
+
+Vertex * NormalsModel::lock_vertex_buffer()
+{
+    void* vertices;
+    if(FAILED( vertex_buffer->Lock( 0, get_vertices_count()*sizeof(Vertex), &vertices, 0 ) ))
+        throw VertexBufferLockError();
+    return reinterpret_cast<Vertex*>(vertices);
+}
+
+void NormalsModel::unlock_vertex_buffer()
+{
+    vertex_buffer->Unlock();
+}
+
+void NormalsModel::update_normals()
+{
+    Vertex * parent_vertices = parent_model->lock_vertex_buffer();
+    Vertex * normal_vertices = lock_vertex_buffer();
+
+    for (unsigned i = 0; i < normals_count; ++i)
+    {
+        D3DXVECTOR3 pos    = parent_vertices[i].pos;
+        D3DXVECTOR3 normal = parent_vertices[i].normal;
+        if (normalize_before_showing)
+            D3DXVec3Normalize(&normal, &normal);
+        D3DCOLOR    color = D3DCOLOR_XRGB(255, 0, 0); // TODO: option to visualize direction with color
+        
+            
+        normal *= normal_length;
+        normal_vertices[2*i].pos = pos;
+        normal_vertices[2*i].color = color;
+        normal_vertices[2*i + 1].pos = pos + normal;
+        normal_vertices[2*i + 1].color = color;
+    }
+    
+    unlock_vertex_buffer();
+    parent_model->unlock_vertex_buffer();
+}
+
+void NormalsModel::on_notify()
+{
+    update_normals();
+}
+
+void NormalsModel::pre_draw() const
+{
+    check_render( get_device()->SetStreamSource( 0, vertex_buffer, 0, sizeof(Vertex) ) );
+}
+
+void NormalsModel::do_draw() const
+{
+    check_render( get_device()->DrawPrimitive(D3DPT_LINELIST, 0, normals_count) );
+}
+
+void NormalsModel::release_interfaces()
+{
+    release_interface(vertex_buffer);
+}
+
+NormalsModel::~NormalsModel()
 {
     release_interfaces();
 }
