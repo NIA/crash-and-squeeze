@@ -123,14 +123,17 @@ namespace CrashAndSqueeze
             Math::Matrix rotation;
             // symmetric part of optimal_transformation (S)
             Math::Matrix scale;
-            // total deformation used in goal positions calculation (interpolated from R and A)
 #if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            // total deformation used in goal positions calculation (interpolated from R and A~)
             Math::TriMatrix total_deformation;
+            // position transformation for graphical vertices
+            Math::TriMatrix graphical_pos_transform;
 #else
+            // total deformation used in goal positions calculation (interpolated from R and A)
             Math::Matrix total_deformation;
-#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             // position transformation for graphical vertices
             Math::Matrix graphical_pos_transform;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             // normal transformation for graphical vertices (graphical_pos_transform inverted and transposed)
             Math::Matrix graphical_nrm_transform;
             
@@ -216,7 +219,11 @@ namespace CrashAndSqueeze
             const Math::Matrix & get_plasticity_state() const { return plasticity_state; }
             const Math::Matrix & get_plasticity_state_inv_tr() const { return plasticity_state_inv_trans; }
             */
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            const Math::TriMatrix & get_graphical_pos_transform() const { return graphical_pos_transform; }
+#else
             const Math::Matrix & get_graphical_pos_transform() const { return graphical_pos_transform; }
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             const Math::Matrix & get_graphical_nrm_transform() const { return graphical_nrm_transform; }
             Math::Real get_relative_plastic_deformation() const;
         

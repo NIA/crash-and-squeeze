@@ -563,7 +563,12 @@ namespace CrashAndSqueeze
 
         const Matrix & Model::get_cluster_transformation(int cluster_index) const
         {
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            // TODO: returns only linear part!
+            return clusters[cluster_index].get_graphical_pos_transform().to_matrix();
+#else
             return clusters[cluster_index].get_graphical_pos_transform();
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
         }
 
         const Matrix & Model::get_cluster_normal_transformation(int cluster_index) const
@@ -667,8 +672,13 @@ namespace CrashAndSqueeze
                     for( int k = 0; k < clusters_num; ++k)
                     {
                         const Cluster & cluster = clusters[vertex.get_including_cluster_index(k)];
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                        new_point += cluster.get_graphical_pos_transform() * Math::TriVector(vertex.get_point(j) - cluster.get_initial_center_of_mass())
+                                   + cluster.get_center_of_mass();
+#else
                         new_point += cluster.get_graphical_pos_transform() * (vertex.get_point(j) - cluster.get_initial_center_of_mass())
                                    + cluster.get_center_of_mass();
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
                     }
                     new_point /= clusters_num;
 
@@ -684,10 +694,18 @@ namespace CrashAndSqueeze
                     for( int k = 0; k < clusters_num; ++k)
                     {
                         const Cluster & cluster = clusters[vertex.get_including_cluster_index(k)];
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                         // TODO: use quadratic transformation for vectors too (but how?)
+                        if(vertex.is_vector_orthogonal(j))
+                            new_vector += cluster.get_graphical_nrm_transform() * vertex.get_vector(j);
+                        else
+                            new_vector += cluster.get_graphical_pos_transform().to_matrix() * vertex.get_vector(j);
+#else
                         if(vertex.is_vector_orthogonal(j))
                             new_vector += cluster.get_graphical_nrm_transform() * vertex.get_vector(j);
                         else
                             new_vector += cluster.get_graphical_pos_transform() * vertex.get_vector(j);
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
                     }
                     new_vector /= clusters_num;
 

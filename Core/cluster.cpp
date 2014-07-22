@@ -198,15 +198,24 @@ namespace CrashAndSqueeze
         void Cluster::update_graphical_transformations()
         {
 #if CAS_GRAPHICAL_TRANSFORM_TOTAL
-    #if CAS_QUADRATIC_EXTENSIONS_ENABLED // TODO: use quadratic transformation for graphical vertices as well
-            graphical_pos_transform = total_deformation.to_matrix()*plasticity_state;
+    #if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            graphical_pos_transform = total_deformation;
+            graphical_pos_transform.as_matrix() = graphical_pos_transform.to_matrix()*plasticity_state;
+            // TODO: use quadratic transformation for graphical vertices normals as well
+            graphical_nrm_transform = graphical_pos_transform.to_matrix().inverted().transposed();
     #else
             graphical_pos_transform = total_deformation*plasticity_state;
-    #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             graphical_nrm_transform = graphical_pos_transform.inverted().transposed();
+    #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 #else
+    #if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            graphical_pos_transform = TriMatrix(rotation*plasticity_state, Matrix::ZERO, Matrix::ZERO);
+            // TODO: use quadratic transformation for graphical vertices normals as well
+            graphical_nrm_transform = rotation*plasticity_state_inv_trans;
+    #else
             graphical_pos_transform = rotation*plasticity_state;
             graphical_nrm_transform = rotation*plasticity_state_inv_trans;
+    #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 #endif // CAS_GRAPHICAL_TRANSFORM_TOTAL
         }
 
