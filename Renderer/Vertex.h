@@ -21,7 +21,7 @@ class Vertex
 {
 public:
     D3DXVECTOR3 pos;            // The position for the vertex
-    D3DXVECTOR4 normal;         // The outer normal of model
+    D3DXVECTOR3 normal;         // The outer normal of model
     D3DCOLOR color;             // The vertex color
     // 8 BYTE cluster indices = 2 UBYTE4s
     BYTE cluster_indices[CrashAndSqueeze::Core::VertexInfo::CLUSTER_INDICES_NUM];
@@ -29,7 +29,7 @@ public:
     
     void set_normal(D3DXVECTOR3 tri_normal)
     {
-        normal = D3DXVECTOR4(tri_normal, 0); // normal is a vector, not a point!
+        normal = tri_normal;
     }
     Vertex() : color(0)
     {
