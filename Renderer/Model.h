@@ -55,6 +55,33 @@ public:
     void set_draw_ccw(bool value) { draw_ccw = value; }
     
     void draw() const;
+
+    struct Triangle
+    {
+        Index indices[VERTICES_PER_TRIANGLE];
+        Index & operator[](unsigned i) { return indices[i]; }
+    };
+    // An iterator to loop through triangles of model
+    class TriangleIterator
+    {
+    public:
+        // Check that we did not reach the end
+        virtual bool has_value() const = 0;
+        // Get current triangle
+        virtual Triangle operator*() const = 0;
+        // Move to next triangle
+        virtual void operator++() = 0;
+        // Release resources that are held by this iterator
+        virtual ~TriangleIterator() {};
+    };
+    // Returns iterator to loop through triangles of model.
+    // Base implementation returns empty iterator,
+    // should be overridden to implement proper logic
+    virtual TriangleIterator* get_triangles();
+
+    // Generates normals by averaging triangle normals, getting triangles from get_triagnles
+    virtual void generate_normals();
+
     virtual ~AbstractModel() {}
 private:
     // No copying!
@@ -66,6 +93,7 @@ class Model : public AbstractModel
 {
 private:
     unsigned    vertices_count;
+    unsigned    indices_count;
     unsigned    primitives_count;
 
     D3DPRIMITIVETYPE        primitive_type;
@@ -96,6 +124,8 @@ public:
 
     void repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color);
 
+    virtual TriangleIterator * get_triangles();
+
     virtual ~Model();
 private:
     // No copying!
@@ -122,6 +152,8 @@ public:
     virtual unsigned get_vertices_count();
     virtual Vertex * lock_vertex_buffer();
     virtual void unlock_vertex_buffer();
+
+    virtual TriangleIterator * get_triangles();
 
     virtual ~MeshModel();
 private:

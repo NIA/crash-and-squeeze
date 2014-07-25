@@ -29,7 +29,7 @@ namespace
 {
     bool DISABLE_MESSAGE_BOXES = true;
     bool PAINT_MODEL = false;
-    bool SHOW_NORMALS = true;
+    bool SHOW_NORMALS = false;
     bool UPDATE_ON_GPU = false;
 
     const TCHAR *SIMPLE_SHADER_FILENAME = _T("simple.vsh");

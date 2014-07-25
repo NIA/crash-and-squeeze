@@ -3,6 +3,67 @@
 
 extern const unsigned VECTORS_IN_MATRIX;
 
+
+// -- Triangle iterators
+class EmptyTriangleIterator : public AbstractModel::TriangleIterator
+{
+public:
+    virtual bool has_value() const { return false; }
+    virtual AbstractModel::Triangle operator*() const { throw OutOfRangeError(); }
+    virtual void operator++() { throw OutOfRangeError(); }
+};
+
+class IndexBufferTriangleIterator : public AbstractModel::TriangleIterator
+{
+private:
+    IDirect3DIndexBuffer9 * index_buffer;
+    Index * indices;
+    Index indices_count;
+    Index current_index;
+    //bool is_strip; TODO: support triangle strip primitive
+public:
+    IndexBufferTriangleIterator(IDirect3DIndexBuffer9 * buffer, Index indices_count)
+        : index_buffer(buffer), indices_count(indices_count), current_index(0)
+    {
+        void * buffer_indices;
+        if(FAILED( index_buffer->Lock(0, indices_count*sizeof(Index), &buffer_indices, D3DLOCK_READONLY) ))
+            throw IndexBufferFillError();
+        indices = reinterpret_cast<Index*>(buffer_indices);
+    }
+    virtual bool has_value() const
+    {
+        // if we have three indices (starting from current) available
+        return current_index + VERTICES_PER_TRIANGLE - 1 < indices_count;
+    }
+    virtual AbstractModel::Triangle operator*() const
+    {
+        #ifndef NDEBUG
+        if ( ! has_value()) {
+            throw OutOfRangeError();
+        }
+        #endif //ifndef NDEBUG
+
+        AbstractModel::Triangle res;
+        for (int i = 0; i < VERTICES_PER_TRIANGLE; ++i)
+            res.indices[i] = indices[current_index + i];
+        return res;
+    }
+    virtual void operator++()
+    {
+        #ifndef NDEBUG
+        if ( ! has_value()) {
+            throw OutOfRangeError();
+        }
+        #endif //ifndef NDEBUG
+
+        current_index += VERTICES_PER_TRIANGLE;
+    }
+    virtual ~IndexBufferTriangleIterator()
+    {
+        index_buffer->Unlock();
+    }
+};
+
 // -- AbstractModel --
 
 AbstractModel::AbstractModel(IDirect3DDevice9 *device, VertexShader &shader, D3DXVECTOR3 position, D3DXVECTOR3 rotation)
@@ -78,14 +139,51 @@ void AbstractModel::draw() const
     }
 }
 
+AbstractModel::TriangleIterator * AbstractModel::get_triangles()
+{
+    return new EmptyTriangleIterator();
+}
+
+void AbstractModel::generate_normals()
+{
+    unsigned vertices_count = get_vertices_count();
+    Vertex * vertices = lock_vertex_buffer();
+
+    for (unsigned i = 0; i < vertices_count; ++i)
+        vertices[i].set_normal(D3DXVECTOR3(0,0,0));
+
+    TriangleIterator * triangle_iterator = get_triangles();
+    for (TriangleIterator & t = *triangle_iterator; t.has_value(); ++t)
+    {
+        // Find normal of triangle
+        Triangle triangle = *t;
+        D3DXVECTOR3 v1 = vertices[triangle[1]].pos - vertices[triangle[0]].pos;
+        D3DXVECTOR3 v2 = vertices[triangle[2]].pos - vertices[triangle[0]].pos;
+        D3DXVECTOR3 n;
+        D3DXVec3Cross(&n, &v1, &v2);
+        D3DXVec3Normalize(&n, &n);
+
+        // Add triangle normal to each vertex of this triangle to find average
+        for (unsigned i = 0; i < VERTICES_PER_TRIANGLE; ++i)
+            vertices[triangle[i]].normal += n;
+    }
+    // NB: here we should normalize all normals, but it is anyway done in shader
+
+    // TODO: take into account that some normals can differ from average of triangles (somehow store this difference?)
+
+    delete triangle_iterator;
+
+    unlock_vertex_buffer();
+}
+
 // -- Model --
 
 Model::Model(   IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, VertexShader &shader,
                 const Vertex *vertices, unsigned vertices_count, const Index *indices, unsigned indices_count,
                 unsigned primitives_count, D3DXVECTOR3 position, D3DXVECTOR3 rotation )
  
-: AbstractModel(device, shader, position, rotation), vertices_count(vertices_count), primitives_count(primitives_count),
-  primitive_type(primitive_type), vertex_buffer(NULL), index_buffer(NULL)
+: AbstractModel(device, shader, position, rotation), vertices_count(vertices_count), indices_count(indices_count),
+  primitives_count(primitives_count),  primitive_type(primitive_type), vertex_buffer(NULL), index_buffer(NULL)
 {
     _ASSERT(vertices != NULL);
     _ASSERT(indices != NULL);
@@ -144,6 +242,11 @@ Vertex * Model::lock_vertex_buffer()
 void Model::unlock_vertex_buffer()
 {
     vertex_buffer->Unlock();
+}
+
+AbstractModel::TriangleIterator * Model::get_triangles()
+{
+    return new IndexBufferTriangleIterator(index_buffer, indices_count);
 }
 
 void Model::repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color)
@@ -221,6 +324,14 @@ void MeshModel::do_draw() const
     {
         mesh->DrawSubset(i);
     }
+}
+
+AbstractModel::TriangleIterator * MeshModel::get_triangles()
+{
+    IDirect3DIndexBuffer9 * buffer;
+    mesh->GetIndexBuffer(&buffer);
+    // TODO: can we be sure that the mesh uses 32-bit index?!
+    return new IndexBufferTriangleIterator(buffer, mesh->GetNumFaces()*VERTICES_PER_TRIANGLE);
 }
 
 void MeshModel::release_interfaces()

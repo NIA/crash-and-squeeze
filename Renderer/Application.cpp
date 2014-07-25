@@ -726,6 +726,9 @@ void Application::run()
                             }
 
                             model->unlock_vertex_buffer();
+                            #if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                            model->generate_normals();
+                            #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
                             model->notify_subscriber();
                         }
                     }
