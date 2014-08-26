@@ -13,7 +13,7 @@ namespace CrashAndSqueeze
         public:
             virtual const Math::Vector & get_pos() const = 0;
 
-            virtual void include_to_one_more_cluster(int cluster_index) = 0;
+            virtual void include_to_one_more_cluster(int cluster_index, Math::Real weight) = 0;
             virtual int get_including_clusters_num() const = 0;
             virtual bool check_in_cluster() = 0;
         };

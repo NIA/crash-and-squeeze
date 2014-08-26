@@ -165,5 +165,32 @@ namespace CrashAndSqueeze
         {
             return (min_corner + max_corner)/2;
         }
+
+        Real BoxRegion::get_distance_to_border(const Math::Vector &point, int * side_index)
+        {
+            if (!contains(point))
+                return 0;
+
+            Real distances[VECTOR_SIZE*2];
+            for (int i = 0; i < VECTOR_SIZE; ++i)
+            {
+                distances[2*i]   = abs(point[i] - min_corner[i]);
+                distances[2*i+1] = abs(max_corner[i] - point[i]);
+            }
+            Real min_dist = distances[0];
+            int min_dist_side = 0;
+            for (int i = 1; i < 2*VECTOR_SIZE; ++i)
+            {
+                if (distances[i] < min_dist)
+                {
+                    min_dist = distances[i];
+                    min_dist_side = i / 2;
+                }
+            }
+            if (side_index != NULL)
+                *side_index = min_dist_side;
+            return min_dist;
+        }
+
     }
 }

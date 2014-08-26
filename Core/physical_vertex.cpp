@@ -75,9 +75,10 @@ namespace CrashAndSqueeze
             return cross_product(body_angular_velocity, pos - body_center);
         }
 
-        void PhysicalVertex::include_to_one_more_cluster(int cluster_index)
+        void PhysicalVertex::include_to_one_more_cluster(int cluster_index, Real weight)
         {
             ignore_unreferenced(cluster_index);
+            ignore_unreferenced(weight);
             ++including_clusters_num;
         }
 

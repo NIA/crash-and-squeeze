@@ -31,6 +31,31 @@ namespace CrashAndSqueeze
                 arr.create_items(size);
                 arr.freeze();
             }
+
+            // TODO: move to regions.cpp?
+            // weight func for BoxRegion clusters
+            class BoxRegionWeightFunc : public IScalarField
+            {
+            private:
+                BoxRegion * region;
+                Vector paddings;
+            public:
+                BoxRegionWeightFunc(BoxRegion * region, Vector paddings)
+                    : region(region), paddings(paddings)
+                {}
+
+                Real get_value_at(const Math::Vector &point) const
+                {
+                    if ( ! region->contains(point) )
+                        return 0;
+                    int side_index;
+                    Real dist = region->get_distance_to_border(point, &side_index);
+                    if (dist <= paddings[side_index])
+                        return dist/paddings[side_index];
+                    else
+                        return 1;
+                }
+            };
         }
 
         Model::ClusterTask::ClusterTask()
@@ -226,6 +251,7 @@ namespace CrashAndSqueeze
             }
 
             cluster_regions = new RegionsArray(clusters_num);
+            cluster_weight_funcs = new WeightFuncsArray(clusters_num);
 
             const Vector padding = cluster_sizes*cluster_padding_coeff;
 
@@ -241,7 +267,9 @@ namespace CrashAndSqueeze
                                                    iz*cluster_sizes[2])
                                           - padding;
                         Vector max_corner = min_corner + cluster_sizes + 2*padding;
-                        cluster_regions->push_back( new BoxRegion(min_corner, max_corner) );
+                        BoxRegion * region = new BoxRegion(min_corner, max_corner);
+                        cluster_regions->push_back( region );
+                        cluster_weight_funcs->push_back( new BoxRegionWeightFunc(region, padding) );
                     }
                 }
             }
@@ -282,6 +310,8 @@ namespace CrashAndSqueeze
                 {
                     found_clusters[j]->add_graphical_vertex(graphical_vertices[i]);
                 }
+
+                graphical_vertices[i].normalize_weights();
             }
 
             // -- For each cluster: precompute --
@@ -309,7 +339,8 @@ namespace CrashAndSqueeze
                 const IRegion * region = cluster_regions->get(i);
                 if( region->contains(vertex.get_pos()) )
                 {
-                    vertex.include_to_one_more_cluster(i);
+                    Real weight = cluster_weight_funcs->get(i)->get_value_at(vertex.get_pos());
+                    vertex.include_to_one_more_cluster(i, weight);
                     found_clusters.push_back( &clusters[i] );
                 }
                 else
@@ -326,7 +357,7 @@ namespace CrashAndSqueeze
             // If not found good cluster...
             if(0 == vertex.get_including_clusters_num())
             {
-                vertex.include_to_one_more_cluster(min_distance_index);
+                vertex.include_to_one_more_cluster(min_distance_index, 1);
                 found_clusters.push_back( &clusters[min_distance_index] );
             }
 
@@ -673,14 +704,13 @@ namespace CrashAndSqueeze
                     {
                         const Cluster & cluster = clusters[vertex.get_including_cluster_index(k)];
 #if CAS_QUADRATIC_EXTENSIONS_ENABLED
-                        new_point += cluster.get_graphical_pos_transform() * Math::TriVector(vertex.get_point(j) - cluster.get_initial_center_of_mass())
-                                   + cluster.get_center_of_mass();
+                        new_point += (cluster.get_graphical_pos_transform() * Math::TriVector(vertex.get_point(j) - cluster.get_initial_center_of_mass())
+                                   + cluster.get_center_of_mass()) * vertex.get_cluster_weight(k);
 #else
-                        new_point += cluster.get_graphical_pos_transform() * (vertex.get_point(j) - cluster.get_initial_center_of_mass())
-                                   + cluster.get_center_of_mass();
+                        new_point += (cluster.get_graphical_pos_transform() * (vertex.get_point(j) - cluster.get_initial_center_of_mass())
+                                   + cluster.get_center_of_mass()) * vertex.get_cluster_weight(k);
 #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
                     }
-                    new_point /= clusters_num;
 
                     VertexFloat *destination =
                         reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_point_offset(j)) );
@@ -697,17 +727,16 @@ namespace CrashAndSqueeze
 #if CAS_QUADRATIC_EXTENSIONS_ENABLED
                          // TODO: use quadratic transformation for vectors too (but how?)
                         if(vertex.is_vector_orthogonal(j))
-                            new_vector += cluster.get_graphical_nrm_transform() * vertex.get_vector(j);
+                            new_vector += cluster.get_graphical_nrm_transform() * vertex.get_vector(j) * vertex.get_cluster_weight(k);
                         else
-                            new_vector += cluster.get_graphical_pos_transform().to_matrix() * vertex.get_vector(j);
+                            new_vector += cluster.get_graphical_pos_transform().to_matrix() * vertex.get_vector(j) * vertex.get_cluster_weight(k);
 #else
                         if(vertex.is_vector_orthogonal(j))
-                            new_vector += cluster.get_graphical_nrm_transform() * vertex.get_vector(j);
+                            new_vector += cluster.get_graphical_nrm_transform() * vertex.get_vector(j) * vertex.get_cluster_weight(k);
                         else
-                            new_vector += cluster.get_graphical_pos_transform() * vertex.get_vector(j);
+                            new_vector += cluster.get_graphical_pos_transform() * vertex.get_vector(j) * vertex.get_cluster_weight(k);
 #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
                     }
-                    new_vector /= clusters_num;
 
                     VertexFloat *destination =
                         reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_vector_offset(j)) );

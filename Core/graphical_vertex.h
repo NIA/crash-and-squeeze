@@ -19,6 +19,8 @@ namespace CrashAndSqueeze
             int vectors_num;
 
             ClusterIndex cluster_indices[VertexInfo::CLUSTER_INDICES_NUM];
+            // Weights for computing weighted average of positions from different clusters: to smooth borders between clusters
+            Math::Real cluster_weights[VertexInfo::CLUSTER_INDICES_NUM];
             int including_clusters_num;
 
             bool check_point_index(int index) const;
@@ -41,11 +43,15 @@ namespace CrashAndSqueeze
 
             // Implement IVertex
             virtual const Math::Vector & get_pos() const;
-            virtual void include_to_one_more_cluster(int cluster_index);
+            virtual void include_to_one_more_cluster(int cluster_index, Math::Real weight = 1);
             virtual int get_including_clusters_num() const { return including_clusters_num; }
             virtual bool check_in_cluster();
-            // and add something special
+            // and add something special:
+
             ClusterIndex get_including_cluster_index(int index) const;
+            // make sure all cluster weights sum up to 1
+            void normalize_weights();
+            Math::Real get_cluster_weight(int index) const;
         };
     }
 }

@@ -138,7 +138,7 @@ namespace CrashAndSqueeze
             return get_point(0);
         }
         
-        void GraphicalVertex::include_to_one_more_cluster(int cluster_index)
+        void GraphicalVertex::include_to_one_more_cluster(int cluster_index, Real weight)
         {
             if(VertexInfo::CLUSTER_INDICES_NUM == including_clusters_num)
             {
@@ -146,6 +146,7 @@ namespace CrashAndSqueeze
                 return;
             }
             cluster_indices[including_clusters_num] = static_cast<ClusterIndex>(cluster_index);
+            cluster_weights[including_clusters_num] = weight;
             ++including_clusters_num;
         }
 
@@ -170,5 +171,34 @@ namespace CrashAndSqueeze
         #endif //ifndef NDEBUG
             return cluster_indices[index];
         }
+
+        void GraphicalVertex::normalize_weights()
+        {
+            Real weight_sum = 0;
+            for (int i = 0; i < including_clusters_num; ++i)
+                weight_sum += cluster_weights[i];
+            if ( weight_sum > 0 )
+            {
+                for (int i = 0; i < including_clusters_num; ++i)
+                    cluster_weights[i] /= weight_sum;
+            }
+            else
+            {
+                Logger::warning("in GraphicalVertex::normalize_weights: sum of weights <= 0", __FILE__, __LINE__);
+            }
+        }
+
+        Real GraphicalVertex::get_cluster_weight(int index) const
+        {
+        #ifndef NDEBUG
+            if(index >= VertexInfo::CLUSTER_INDICES_NUM)
+            {
+                Logger::error("in GraphicalVertex::get_cluster_weight: index out of range", __FILE__, __LINE__);
+                return 0;
+            }
+        #endif //ifndef NDEBUG
+            return cluster_weights[index];
+        }
+
     }
 }

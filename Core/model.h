@@ -27,6 +27,7 @@ namespace CrashAndSqueeze
         };
 
         typedef Collections::Array<IRegion*> RegionsArray;
+        typedef Collections::Array<IScalarField*> WeightFuncsArray;
 
         class Model : public IModel
         {
@@ -47,6 +48,7 @@ namespace CrashAndSqueeze
             int clusters_by_axes[Math::VECTOR_SIZE];
             Math::Real cluster_padding_coeff;
             RegionsArray * cluster_regions;
+            WeightFuncsArray * cluster_weight_funcs;
             // index of zero cluster matrix
             ClusterIndex null_cluster_index;
             

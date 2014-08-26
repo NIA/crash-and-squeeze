@@ -43,6 +43,11 @@ namespace CrashAndSqueeze
             b = temp;
         }
 
+        inline Real minimum(Real a, Real b)
+        {
+            return (a < b) ? a : b;
+        }
+
         inline Real cube_root(Real value)
         {
             return pow( abs(value), 1.0/3)*sign(value);

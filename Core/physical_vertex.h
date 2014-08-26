@@ -76,7 +76,7 @@ namespace CrashAndSqueeze
             void integrate_position(Math::Real dt);
 
             // implement IVertex
-            virtual void include_to_one_more_cluster(int cluster_index);
+            virtual void include_to_one_more_cluster(int cluster_index, Math::Real weight);
             virtual int get_including_clusters_num() const { return including_clusters_num; }
             virtual bool check_in_cluster();
         };

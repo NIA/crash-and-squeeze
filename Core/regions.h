@@ -14,6 +14,13 @@ namespace CrashAndSqueeze
             virtual bool contains(const Math::Vector &point) const = 0;
             virtual void move(const Math::Vector &vector) = 0;
         };
+
+        class IScalarField
+        {
+        public:
+            //virtual bool is_defined_at(const Math::Vector &point) const = 0;
+            virtual Math::Real get_value_at(const Math::Vector &point) const = 0;
+        };
         
         class EmptyRegion : public IRegion
         {
@@ -85,6 +92,9 @@ namespace CrashAndSqueeze
             void set_box(const Math::Vector & min_corner, const Math::Vector & max_corner);
 
             Math::Real get_dimension(int index) const { return max_corner[index] - min_corner[index]; }
+            // Returns distance to closest side of the box, 0 if outside the box.
+            // Variable side_index is set to 0, 1 or 2 if it is the side orthogonal to Ox, Oy or Oz, respectively
+            Math::Real get_distance_to_border(const Math::Vector &point, /*out*/ int * side_index = NULL);
 
             // -- implement Region --
             Math::Vector get_center() const;
