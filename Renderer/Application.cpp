@@ -2,6 +2,7 @@
 #include "Stopwatch.h"
 #include "matrices.h"
 #include <time.h>
+#include <Windowsx.h> // for GET_[XY]_LPARAM
 
 using CrashAndSqueeze::Core::ForcesArray;
 using CrashAndSqueeze::Math::Matrix;
@@ -17,6 +18,8 @@ const unsigned VECTORS_IN_MATRIX = sizeof(D3DXMATRIX)/sizeof(D3DXVECTOR4);
 namespace
 {
     const int         WINDOW_SIZE = 1000;
+    const float       CAMERA_ROTATE_SPEED = 3.14f/WINDOW_SIZE; // when mouse moved to dx pixels, camera angle is changed to dx*CAMERA_ROTATE_SPEED
+    const float       WHEEL_ZOOM_SPEED = 0.05f/WHEEL_DELTA; // when wheel is rotated to dw, camera rho is changed to dw*WHEEL_ZOOM_SPEED;
     const D3DCOLOR    BACKGROUND_COLOR = D3DCOLOR_XRGB( 255, 255, 255 );
     const D3DCOLOR    TEXT_COLOR = D3DCOLOR_XRGB( 255, 255, 0 );
     const int         TEXT_HEIGHT = 20;
@@ -589,6 +592,24 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
     }
 }
 
+
+void Application::process_mouse_drag(short x, short y, short dx, short dy)
+{
+    UNREFERENCED_PARAMETER(x);
+    UNREFERENCED_PARAMETER(y);
+
+    camera.change_phi(dx*CAMERA_ROTATE_SPEED);
+    camera.change_theta(-dy*CAMERA_ROTATE_SPEED);
+}
+
+void Application::process_mouse_wheel(short x, short y, short dw)
+{
+    UNREFERENCED_PARAMETER(x);
+    UNREFERENCED_PARAMETER(y);
+
+    camera.change_rho(-dw*WHEEL_ZOOM_SPEED); // minus so that rotating up zooms in
+}
+
 void Application::run()
 {
     window.show();
@@ -618,14 +639,48 @@ void Application::run()
     // Enter the message loop
     MSG msg;
     ZeroMemory( &msg, sizeof( msg ) );
+    // Init mouse state
+    struct {
+        bool dragging;
+        short prev_x;
+        short prev_y;
+    } mouse = {0};
+    mouse.dragging = false;
     while( msg.message != WM_QUIT )
     {
         if( PeekMessage( &msg, NULL, 0U, 0U, PM_REMOVE ) )
         {
-            if( msg.message == WM_KEYDOWN )
+            switch(msg.message)
             {
+            case WM_KEYDOWN:
                 process_key( static_cast<unsigned>( msg.wParam ), is_key_pressed(VK_SHIFT),
                              is_key_pressed(VK_CONTROL), is_key_pressed(VK_MENU) );
+                break;
+            case WM_LBUTTONDOWN:
+                // start dragging
+                mouse.dragging = true;
+                mouse.prev_x = GET_X_LPARAM(msg.lParam);
+                mouse.prev_y = GET_Y_LPARAM(msg.lParam);
+                SetCapture(window);
+                break;
+            case WM_LBUTTONUP:
+                // stop draggging
+                mouse.dragging = false;
+                ReleaseCapture();
+                break;
+            case WM_MOUSEMOVE:
+                if (mouse.dragging)
+                {
+                    short x = GET_X_LPARAM(msg.lParam);
+                    short y = GET_Y_LPARAM(msg.lParam);
+                    process_mouse_drag(x, y, x - mouse.prev_x, y - mouse.prev_y);
+                    mouse.prev_x = x;
+                    mouse.prev_y = y;
+                }
+                break;
+            case WM_MOUSEWHEEL:
+                process_mouse_wheel(GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam), GET_WHEEL_DELTA_WPARAM(msg.wParam));
+                break;
             }
 
             TranslateMessage( &msg );

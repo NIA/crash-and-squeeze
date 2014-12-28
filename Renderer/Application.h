@@ -118,6 +118,8 @@ private:
 
     void rotate_models(float phi);
     void process_key(unsigned code, bool shift, bool ctrl, bool alt);
+    void process_mouse_drag(short x, short y, short dx, short dy);
+    void process_mouse_wheel(short x, short y, short dw);
 
     void draw_text(const TCHAR * text, RECT rect, D3DCOLOR color, bool align_right = false);
     void draw_text_info();
