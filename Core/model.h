@@ -38,11 +38,15 @@ namespace CrashAndSqueeze
             Collections::Array<GraphicalVertex> graphical_vertices;
             Collections::Array<Cluster> clusters;
 
+            // TODO: is it rational to store ALL position if in used only to compare with a few reactons?
+            // Probably better to store only needed ones in Reaction class?
             Collections::Array<Math::Vector> initial_positions;
 
+            // TODO: do we need separate arrays for all these types? Some of them are invoked identically
             Collections::Array<ShapeDeformationReaction *> shape_deform_reactions;
             Collections::Array<RegionReaction *> region_reactions;
             Collections::Array<HitReaction *> hit_reactions;
+            Collections::Array<StretchReaction*> stretch_reactions;
 
             // -- fields used in initialization --
             int clusters_by_axes[Math::VECTOR_SIZE];
@@ -174,6 +178,7 @@ namespace CrashAndSqueeze
             void add_hit_reaction(HitReaction & reaction) { hit_reactions.push_back(&reaction); }
             void add_region_reaction(RegionReaction & reaction) { region_reactions.push_back(&reaction); }
             void add_shape_deformation_reaction(ShapeDeformationReaction & reaction) { shape_deform_reactions.push_back(&reaction); }
+            void add_stretch_reaction(StretchReaction &reaction) { stretch_reactions.push_back(&reaction); }
 
             // -- Run-time emulation interface --
             

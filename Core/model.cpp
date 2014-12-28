@@ -590,6 +590,11 @@ namespace CrashAndSqueeze
             {
                 region_reactions[i]->invoke_if_needed(*this);
             }
+
+            for(int i = 0; i < stretch_reactions.size(); ++i)
+            {
+                stretch_reactions[i]->invoke_if_needed(*this);
+            }
         }
 
         const Matrix & Model::get_cluster_transformation(int cluster_index) const

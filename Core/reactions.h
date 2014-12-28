@@ -115,5 +115,34 @@ namespace CrashAndSqueeze
             // no assigment operator due to a reference in class fields
             HitReaction & operator=(const HitReaction &);
         };
+
+        // An abstract reaction to stretch: is invoked when the distance between two vertices
+        // exceeds `threshold_distance'.
+        //
+        // To implement your own reaction, inherit your class from this
+        // and override invoke(), then pass an instance of your class
+        // to Model::add_stretch_reaction.
+        class StretchReaction : public Enabled
+        {
+        private:
+            // TODO: maybe not just two vector indices, but kind of array of pairs?
+            int index1;
+            int index2;
+            Math::Real dist_threshold;
+
+        public:
+            StretchReaction(int index1, int index2, Math::Real dist_threshold)
+                : index1(index1), index2(index2), dist_threshold(dist_threshold)
+            {}
+            
+            void invoke_if_needed(const IModel &model);
+
+            int get_vertex1_index() const { return index1; }
+            int get_vertex2_index() const { return index2; }
+            Math::Real get_dist_threshold() { return dist_threshold; }
+
+            // override this to use
+            virtual void invoke(Math::Real distance) = 0;
+        };
     }
 }

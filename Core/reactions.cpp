@@ -71,5 +71,19 @@ namespace CrashAndSqueeze
                 }
             }
         }
+
+        void StretchReaction::invoke_if_needed(const IModel &model)
+        {
+            if( ! is_enabled() )
+                return;
+
+            Math::Vector v1 = model.get_vertex_equilibrium_pos(index1);
+            Math::Vector v2 = model.get_vertex_equilibrium_pos(index2);
+            Math::Real dist = Math::distance(v1, v2);
+            if (dist > dist_threshold)
+            {
+                invoke(dist);
+            }
+        }
     }
 }
