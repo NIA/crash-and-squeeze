@@ -340,6 +340,8 @@ namespace
             delete_array(&sphere_indices);
         }
 
+        void set_camera_position(float rho, float theta, float phi) { app.set_camera_position(rho, theta, phi); }
+
     public:
         Demo(Application & _app, Index low_vertices_count, DWORD low_indices_count, Index high_vertices_count, DWORD high_indices_count)
             : app(_app),
@@ -519,6 +521,7 @@ namespace
             Vertex * car_vertices = car->lock_vertex_buffer();
             PointModel * low_car = new PointModel(app.get_device(), simple_shader, car_vertices, car->get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
             car->unlock_vertex_buffer();
+            set_camera_position(6.1f, 1.1f, -1.16858f);
             add_physical_model(car, low_car);
 
             // - Set impact -
@@ -546,8 +549,8 @@ namespace
             const float oval_radius = 2;
             sphere(oval_radius, D3DXVECTOR3(0, 0, 0), OVAL_COLOR, OVAL_EDGES_PER_DIAMETER, low_model_vertices, low_model_indices);
             // Make oval
-            squeeze_sphere(0.75f, 0, low_model_vertices, OVAL_VERTICES);
-            squeeze_sphere(0.5f, 1, low_model_vertices, OVAL_VERTICES);
+            squeeze_sphere(0.75f, 1, low_model_vertices, OVAL_VERTICES);
+            squeeze_sphere(0.5f, 0, low_model_vertices, OVAL_VERTICES);
             // TODO: different vertices for low- and high-model (see //! below)
             Model * high_oval_model = new Model(
                 app.get_device(),
@@ -571,6 +574,7 @@ namespace
                 OVAL_INDICES/3,
                 D3DXVECTOR3(0, 0, 0),
                 D3DXVECTOR3(0, 0, 0));
+            set_camera_position(3.1f, 0.9f, -0.854f);
             
             PhysicalModel * phys_mod = add_physical_model(high_oval_model, low_oval_model);
 
@@ -637,6 +641,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         Application app(logger);
         app.set_updating_vertices_on_gpu(UPDATE_ON_GPU);
 
+        // TODO: fix Cylinder and Car demos
         OvalDemo demo(app);
         // or - CylinderDemo demo(app);
         // or - CarDemo demo(app);

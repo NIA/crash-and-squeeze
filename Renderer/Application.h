@@ -143,6 +143,7 @@ public:
                     const ::CrashAndSqueeze::Math::Vector &rotation_center,
                     Model &model);
     void set_updating_vertices_on_gpu(bool value) { is_updating_vertices_on_gpu = value; }
+    void set_camera_position(float rho, float theta, float phi) { camera.set_position(rho, theta, phi); }
 
     void run();
 
