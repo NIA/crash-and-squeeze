@@ -2,12 +2,15 @@ struct VS_INPUT
 {
     float4 pos : POSITION;
     float4 color : COLOR;
+    float3 normal : NORMAL;
 };
 
 struct VS_OUTPUT
 {
     float4  pos : POSITION;
     float4  color : COLOR;
+    float4  psPos : TEXCOORD0; // pos for pixel shader
+    float3  psNormal : TEXCOORD1; // normal for pixel shader
     float   point_size : PSIZE;
 };
 
@@ -21,7 +24,9 @@ VS_OUTPUT main(const VS_INPUT src)
     
     VS_OUTPUT res;
     res.pos   = mul(pos, view);
+    res.psPos = pos;
     res.color = src.color;
     res.point_size = 3;
+    res.psNormal = src.normal;
     return res;
 }

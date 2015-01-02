@@ -139,8 +139,8 @@
     <ClInclude Include="worker_thread.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="deform+lighting.vsh" />
-    <None Include="lighting.vsh" />
+    <None Include="deform.vsh" />
+    <None Include="lighting.psh" />
     <None Include="simple.vsh" />
   </ItemGroup>
   <ItemGroup>

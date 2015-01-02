@@ -86,6 +86,7 @@ private:
     void set_shader_const(unsigned reg, const float *data, unsigned vector4_count)
     {
         check_render( device->SetVertexShaderConstantF(reg, data, vector4_count) );
+        check_render( device->SetPixelShaderConstantF(reg, data, vector4_count) );
     }
     void set_shader_float(unsigned reg, float f)
     {

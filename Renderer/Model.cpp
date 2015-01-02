@@ -67,14 +67,26 @@ public:
 // -- AbstractModel --
 
 AbstractModel::AbstractModel(IDirect3DDevice9 *device, VertexShader &shader, D3DXVECTOR3 position, D3DXVECTOR3 rotation)
-: device(device), position(position), rotation(rotation), shader(shader), zoom(1), draw_cw(true), draw_ccw(false), subscriber(NULL)
+: device(device), position(position), rotation(rotation), zoom(1), draw_cw(true), draw_ccw(false), subscriber(NULL)
 {
+        add_shader(shader);
         update_matrix();
 }
 
-VertexShader &AbstractModel::get_shader() const
+AbstractShader &AbstractModel::get_shader(int index) const
 {
-    return shader;
+#ifndef NDEBUG
+    if (index >= get_shaders_count()) {
+        throw OutOfRangeError();
+    }
+#endif //ifndef NDEBUG
+    return *shaders[index];
+}
+
+void AbstractModel::add_shader(AbstractShader &shader)
+{
+    shader.compile();
+    shaders.push_back(&shader);
 }
 
 IDirect3DDevice9 *AbstractModel::get_device() const

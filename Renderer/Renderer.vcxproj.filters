@@ -130,13 +130,13 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="deform+lighting.vsh">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="lighting.vsh">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="simple.vsh">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="deform.vsh">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="lighting.psh">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

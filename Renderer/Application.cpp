@@ -270,7 +270,10 @@ void Application::render(PerformanceReporter &internal_reporter)
         PhysicalModel       * physical_model       = (*iter).physical_model;
 
         // Set up
-        ( display_model->get_shader() ).set();
+        for (int i = 0; i < display_model->get_shaders_count(); ++i)
+        {
+            display_model->get_shader(i).set();
+        }
 
         set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, post_transform*display_model->get_transformation() );
         
@@ -304,6 +307,13 @@ void Application::render(PerformanceReporter &internal_reporter)
         }
         
         display_model->draw();
+
+        // Unset
+        for (int i = 0; i < display_model->get_shaders_count(); ++i)
+        {
+            display_model->get_shader(i).unset();
+        }
+
     }
 
     // Draw text info

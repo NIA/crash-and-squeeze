@@ -8,7 +8,7 @@ class AbstractModel
 {
 private:
     IDirect3DDevice9    *device;
-    VertexShader        &shader;
+    ::CrashAndSqueeze::Collections::Array<AbstractShader*> shaders;
     AbstractModel       *subscriber;
 
     D3DXVECTOR3 position;
@@ -31,7 +31,9 @@ public:
             D3DXVECTOR3 position,
             D3DXVECTOR3 rotation);
     
-    VertexShader &get_shader() const;
+    int get_shaders_count() const { return shaders.size(); }
+    AbstractShader &get_shader(int index) const;
+    void add_shader(AbstractShader &shader);
     IDirect3DDevice9 *get_device() const;
 
     const D3DXMATRIX &get_transformation() const;

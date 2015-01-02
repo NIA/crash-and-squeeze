@@ -33,7 +33,8 @@ namespace
     bool UPDATE_ON_GPU = false;
 
     const TCHAR *SIMPLE_SHADER_FILENAME = _T("simple.vsh");
-    const TCHAR *LIGHTING_SHADER_FILENAME = UPDATE_ON_GPU ? _T("deform+lighting.vsh") : _T("lighting.vsh");
+    const TCHAR *DEFORM_SHADER_FILENAME = UPDATE_ON_GPU ? _T("deform.vsh") : _T("simple.vsh");
+    const TCHAR *LIGHTING_SHADER_FILENAME = _T("lighting.psh");
     
     const TCHAR *MESH_FILENAME = _T("ford.x");
 
@@ -278,7 +279,8 @@ namespace
 
         Application & app;
         VertexShader simple_shader;
-        VertexShader lighting_shader;
+        VertexShader deform_shader;
+        PixelShader lighting_shader;
 
         AbstractModel * low_model;
         AbstractModel * high_model;
@@ -346,7 +348,8 @@ namespace
         Demo(Application & _app, Index low_vertices_count, DWORD low_indices_count, Index high_vertices_count, DWORD high_indices_count)
             : app(_app),
               simple_shader(_app.get_device(), VERTEX_DECL_ARRAY, SIMPLE_SHADER_FILENAME),
-              lighting_shader(_app.get_device(), VERTEX_DECL_ARRAY, LIGHTING_SHADER_FILENAME),
+              deform_shader(_app.get_device(), VERTEX_DECL_ARRAY, DEFORM_SHADER_FILENAME),
+              lighting_shader(_app.get_device(), LIGHTING_SHADER_FILENAME),
               low_model(NULL), high_model(NULL), hit_region_model(NULL), hit_region(NULL), normals_model(NULL)
         {
             low_model_vertices = new Vertex[low_vertices_count];
@@ -413,7 +416,7 @@ namespace
             Model * high_cylinder_model = new Model(
                 app.get_device(),
                 D3DPT_TRIANGLESTRIP,
-                lighting_shader,
+                deform_shader,
                 high_model_vertices,
                 HIGH_CYLINDER_VERTICES,
                 high_model_indices,
@@ -421,6 +424,7 @@ namespace
                 HIGH_CYLINDER_INDICES - 2,
                 D3DXVECTOR3(0, 0, 0),
                 D3DXVECTOR3(0, 0, 0));
+            high_cylinder_model->add_shader(lighting_shader); // add lighting
             cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
                      &CYLINDER_COLOR, 1,
                      LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP,
@@ -517,7 +521,8 @@ namespace
             // == PREPARE CAR DEMO ==
 
             // - Create models -
-            MeshModel * car = new MeshModel(app.get_device(), lighting_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+            MeshModel * car = new MeshModel(app.get_device(), deform_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+            car->add_shader(lighting_shader); // add lighting
             Vertex * car_vertices = car->lock_vertex_buffer();
             PointModel * low_car = new PointModel(app.get_device(), simple_shader, car_vertices, car->get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
             car->unlock_vertex_buffer();
@@ -555,7 +560,7 @@ namespace
             Model * high_oval_model = new Model(
                 app.get_device(),
                 D3DPT_TRIANGLELIST,
-                lighting_shader,
+                deform_shader,
                 low_model_vertices,  //!
                 OVAL_VERTICES,       //!
                 low_model_indices,   //!
@@ -563,6 +568,7 @@ namespace
                 OVAL_INDICES/3,
                 D3DXVECTOR3(0, 0, 0),
                 D3DXVECTOR3(0, 0, 0));
+            high_oval_model->add_shader(lighting_shader); // add lighting
             Model * low_oval_model = new Model(
                 app.get_device(),
                 D3DPT_TRIANGLELIST,

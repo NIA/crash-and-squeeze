@@ -30,13 +30,13 @@ class VertexDeclarationInitError : public RuntimeError
 public:
     VertexDeclarationInitError() : RuntimeError( _T("Error while creating vertex declaration") ) {}
 };
-class VertexShaderCompileError : public RuntimeError
+class ShaderCompileError : public RuntimeError
 {
 private:
     char *log_entry;
 public:
-    VertexShaderCompileError(ID3DXBuffer *errors)
-        : RuntimeError( _T("Error while compiling vertex shader") ), log_entry(NULL)
+    ShaderCompileError(ID3DXBuffer *errors)
+        : RuntimeError( _T("Error while compiling shader") ), log_entry(NULL)
     {
         if(NULL != errors)
         {
@@ -48,6 +48,10 @@ public:
             errors->Release();
         }
     }
+    ShaderCompileError(char * log_entry)
+        : RuntimeError( _T("Error while compiling shader") ), log_entry(log_entry)
+    {}
+
     virtual const char *get_log_entry() const
     {
         if(NULL != log_entry)
@@ -55,15 +59,15 @@ public:
         else
             return RuntimeError::get_log_entry();
     }
-    virtual ~VertexShaderCompileError()
+    virtual ~ShaderCompileError()
     {
         delete log_entry;
     }
 };
-class VertexShaderInitError : public RuntimeError
+class ShaderInitError : public RuntimeError
 {
 public:
-    VertexShaderInitError() : RuntimeError( _T("Error while creating vertex shader") ) {}
+    ShaderInitError() : RuntimeError( _T("Error while creating shader") ) {}
 };
 class VertexBufferInitError : public RuntimeError
 {
