@@ -27,16 +27,16 @@ void AbstractShader::compile()
 /*                          Vertex shader                               */
 /************************************************************************/
 
-VertexShader::VertexShader(IDirect3DDevice9 *device, const D3DVERTEXELEMENT9* vertex_declaration, const TCHAR *shader_filename)
-: AbstractShader(device, shader_filename, VS_PROFILE), vertex_decl(NULL), shader(NULL)
+VertexShader::VertexShader(Renderer *renderer, const D3DVERTEXELEMENT9* vertex_declaration, const TCHAR *shader_filename)
+: AbstractShader(renderer, shader_filename, VS_PROFILE), vertex_decl(NULL), shader(NULL)
 {
-    if( FAILED( device->CreateVertexDeclaration(vertex_declaration, &vertex_decl) ) )
+    if( FAILED( renderer->get_device()->CreateVertexDeclaration(vertex_declaration, &vertex_decl) ) )
         throw VertexDeclarationInitError();
 }
 
 HRESULT VertexShader::create(const DWORD * pFunction)
 {
-    return device->CreateVertexShader(pFunction, &shader);
+    return renderer->get_device()->CreateVertexShader(pFunction, &shader);
 }
 
 void VertexShader::set()
@@ -45,13 +45,13 @@ void VertexShader::set()
     {
         throw ShaderCompileError("Tried to set vertex shader that was not compiled");
     }
-    check_render( device->SetVertexDeclaration(vertex_decl) );
-    check_render( device->SetVertexShader(shader) );
+    check_render( renderer->get_device()->SetVertexDeclaration(vertex_decl) );
+    check_render( renderer->get_device()->SetVertexShader(shader) );
 }
 
 void VertexShader::unset()
 {
-    check_render( device->SetVertexShader(NULL) );
+    check_render( renderer->get_device()->SetVertexShader(NULL) );
 }
 
 void VertexShader::release_interfaces()
@@ -69,13 +69,13 @@ VertexShader::~VertexShader()
 /*                           Pixel shader                               */
 /************************************************************************/
 
-PixelShader::PixelShader(IDirect3DDevice9 *device, const TCHAR * shader_filename)
-    : AbstractShader(device, shader_filename, PS_PROFILE), shader(NULL)
+PixelShader::PixelShader(Renderer *renderer, const TCHAR * shader_filename)
+    : AbstractShader(renderer, shader_filename, PS_PROFILE), shader(NULL)
 {}
 
 HRESULT PixelShader::create(const DWORD * pFunction)
 {
-    return device->CreatePixelShader(pFunction, &shader);
+    return renderer->get_device()->CreatePixelShader(pFunction, &shader);
 }
 
 void PixelShader::set()
@@ -84,12 +84,12 @@ void PixelShader::set()
     {
         throw ShaderCompileError("Tried to set pixel shader that was not compiled");
     }
-    check_render( device->SetPixelShader(shader) );
+    check_render( renderer->get_device()->SetPixelShader(shader) );
 }
 
 void PixelShader::unset()
 {
-    check_render( device->SetPixelShader(NULL) );
+    check_render( renderer->get_device()->SetPixelShader(NULL) );
 }
 PixelShader::~PixelShader()
 {

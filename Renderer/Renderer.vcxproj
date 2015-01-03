@@ -108,6 +108,7 @@
     <ClCompile Include="parallel.cpp" />
     <ClCompile Include="performance_reporter.cpp" />
     <ClCompile Include="plane.cpp" />
+    <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="sphere.cpp" />
     <ClCompile Include="Stopwatch.cpp" />
@@ -129,6 +130,7 @@
     <ClInclude Include="parallel.h" />
     <ClInclude Include="performance_reporter.h" />
     <ClInclude Include="plane.h" />
+    <ClInclude Include="Renderer.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="sphere.h" />

@@ -1,19 +1,20 @@
 #pragma once
 
 #include "main.h"
+#include "Renderer.h"
 
 class AbstractShader
 {
 protected:
-    IDirect3DDevice9 *device;
+    Renderer *renderer;
     const TCHAR *filename;
     const char *profile;
 
     // (should be implemented) creates shader from given compiled buffer
     virtual HRESULT create(const DWORD * pFunction) = 0;
 public:
-    AbstractShader(IDirect3DDevice9 * device, const TCHAR * shader_filename, const char * profile) :
-        device(device), filename(shader_filename), profile(profile)
+    AbstractShader(Renderer * renderer, const TCHAR * shader_filename, const char * profile) :
+        renderer(renderer), filename(shader_filename), profile(profile)
     {}
     // compiles shader from file and calls `create`
     void compile();
@@ -34,7 +35,7 @@ private:
 protected:
     virtual HRESULT create(const DWORD * pFunction) override;
 public:
-    VertexShader(IDirect3DDevice9 *device, const D3DVERTEXELEMENT9* vertex_declaration, const TCHAR *shader_filename);
+    VertexShader(Renderer *renderer, const D3DVERTEXELEMENT9* vertex_declaration, const TCHAR *shader_filename);
     virtual void set() override;
     virtual void unset() override;
     virtual ~VertexShader();
@@ -48,7 +49,7 @@ private:
 protected:
     virtual HRESULT create(const DWORD * pFunction);
 public:
-    PixelShader(IDirect3DDevice9 *device, const TCHAR * shader_filename);
+    PixelShader(Renderer *renderer, const TCHAR * shader_filename);
     virtual void set();
     virtual void unset() override;
     virtual ~PixelShader();

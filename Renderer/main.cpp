@@ -324,7 +324,7 @@ namespace
                    SPHERE_EDGES_PER_DIAMETER, sphere_vertices, sphere_indices);
 
             hit_region_model = new Model(
-                app.get_device(),
+                app.get_renderer(),
                 D3DPT_TRIANGLELIST,
                 simple_shader,
                 sphere_vertices,
@@ -347,9 +347,9 @@ namespace
     public:
         Demo(Application & _app, Index low_vertices_count, DWORD low_indices_count, Index high_vertices_count, DWORD high_indices_count)
             : app(_app),
-              simple_shader(_app.get_device(), VERTEX_DECL_ARRAY, SIMPLE_SHADER_FILENAME),
-              deform_shader(_app.get_device(), VERTEX_DECL_ARRAY, DEFORM_SHADER_FILENAME),
-              lighting_shader(_app.get_device(), LIGHTING_SHADER_FILENAME),
+              simple_shader(_app.get_renderer(), VERTEX_DECL_ARRAY, SIMPLE_SHADER_FILENAME),
+              deform_shader(_app.get_renderer(), VERTEX_DECL_ARRAY, DEFORM_SHADER_FILENAME),
+              lighting_shader(_app.get_renderer(), LIGHTING_SHADER_FILENAME),
               low_model(NULL), high_model(NULL), hit_region_model(NULL), hit_region(NULL), normals_model(NULL)
         {
             low_model_vertices = new Vertex[low_vertices_count];
@@ -414,7 +414,7 @@ namespace
                      HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP,
                      high_model_vertices, high_model_indices );
             Model * high_cylinder_model = new Model(
-                app.get_device(),
+                app.get_renderer(),
                 D3DPT_TRIANGLESTRIP,
                 deform_shader,
                 high_model_vertices,
@@ -430,7 +430,7 @@ namespace
                      LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP,
                      low_model_vertices, low_model_indices );
             Model * low_cylinder_model = new Model(
-                app.get_device(),
+                app.get_renderer(),
                 D3DPT_TRIANGLESTRIP,
                 simple_shader,
                 low_model_vertices,
@@ -521,10 +521,10 @@ namespace
             // == PREPARE CAR DEMO ==
 
             // - Create models -
-            MeshModel * car = new MeshModel(app.get_device(), deform_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+            MeshModel * car = new MeshModel(app.get_renderer(), deform_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
             car->add_shader(lighting_shader); // add lighting
             Vertex * car_vertices = car->lock_vertex_buffer();
-            PointModel * low_car = new PointModel(app.get_device(), simple_shader, car_vertices, car->get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+            PointModel * low_car = new PointModel(app.get_renderer(), simple_shader, car_vertices, car->get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
             car->unlock_vertex_buffer();
             set_camera_position(6.1f, 1.1f, -1.16858f);
             add_physical_model(car, low_car);
@@ -558,7 +558,7 @@ namespace
             squeeze_sphere(0.5f, 0, low_model_vertices, OVAL_VERTICES);
             // TODO: different vertices for low- and high-model (see //! below)
             Model * high_oval_model = new Model(
-                app.get_device(),
+                app.get_renderer(),
                 D3DPT_TRIANGLELIST,
                 deform_shader,
                 low_model_vertices,  //!
@@ -570,7 +570,7 @@ namespace
                 D3DXVECTOR3(0, 0, 0));
             high_oval_model->add_shader(lighting_shader); // add lighting
             Model * low_oval_model = new Model(
-                app.get_device(),
+                app.get_renderer(),
                 D3DPT_TRIANGLELIST,
                 simple_shader,
                 low_model_vertices,

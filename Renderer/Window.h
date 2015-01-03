@@ -10,6 +10,8 @@ private:
 
     void unregister_class();
 public:
+    static const int DEFAULT_WINDOW_SIZE = 1000;
+
     Window(int width, int height);
     void show() const;
     void update() const;

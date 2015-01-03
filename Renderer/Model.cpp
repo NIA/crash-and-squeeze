@@ -66,8 +66,8 @@ public:
 
 // -- AbstractModel --
 
-AbstractModel::AbstractModel(IDirect3DDevice9 *device, VertexShader &shader, D3DXVECTOR3 position, D3DXVECTOR3 rotation)
-: device(device), position(position), rotation(rotation), zoom(1), draw_cw(true), draw_ccw(false), subscriber(NULL)
+AbstractModel::AbstractModel(Renderer *renderer, VertexShader &shader, D3DXVECTOR3 position, D3DXVECTOR3 rotation)
+: renderer(renderer), position(position), rotation(rotation), zoom(1), draw_cw(true), draw_ccw(false), subscriber(NULL)
 {
         add_shader(shader);
         update_matrix();
@@ -91,7 +91,12 @@ void AbstractModel::add_shader(AbstractShader &shader)
 
 IDirect3DDevice9 *AbstractModel::get_device() const
 {
-    return device;
+    return renderer->get_device();
+}
+
+Renderer * AbstractModel::get_renderer() const
+{
+    return renderer;
 }
 
 void AbstractModel::update_matrix()
@@ -141,12 +146,12 @@ void AbstractModel::draw() const
     
     if(draw_ccw)
     {
-        check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CW ) );
+        check_state( get_device()->SetRenderState( D3DRS_CULLMODE, D3DCULL_CW ) );
         do_draw();
     }
     if(draw_cw)
     {
-        check_state( device->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW ) );
+        check_state( get_device()->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW ) );
         do_draw();
     }
 }
@@ -190,11 +195,11 @@ void AbstractModel::generate_normals()
 
 // -- Model --
 
-Model::Model(   IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, VertexShader &shader,
+Model::Model(   Renderer *renderer, D3DPRIMITIVETYPE primitive_type, VertexShader &shader,
                 const Vertex *vertices, unsigned vertices_count, const Index *indices, unsigned indices_count,
                 unsigned primitives_count, D3DXVECTOR3 position, D3DXVECTOR3 rotation )
  
-: AbstractModel(device, shader, position, rotation), vertices_count(vertices_count), indices_count(indices_count),
+: AbstractModel(renderer, shader, position, rotation), vertices_count(vertices_count), indices_count(indices_count),
   primitives_count(primitives_count),  primitive_type(primitive_type), vertex_buffer(NULL), index_buffer(NULL)
 {
     _ASSERT(vertices != NULL);
@@ -204,11 +209,11 @@ Model::Model(   IDirect3DDevice9 *device, D3DPRIMITIVETYPE primitive_type, Verte
         const unsigned vertices_size = vertices_count*sizeof(vertices[0]);
         const unsigned indices_size = indices_count*sizeof(indices[0]);
 
-        if(FAILED( device->CreateVertexBuffer( vertices_size, D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &vertex_buffer, NULL ) ))
+        if(FAILED( get_device()->CreateVertexBuffer( vertices_size, D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &vertex_buffer, NULL ) ))
             throw VertexBufferInitError();
         
 
-        if(FAILED( device->CreateIndexBuffer( indices_size, D3DUSAGE_WRITEONLY, INDEX_FORMAT, D3DPOOL_DEFAULT, &index_buffer, NULL ) ))
+        if(FAILED( get_device()->CreateIndexBuffer( indices_size, D3DUSAGE_WRITEONLY, INDEX_FORMAT, D3DPOOL_DEFAULT, &index_buffer, NULL ) ))
             throw IndexBufferInitError();
 
         // fill the vertex buffer.
@@ -284,10 +289,10 @@ Model::~Model()
 }
 
 // -- MeshModel --
-MeshModel::MeshModel(IDirect3DDevice9 *device, VertexShader &shader,
+MeshModel::MeshModel(Renderer *renderer, VertexShader &shader,
                      const TCHAR * mesh_file, const D3DCOLOR color,
                      D3DXVECTOR3 position, D3DXVECTOR3 rotation)
-: AbstractModel(device, shader, position, rotation), mesh(NULL)
+: AbstractModel(renderer, shader, position, rotation), mesh(NULL)
 {
     ID3DXMesh * temp_mesh;
     if( FAILED( D3DXLoadMeshFromX( mesh_file, D3DXMESH_SYSTEMMEM,
@@ -356,10 +361,10 @@ MeshModel::~MeshModel()
     release_interfaces();
 }
 
-PointModel::PointModel(IDirect3DDevice9 *device, VertexShader &shader,
+PointModel::PointModel(Renderer *renderer, VertexShader &shader,
                        const Vertex * src_vertices, unsigned src_vertices_count, unsigned int step,
                        D3DXVECTOR3 position, D3DXVECTOR3 rotation)
-: AbstractModel(device, shader, position, rotation), vertex_buffer(NULL)
+: AbstractModel(renderer, shader, position, rotation), vertex_buffer(NULL)
 {
     _ASSERT(src_vertices != NULL);
     _ASSERT(step > 0);
@@ -368,7 +373,7 @@ PointModel::PointModel(IDirect3DDevice9 *device, VertexShader &shader,
         points_count = src_vertices_count/step;
         const unsigned buffer_size = points_count*sizeof(src_vertices[0]);
 
-        if(FAILED( device->CreateVertexBuffer( buffer_size, D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &vertex_buffer, NULL ) ))
+        if(FAILED( get_device()->CreateVertexBuffer( buffer_size, D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &vertex_buffer, NULL ) ))
             throw VertexBufferInitError();
 
         // fill the vertex buffer.
@@ -426,7 +431,7 @@ PointModel::~PointModel()
 }
 
 NormalsModel::NormalsModel(AbstractModel * parent_model, VertexShader &shader, float normal_length, bool normalize_before_showing /*= true*/)
-    : AbstractModel(parent_model->get_device(), shader, parent_model->get_position(), parent_model->get_rotation()),
+    : AbstractModel(parent_model->get_renderer(), shader, parent_model->get_position(), parent_model->get_rotation()),
       parent_model(parent_model),
       normals_count(parent_model->get_vertices_count()),
       normal_length(normal_length),

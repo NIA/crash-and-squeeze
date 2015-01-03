@@ -2,12 +2,15 @@
 #include "main.h"
 #include "Vertex.h"
 #include "Shader.h"
+#include "Renderer.h"
 #include "Collections/array.h"
+
+class Renderer;
 
 class AbstractModel
 {
 private:
-    IDirect3DDevice9    *device;
+    Renderer    *renderer;
     ::CrashAndSqueeze::Collections::Array<AbstractShader*> shaders;
     AbstractModel       *subscriber;
 
@@ -22,19 +25,21 @@ private:
     void update_matrix();
 
 protected:
+    IDirect3DDevice9 *get_device() const;
+
     virtual void pre_draw() const {}
     virtual void do_draw() const = 0;
     
 public:
-    AbstractModel(  IDirect3DDevice9 *device,
-            VertexShader &shader,
-            D3DXVECTOR3 position,
-            D3DXVECTOR3 rotation);
+    AbstractModel(Renderer *renderer,
+                  VertexShader &shader,
+                  D3DXVECTOR3 position,
+                  D3DXVECTOR3 rotation);
     
     int get_shaders_count() const { return shaders.size(); }
     AbstractShader &get_shader(int index) const;
     void add_shader(AbstractShader &shader);
-    IDirect3DDevice9 *get_device() const;
+    Renderer * get_renderer() const;
 
     const D3DXMATRIX &get_transformation() const;
     const D3DXVECTOR3 &get_position() { return position; }
@@ -109,7 +114,7 @@ protected:
     virtual void do_draw() const;
 
 public:
-    Model(  IDirect3DDevice9 *device,
+    Model(  Renderer *renderer,
             D3DPRIMITIVETYPE primitive_type,
             VertexShader &shader,
             const Vertex *vertices,
@@ -147,7 +152,7 @@ protected:
     virtual void do_draw() const;
 
 public:
-    MeshModel(IDirect3DDevice9 *device, VertexShader &shader,
+    MeshModel(Renderer *renderer, VertexShader &shader,
               const TCHAR * mesh_file, const D3DCOLOR color,
               D3DXVECTOR3 position, D3DXVECTOR3 rotation);
 
@@ -177,7 +182,7 @@ protected:
     virtual void do_draw() const;
 
 public:
-    PointModel(IDirect3DDevice9 *device, VertexShader &shader,
+    PointModel(Renderer *renderer, VertexShader &shader,
                const Vertex * src_vertices, unsigned src_vertices_count, unsigned step,
                D3DXVECTOR3 position, D3DXVECTOR3 rotation);
 
