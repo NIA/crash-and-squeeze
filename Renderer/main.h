@@ -10,23 +10,38 @@
 #include <fstream>
 #include "Math/vector.h"
 
-#define BONES_COUNT 2
+// usage: #pragma WARNING(FIXME: Code removed because...) - taken from http://goodliffe.blogspot.ru/2009/07/c-how-to-say-warning-to-visual-studio-c.html
+#define WARNING(desc) message(__FILE__ "(" _STRINGIZE(__LINE__) ") : warning: " #desc)
+
+#define DISABLE_COPY(ClassName) ClassName(const ClassName &); ClassName &operator=(const ClassName &); // Copying forbidden!
 
 // a helper to release D3D interface if it is not NULL
-inline void release_interface(IUnknown* iface)
+template<class Iface> inline void release_interface(Iface *& iface)
 {
-    if( iface != NULL )
+    if( iface != nullptr )
+    {
         iface->Release();
+        iface = nullptr;
+    }
+}
+
+// a helper to call delete on pointer to an item (not array !) if it is not NULL
+template<class Type> void delete_pointer(Type *& pointer)
+{
+    if( pointer != nullptr)
+    {
+        delete pointer;
+        pointer = nullptr;
+    }
 }
 
 // a helper to call delete[] on pointer to an array(!) if it is not NULL
-template<class Type> void delete_array(Type **dynamic_array)
+template<class Type> void delete_array(Type *& dynamic_array)
 {
-    _ASSERT(dynamic_array != NULL);
-    if( *dynamic_array != NULL)
+    if( dynamic_array != nullptr)
     {
-        delete[] *dynamic_array;
-        *dynamic_array = NULL;
+        delete[] dynamic_array;
+        dynamic_array = nullptr;
     }
 }
 

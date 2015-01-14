@@ -6,7 +6,8 @@ namespace
     const TCHAR *WINDOW_TITLE = _T("Crash-And-Squeeze Renderer");
 }
 
-Window::Window(int width, int height)
+Window::Window(int width, int height) :
+    width(width), height(height)
 {
     ZeroMemory( &window_class, sizeof(window_class) );
 

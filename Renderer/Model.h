@@ -91,9 +91,7 @@ public:
 
     virtual ~AbstractModel() {}
 private:
-    // No copying!
-    AbstractModel(const AbstractModel&);
-    AbstractModel &operator=(const AbstractModel&);
+    DISABLE_COPY(AbstractModel)
 };
 
 class Model : public AbstractModel
@@ -135,9 +133,7 @@ public:
 
     virtual ~Model();
 private:
-    // No copying!
-    Model(const Model&);
-    Model &operator=(const Model&);
+    DISABLE_COPY(Model)
 };
 
 class MeshModel : public AbstractModel 
@@ -164,9 +160,7 @@ public:
 
     virtual ~MeshModel();
 private:
-    // No copying!
-    MeshModel(const MeshModel&);
-    MeshModel &operator=(const MeshModel&);
+    DISABLE_COPY(MeshModel)
 };
 
 class PointModel : public AbstractModel
@@ -193,8 +187,7 @@ public:
     virtual ~PointModel();
 private:
     // No copying!
-    PointModel(const PointModel&);
-    PointModel &operator=(const PointModel&);
+    DISABLE_COPY(PointModel)
 };
 
 class NormalsModel : public AbstractModel

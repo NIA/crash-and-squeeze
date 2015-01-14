@@ -338,8 +338,8 @@ namespace
 
             app.set_impact( *hit_region, hit_velocity, hit_rotation_center, *hit_region_model);
 
-            delete_array(&sphere_vertices);
-            delete_array(&sphere_indices);
+            delete_array(sphere_vertices);
+            delete_array(sphere_indices);
         }
 
         void set_camera_position(float rho, float theta, float phi) { app.set_camera_position(rho, theta, phi); }
@@ -372,10 +372,10 @@ namespace
 
         virtual ~Demo()
         {
-            delete_array(&low_model_indices);
-            delete_array(&low_model_vertices);
-            delete_array(&high_model_indices);
-            delete_array(&high_model_vertices);
+            delete_array(low_model_indices);
+            delete_array(low_model_vertices);
+            delete_array(high_model_indices);
+            delete_array(high_model_vertices);
             delete low_model;
             delete high_model;
             delete hit_region_model;

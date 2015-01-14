@@ -7,6 +7,8 @@ class Window
 private:
     HWND hwnd;
     WNDCLASSEX window_class;
+    int width;
+    int height;
 
     void unregister_class();
 public:
@@ -16,6 +18,9 @@ public:
     void show() const;
     void update() const;
     static LRESULT WINAPI MsgProc( HWND, UINT, WPARAM, LPARAM );
+
+    int get_width() { return width; }
+    int get_height() { return height; }
 
     inline operator HWND() { return this->hwnd; }
     inline operator HWND() const { return this->hwnd; }
