@@ -2,7 +2,7 @@
 #include "main.h"
 #include "Core/vertex_info.h"
 
-extern const D3DFORMAT INDEX_FORMAT;
+extern const DXGI_FORMAT INDEX_FORMAT;
 
 const int VERTICES_PER_TRIANGLE = 3;
 
@@ -46,7 +46,7 @@ public:
     }
 };
 
-
-extern const D3DVERTEXELEMENT9 VERTEX_DECL_ARRAY[];
+extern const D3D11_INPUT_ELEMENT_DESC  VERTEX_DESC[];
+extern const unsigned                  VERTEX_DESC_NUM;
 
 extern const ::CrashAndSqueeze::Core::VertexInfo VERTEX_INFO;

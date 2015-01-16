@@ -2,7 +2,7 @@
 #include <exception>
 #include <tchar.h>
 #include <cstring>
-#include <d3dx9.h>
+#include <d3d11.h>
 
 class RuntimeError : public std::exception
 {
@@ -13,9 +13,9 @@ private:
     const char * log_entry;
 protected:
     // sets log_entry = allocated string which is part1 + part2. If part2_length is given, it is used as length of part2, otherwise strlen(part2) is used
-    void set_log_entry(const char * part1, const char * part2 = nullptr, int part2_length = -1)
+    void set_log_entry(const char * part1, const char * part2 = "", int part2_length = -1)
     {
-        log_entry = build_log_entry(part1, part2);
+        log_entry = build_log_entry(part1, part2, part2_length);
     }
 public:
     RuntimeError(const TCHAR *message) :  message(message), log_entry(nullptr) {}
@@ -32,6 +32,7 @@ public:
     // returns newly allocated string which is part1 + part2. If part2_length is given, it is used as length of part2, otherwise strlen(part2) is used
     static const char * build_log_entry(const char * part1, const char * part2 = "", int part2_length = -1)
     {
+        // TODO: switch to std::string to avoid this madness?
         if (nullptr == part1 || nullptr == part2)
             return nullptr;
         int total_size = strlen(part1) + (part2_length < 0 ? strlen(part2) : part2_length) + 1;
@@ -51,10 +52,14 @@ class WindowInitError : public RuntimeError
 public:
     WindowInitError() : RuntimeError( _T("Error while creating window") ) {}
 };
-class D3DInitError : public RuntimeError
+class RendererInitError : public RuntimeError
 {
 public:
-    D3DInitError() : RuntimeError( _T("Error while initializing D3D device") ) {}
+    RendererInitError(const char * stage = "D3D11CreateDevice")
+        : RuntimeError( _T("Error while initializing Renderer, see log") )
+    {
+        set_log_entry("Renderer init failed at stage: ", stage);
+    }
 };
 class VertexDeclarationInitError : public RuntimeError
 {
@@ -64,7 +69,7 @@ public:
 class ShaderCompileError : public RuntimeError
 {
 public:
-    ShaderCompileError(ID3DXBuffer *errors)
+    ShaderCompileError(ID3DBlob *errors)
         : RuntimeError( _T("Error while compiling shader, see log") )
     {
         if(nullptr != errors)
@@ -84,25 +89,29 @@ class ShaderInitError : public RuntimeError
 public:
     ShaderInitError() : RuntimeError( _T("Error while creating shader") ) {}
 };
-class VertexBufferInitError : public RuntimeError
+class BufferError : public RuntimeError
 {
 public:
-    VertexBufferInitError() : RuntimeError( _T("Error while creating vertex buffer") ) {}
+    BufferError(const char * log_entry_start, unsigned bind_flag = D3D11_BIND_VERTEX_BUFFER)
+        : RuntimeError( _T("Error while working with D3D buffer, see log") )
+    {
+        const char * log_entry_end = " buffer";
+        if (bind_flag & D3D11_BIND_VERTEX_BUFFER)
+            log_entry_end = " vertex buffer";
+        else if (bind_flag & D3D11_BIND_INDEX_BUFFER)
+            log_entry_end = " index buffer";
+        set_log_entry(log_entry_start, log_entry_end);
+    }
 };
-class IndexBufferInitError : public RuntimeError
+class BufferInitError : public BufferError
 {
 public:
-    IndexBufferInitError() : RuntimeError( _T("Error while creating index buffer") ) {}
+    BufferInitError(unsigned bind_flag = D3D11_BIND_VERTEX_BUFFER) : BufferError("Failed to create", bind_flag) {}
 };
-class VertexBufferFillError : public RuntimeError
+class BufferLockError : public BufferError
 {
 public:
-    VertexBufferFillError() : RuntimeError( _T("Error while filling vertex buffer") ) {}
-};
-class IndexBufferFillError : public RuntimeError
-{
-public:
-    IndexBufferFillError() : RuntimeError( _T("Error while filling index buffer") ) {}
+   BufferLockError(unsigned bind_flag = D3D11_BIND_VERTEX_BUFFER) : BufferError( "Failed to lock", bind_flag ) {}
 };
 class RenderError : public RuntimeError
 {
@@ -113,11 +122,6 @@ class RenderStateError : public RuntimeError
 {
 public:
     RenderStateError() : RuntimeError( _T("Error while setting render state") ) {}
-};
-class VertexBufferLockError : public RuntimeError
-{
-public:
-    VertexBufferLockError() : RuntimeError( _T("Error while locking vertex buffer for update") ) {}
 };
 class PhysicsError : public RuntimeError
 {
@@ -147,7 +151,7 @@ public:
 class OutOfRangeError : public RuntimeError
 {
 public:
-    OutOfRangeError() : RuntimeError( _T("Index out of range") ) {}
+    OutOfRangeError(const TCHAR * message =  _T("Index out of range")) : RuntimeError( message ) {}
 };
 class ThreadError : public RuntimeError
 {
@@ -163,6 +167,11 @@ class MeshError : public RuntimeError
 {
 public:
     MeshError() : RuntimeError( _T("Error while loading mesh from file") ) {}
+};
+class NotYetImplementedError : public RuntimeError
+{
+public:
+    NotYetImplementedError(const TCHAR * message = _T("Feature not yet implemented")) : RuntimeError( message ) {}
 };
 
 inline void check_render( HRESULT res )

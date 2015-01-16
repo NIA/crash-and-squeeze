@@ -3,16 +3,27 @@
 #include "matrices.h"
 #include "Model.h"
 
+#include <DirectXMath.h>
 
 using CrashAndSqueeze::Math::Matrix;
 using CrashAndSqueeze::Math::Vector;
 using CrashAndSqueeze::Math::VECTOR_SIZE;
 
+// Library imports
+#pragma comment( lib, "d3d11.lib" )
+#pragma comment( lib, "DXGI.lib" )
+
+#pragma WARNING(DX11 porting unfinished: replace D3DX math with DirectXMath)
+#ifdef NDEBUG
+#pragma comment( lib, "d3dx9.lib" )
+#else
+#pragma comment( lib, "d3dx9d.lib" )
+#endif //ifdef NDEBUG
+
 namespace
 {
     const bool        INITIAL_WIREFRAME_STATE = true;
-    const D3DCOLOR    BACKGROUND_COLOR = D3DCOLOR_XRGB( 255, 255, 255 );
-    const D3DCOLOR    BLACK = D3DCOLOR_XRGB( 0, 0, 0 );
+    const D3DXCOLOR   BACKGROUND_COLOR = D3DCOLOR_XRGB( 255, 255, 255 );
     const D3DCOLOR    TEXT_COLOR = D3DCOLOR_XRGB( 255, 255, 0 );
     const int         TEXT_HEIGHT = 20;
     const int         TEXT_MARGIN = 10;
@@ -48,57 +59,43 @@ namespace
     };
 
     //---------------- SHADER CONSTANTS ---------------------------
-    //    c0-c3 is the view matrix
-    const unsigned    SHADER_REG_VIEW_MX = 0;
-    //    c12 is directional light vector
-    const unsigned    SHADER_REG_DIRECTIONAL_VECTOR = 12;
-    const D3DXVECTOR3 SHADER_VAL_DIRECTIONAL_VECTOR  (0.5f, 0.5f, 1.0f);
-    //    c13 is directional light color
-    const unsigned    SHADER_REG_DIRECTIONAL_COLOR = 13;
-    const D3DCOLOR    SHADER_VAL_DIRECTIONAL_COLOR = D3DCOLOR_XRGB(230, 230, 230);
-    //    c14 is diffuse coefficient
-    const unsigned    SHADER_REG_DIFFUSE_COEF = 14;
-    const float       SHADER_VAL_DIFFUSE_COEF = 1.0f;
-    //    c15 is ambient color
-    const unsigned    SHADER_REG_AMBIENT_COLOR = 15;
-    const D3DCOLOR    SHADER_VAL_AMBIENT_COLOR = D3DCOLOR_XRGB(80, 80, 80);
-    //    c16 is point light color
-    const unsigned    SHADER_REG_POINT_COLOR = 16;
-    const D3DCOLOR    SHADER_VAL_POINT_COLOR = D3DCOLOR_XRGB(120, 250, 250);
-    //    c17 is point light position
-    const unsigned    SHADER_REG_POINT_POSITION = 17;
-    const D3DXVECTOR3 SHADER_VAL_POINT_POSITION  (-1.6f, 0.0f, 0.8f);
-    //    c18 are attenuation constants
-    const unsigned    SHADER_REG_ATTENUATION = 18;
-    const D3DXVECTOR3 SHADER_VAL_ATTENUATION  (1.0f, 0, 0.8f);
-    //    c19 is specular coefficient
-    const unsigned    SHADER_REG_SPECULAR_COEF = 19;
-    const float       SHADER_VAL_SPECULAR_COEF = 0.3f;
-    //    c20 is specular constant 'f'
-    const unsigned    SHADER_REG_SPECULAR_F = 20;
-    const float       SHADER_VAL_SPECULAR_F = 25.0f;
-    //    c21 is eye position
-    const unsigned    SHADER_REG_EYE = 21;
-    //    c22-c25 is position and rotation of model matrix
-    const unsigned    SHADER_REG_POS_AND_ROT_MX = 22;
-    //    c26-c49 are 24 initial centers of mass for 24 clusters
-    const unsigned    SHADER_REG_CLUSTER_INIT_CENTER = 26;
-    //    c50-c121 are 24 3x4 cluster matrices => 72 vectors
-    const unsigned    SHADER_REG_CLUSTER_MATRIX = 50;
-    //    c122-c124 are ZEROS! (3x4 zero matrix)
+
+
+    // constant values of shader constants:
+#pragma WARNING(DX11 porting unfinished: replace D3DX math with DirectXMath)
+    const float SHADER_VAL_DIFFUSE_COEF  = 1.0f;
+    const float SHADER_VAL_SPECULAR_COEF = 0.3f;
+    const float SHADER_VAL_SPECULAR_F    = 25.0f;
+
+    const float3 SHADER_VAL_DIRECTIONAL_VECTOR (0.5f, 0.5f, 1.0f);
+    const float4 SHADER_VAL_DIRECTIONAL_COLOR  (0.9f, 0.9f, 0.9f, 1);
+
+    const float3 SHADER_VAL_POINT_POSITION (-1.6f, 0.0f, 0.8f);
+    const float4 SHADER_VAL_POINT_COLOR    (0.5f, 0.98f, 0.98f, 1);
+    const float3 SHADER_VAL_ATTENUATION    (1.0f, 0, 0.8f);
+
+    const float4 SHADER_VAL_AMBIENT_COLOR (0.3f, 0.3f, 0.3f, 1);
+
+
+    const float4      BLACK ( 0, 0, 0, 0 );
     const D3DMATRIX   ZEROS = {0};
-    //    c125-c196 are 24 3x4 cluster matrices for normal transformation
-    const unsigned    SHADER_REG_CLUSTER_NORMAL_MATRIX = 125;
-    //    c197-c199 are ZEROS! (3x4 zero matrix)
+
+    enum {
+        WORLD_CONSTANTS_SLOT,    // = 0
+        MODEL_CONSTANTS_SLOT,    // = 1
+        LIGHTING_CONSTANTS_SLOT, // =2
+        _CONTANTS_SLOTS_COUNT
+    };
 }
 
 const unsigned VECTORS_IN_MATRIX = sizeof(D3DXMATRIX)/sizeof(D3DXVECTOR4);
 
 Renderer::Renderer(Window &window, Camera * camera) :
-    d3d(NULL), device(NULL), font(NULL), camera(camera),
+    device(nullptr), context(nullptr), render_target_view(nullptr), font(nullptr), swap_chain(nullptr),
+    rs_wireframe_on(nullptr), rs_wireframe_off(nullptr), camera(camera),
     alpha_test_enabled(false), wireframe(INITIAL_WIREFRAME_STATE), post_transform(rotate_x_matrix(D3DX_PI/2)),
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
-    text_to_draw(NULL)
+    text_to_draw(nullptr), world_constants(nullptr), model_constants(nullptr), lighting_constants(nullptr)
 {
     try
     {
@@ -115,10 +112,6 @@ Renderer::Renderer(Window &window, Camera * camera) :
 
 void Renderer::init_device(Window &window)
 {
-    d3d = Direct3DCreate9( D3D_SDK_VERSION );
-    if( d3d == NULL )
-        throw D3DInitError();
-
     // Set up the structure used to create the device
     D3DPRESENT_PARAMETERS present_parameters;
     ZeroMemory( &present_parameters, sizeof( present_parameters ) );
@@ -128,57 +121,193 @@ void Renderer::init_device(Window &window)
     present_parameters.EnableAutoDepthStencil = TRUE;
     present_parameters.AutoDepthStencilFormat = D3DFMT_D16;
     present_parameters.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-    // Set default adapter and device settings
-    UINT adapter_to_use = D3DADAPTER_DEFAULT;
-    D3DDEVTYPE device_type = D3DDEVTYPE_HAL;
+    // Set default adapter and driver type settings
+    IDXGIAdapter* adapter_to_use = nullptr;
+    D3D_DRIVER_TYPE driver_type = D3D_DRIVER_TYPE_HARDWARE;
+
     // Look for 'NVIDIA PerfHUD' adapter
     // If it is present, override default settings
-    for (UINT adapter = 0; adapter < d3d->GetAdapterCount(); ++adapter)
+    IDXGIFactory * dxgi_factory = nullptr;
+    if (FAILED( CreateDXGIFactory(IID_PPV_ARGS(&dxgi_factory)) ) )
+        throw RendererInitError("CreateDXGIFactory");
+    unsigned i = 0;
+    IDXGIAdapter * adapter = nullptr;
+    while(dxgi_factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND)
     {
-        D3DADAPTER_IDENTIFIER9 identifier;
-        if( FAILED( d3d->GetAdapterIdentifier(adapter, 0, &identifier) ) )
-            throw D3DInitError();
+        DXGI_ADAPTER_DESC  desc;
+        if( FAILED( adapter->GetDesc(&desc) ) )
+            throw RendererInitError("IDXGIAdapter::GetDesc");
 
-        if (strstr(identifier.Description,"PerfHUD") != 0)
+        if (wcsstr(desc.Description, L"PerfHUD") != 0)
         {
             adapter_to_use = adapter;
-            device_type = D3DDEVTYPE_REF;
+            driver_type = D3D_DRIVER_TYPE_REFERENCE;
             break;
+        } else {
+            release_interface(adapter);
         }
+        ++i;
     }
+
+    // TODO !!!!! Release all interfaces, including when throwing an exception!
+    // Use ComPtr or CComPtr or something like these?
+
     // Create the device
-    if( FAILED( d3d->CreateDevice( adapter_to_use, device_type, window,
-        D3DCREATE_HARDWARE_VERTEXPROCESSING,
-        &present_parameters, &device ) ) )
-        throw D3DInitError();
+    D3D_FEATURE_LEVEL feature_levels[] = {
+        D3D_FEATURE_LEVEL_11_0,
+        D3D_FEATURE_LEVEL_10_1,
+        D3D_FEATURE_LEVEL_10_0 // we need at least feature level 10 for geometry shader
+    };
+    unsigned feature_levels_count = array_size(feature_levels);
+    unsigned device_flags = 0;
+#ifndef NDEBUG
+    device_flags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif //ifndef NDEBUG
+    if (FAILED( D3D11CreateDevice(adapter_to_use,
+                                  driver_type,
+                                  nullptr, // no software module
+                                  device_flags,       // no flags // TODO: set debug flag on debug build?
+                                  feature_levels,
+                                  feature_levels_count,
+                                  D3D11_SDK_VERSION,
+                                  &device,
+                                  nullptr, // do not care which feature level was selected
+                                  &context)))
+        throw RendererInitError("D3D11CreateDevice");
+    release_interface(adapter_to_use);
+
+    // Create swap chain. Used defaults from https://hieroglyph3.codeplex.com/SourceControl/latest#trunk/Hieroglyph3/Source/SwapChainConfigDX11.cpp
+    DXGI_SWAP_CHAIN_DESC swap_chain_desc;
+    swap_chain_desc.BufferDesc.Width = window.get_width();
+    swap_chain_desc.BufferDesc.Height = window.get_height();
+    swap_chain_desc.BufferDesc.RefreshRate.Numerator = 60;
+    swap_chain_desc.BufferDesc.RefreshRate.Denominator = 1;
+    swap_chain_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    swap_chain_desc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+    swap_chain_desc.BufferDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
+
+    swap_chain_desc.SampleDesc.Count = 1;
+    swap_chain_desc.SampleDesc.Quality = 0;
+
+    swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swap_chain_desc.BufferCount = 2;
+    swap_chain_desc.OutputWindow = window;
+    swap_chain_desc.Windowed = true;
+    swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+    swap_chain_desc.Flags = 0;
+    if ( FAILED(dxgi_factory->CreateSwapChain(device, &swap_chain_desc, &swap_chain) ) )
+        throw RendererInitError("IDXGIFactory::CreateSwapChain");
+    release_interface(dxgi_factory);
+
+    // Create a render target view for a back buffer
+    ID3D11Texture2D *back_buffer = nullptr;
+    if ( FAILED( swap_chain->GetBuffer( 0, IID_PPV_ARGS(&back_buffer) ) ) )
+        throw RendererInitError("IDXGISwapChain::GetBuffer");
+    if ( FAILED( device->CreateRenderTargetView(back_buffer, nullptr, &render_target_view) ) )
+        throw RendererInitError("ID3D11Device::CreateRenderTargetView");
+    // TODO: do we need a depth stencil view here?
+#pragma WARNING(DX11 porting unfinished: depth stencil view)
+    context->OMSetRenderTargets(1, &render_target_view, nullptr);
+    release_interface(back_buffer);
+
+    // Set viewport
+    D3D11_VIEWPORT vp;
+    vp.Width  = static_cast<FLOAT>(window.get_width());
+    vp.Height = static_cast<FLOAT>(window.get_height());
+    vp.MinDepth = 0.0f;
+    vp.MaxDepth = 1.0f;
+    vp.TopLeftX = 0;
+    vp.TopLeftY = 0;
+    context->RSSetViewports( 1, &vp );
 
     // Configure alpha-test
-    check_state( device->SetRenderState( D3DRS_ALPHAREF, (DWORD)0xffffffff ) );
-    check_state( device->SetRenderState( D3DRS_ALPHATESTENABLE, TRUE ) );
+    // TODO: [DX11] enable alpha test (no direct equivalent for D3DRS_ALPHAREF and D3DRS_ALPHATESTENABLE
+#pragma WARNING(DX11 porting unfinished: alpha test)
     // Configure alpha-blending
-    check_state( device->SetRenderState( D3DRS_SRCBLEND, D3DBLEND_SRCALPHA ) );
-    check_state( device->SetRenderState( D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA ) );
-    check_state( device->SetRenderState( D3DRS_ALPHABLENDENABLE, TRUE ) );
+    D3D11_BLEND_DESC blendDesc;
+    blendDesc.AlphaToCoverageEnable  = FALSE;
+    blendDesc.IndependentBlendEnable = FALSE;
+    blendDesc.RenderTarget[0].BlendEnable = TRUE;
+    blendDesc.RenderTarget[0].SrcBlend  = D3D11_BLEND_SRC_ALPHA;
+    blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    blendDesc.RenderTarget[0].BlendOp   = D3D11_BLEND_OP_ADD;
+    blendDesc.RenderTarget[0].SrcBlendAlpha =  D3D11_BLEND_ONE; // resulting alpha value is not important, so use defaults
+    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    blendDesc.RenderTarget[0].BlendOpAlpha   = D3D11_BLEND_OP_ADD;
+    blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    ID3D11BlendState * blendState = nullptr;
+    check_state( device->CreateBlendState(&blendDesc, &blendState) );
+    context->OMSetBlendState(blendState, nullptr, 0xffffff);
+    release_interface(blendState);
+
+    // Prepare states for wireframe toggling
+    D3D11_RASTERIZER_DESC rs_desc;
+    rs_desc.FillMode = D3D11_FILL_SOLID;
+    rs_desc.CullMode = D3D11_CULL_BACK;
+    rs_desc.FrontCounterClockwise = false;
+    rs_desc.DepthBias = 0;
+    rs_desc.DepthBiasClamp = 0;
+    rs_desc.SlopeScaledDepthBias = 0;
+    rs_desc.DepthClipEnable = true;
+    rs_desc.ScissorEnable = false;
+    rs_desc.MultisampleEnable = false;
+    rs_desc.AntialiasedLineEnable = false;
+    check_state( device->CreateRasterizerState(&rs_desc, &rs_wireframe_off) );
+    rs_desc.FillMode = D3D11_FILL_WIREFRAME;
+    check_state( device->CreateRasterizerState(&rs_desc, &rs_wireframe_on) );
 
     toggle_wireframe();
     set_alpha_test();
 }
 
+const Renderer::LightingConstants Renderer::LIGHT_CONSTS_INIT_DATA = {
+    SHADER_VAL_DIFFUSE_COEF,
+    SHADER_VAL_SPECULAR_COEF,
+    SHADER_VAL_SPECULAR_F,
+
+    SHADER_VAL_DIRECTIONAL_VECTOR,
+    SHADER_VAL_DIRECTIONAL_COLOR,
+
+    SHADER_VAL_POINT_POSITION,
+    SHADER_VAL_POINT_COLOR,
+    SHADER_VAL_ATTENUATION,
+
+    SHADER_VAL_AMBIENT_COLOR
+};
+void Renderer::init_buffers()
+{
+    world_constants    = new ConstantBuffer<WorldConstants>(this, nullptr, SET_FOR_VS | SET_FOR_PS, WORLD_CONSTANTS_SLOT, true);
+    model_constants    = new ConstantBuffer<ModelConstants>(this, nullptr, SET_FOR_VS, MODEL_CONSTANTS_SLOT, true);
+    lighting_constants = new ConstantBuffer<LightingConstants>(this, &LIGHT_CONSTS_INIT_DATA, SET_FOR_PS, LIGHTING_CONSTANTS_SLOT, true); // this buffer can possibly be made dynamic=false, 'cause most constants don't change (and the others can be *made* so)
+}
+
 void Renderer::init_font()
 {
-    if( FAILED( D3DXCreateFont(device, TEXT_HEIGHT, 0, FW_BOLD, 0, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
-        DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Arial"), &font) ) )
-        throw D3DXFontError();
+#pragma WARNING(DX11 porting unfinished: font)
+}
+
+ID3D11Device * Renderer::get_device() const
+{
+#ifndef NDEBUG
+    if (nullptr == device)
+        throw RendererInitError("-- get_device() while device not initialized --");
+#endif //ifndef NDEBUG
+    return device;
+}
+
+ID3D11DeviceContext * Renderer::get_context() const
+{
+#ifndef NDEBUG
+    if (nullptr == context)
+        throw RendererInitError("-- get_context() while context not initialized --");
+#endif //ifndef NDEBUG
+    return context;
 }
 
 void Renderer::draw_text(const TCHAR * text, RECT rect, D3DCOLOR color, bool align_right)
 {
-    DWORD format_flags = 0;
-    if(align_right)
-        format_flags |= DT_RIGHT;
-
-    if( 0 == font->DrawText(NULL, text, -1, &rect, format_flags, color) )
-        throw RenderError();
+#pragma WARNING(DX11 porting unfinished: font)
+    // TODO: probably use GDI+ ?
 }
 
 void Renderer::toggle_wireframe()
@@ -196,29 +325,31 @@ void Renderer::toggle_wireframe()
 void Renderer::set_wireframe()
 {
     wireframe = true;
-    check_state( device->SetRenderState( D3DRS_FILLMODE, D3DFILL_WIREFRAME ) );
+    context->RSSetState(rs_wireframe_on);
 }
 
 void Renderer::unset_wireframe()
 {
     wireframe = false;
-    check_state( device->SetRenderState( D3DRS_FILLMODE, D3DFILL_SOLID ) );
+    context->RSSetState(rs_wireframe_off);
 }
 
 void Renderer::set_alpha_test()
 {
+#pragma WARNING(DX11 porting unfinished: alpha test)
     if(alpha_test_enabled)
     {
-        check_state( device->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL) );
+        // ...
     }
     else
     {
-        check_state( device->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS) );
+        // ...
     }
 }
 
 void Renderer::toggle_alpha_test()
 {
+    throw NotYetImplementedError(_T("Alpha test not yet implemented"));
     alpha_test_enabled = !alpha_test_enabled;
     set_alpha_test();
 }
@@ -232,34 +363,37 @@ void Renderer::set_text_to_draw(const TCHAR * text)
 void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &internal_reporter, bool is_updating_vertices_on_gpu,  bool show_high_model)
 {
     Stopwatch stopwatch;
-    check_render( device->Clear( 0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, BACKGROUND_COLOR, 1.0f, 0 ) );
+    // Clear render target
+    context->ClearRenderTargetView(render_target_view, BACKGROUND_COLOR);
+#pragma WARNING(DX11 porting unfinished: clear depth stencil view)
 
-    // Begin the scene
-    check_render( device->BeginScene() );
     // Setting constants
     D3DXVECTOR3 directional_vector;
     D3DXVec3Normalize(&directional_vector, &SHADER_VAL_DIRECTIONAL_VECTOR);
 
-    D3DCOLOR ambient_color = ambient_light_enabled ? SHADER_VAL_AMBIENT_COLOR : BLACK;
-    D3DCOLOR directional_color = directional_light_enabled ? SHADER_VAL_DIRECTIONAL_COLOR : BLACK;
-    D3DCOLOR point_color = point_light_enabled ? SHADER_VAL_POINT_COLOR : BLACK;
+    float4 ambient_color = ambient_light_enabled ? SHADER_VAL_AMBIENT_COLOR : BLACK;
+    float4 directional_color = directional_light_enabled ? SHADER_VAL_DIRECTIONAL_COLOR : BLACK;
+    float4 point_color = point_light_enabled ? SHADER_VAL_POINT_COLOR : BLACK;
 
-    set_shader_matrix( SHADER_REG_VIEW_MX,            camera->get_matrix());
-    set_shader_vector( SHADER_REG_DIRECTIONAL_VECTOR, directional_vector);
-    set_shader_color(  SHADER_REG_DIRECTIONAL_COLOR,  directional_color);
-    set_shader_float(  SHADER_REG_DIFFUSE_COEF,       SHADER_VAL_DIFFUSE_COEF);
-    set_shader_color(  SHADER_REG_AMBIENT_COLOR,      ambient_color);
-    set_shader_color(  SHADER_REG_POINT_COLOR,        point_color);
-    set_shader_point(  SHADER_REG_POINT_POSITION,     SHADER_VAL_POINT_POSITION);
-    set_shader_vector( SHADER_REG_ATTENUATION,        SHADER_VAL_ATTENUATION);
-    set_shader_float(  SHADER_REG_SPECULAR_COEF,      SHADER_VAL_SPECULAR_COEF);
-    set_shader_float(  SHADER_REG_SPECULAR_F,         SHADER_VAL_SPECULAR_F);
-    set_shader_point(  SHADER_REG_EYE,                camera->get_eye());
+    WorldConstants * world_consts = world_constants->lock();
+    world_consts->world = post_transform;
+    world_consts->view  = camera->get_matrix();
+    world_consts->eye   = camera->get_eye();
+    world_constants->unlock();
+
+    LightingConstants * light_consts = lighting_constants->lock();
+    *light_consts = LIGHT_CONSTS_INIT_DATA;
+    light_consts->direct_vec  = directional_vector;
+    light_consts->direct_col  = directional_color;
+    light_consts->point_col   = point_color;
+    light_consts->ambient_col = ambient_color;
+    // all other constans are left unchanged
+    lighting_constants->unlock();
 
     for (ModelEntities::const_iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
-        AbstractModel * display_model = (show_high_model || NULL == (*iter).low_model) ? (*iter).high_model : (*iter).low_model;
-        PhysicalModel       * physical_model       = (*iter).physical_model;
+        AbstractModel * display_model = (show_high_model || nullptr == (*iter).low_model) ? (*iter).high_model : (*iter).low_model;
+        PhysicalModel * physical_model = (*iter).physical_model;
 
         // Set up
         for (int i = 0; i < display_model->get_shaders_count(); ++i)
@@ -267,36 +401,38 @@ void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &
             display_model->get_shader(i).set();
         }
 
-        set_shader_matrix( SHADER_REG_POS_AND_ROT_MX, post_transform*display_model->get_transformation() );
-
-        if(NULL != physical_model)
+        ModelConstants * model_consts = model_constants->lock();
+        ZeroMemory(model_consts, sizeof(*model_consts));
+        model_consts->pos_and_rot = display_model->get_transformation();
+        // if updating displayed vertices on GPU then setup matrices for it
+        if(nullptr != physical_model && is_updating_vertices_on_gpu)
         {
-            // if updating displayed vertices on GPU then setup matrices for it
-            if(is_updating_vertices_on_gpu)
+            int clusters_num = physical_model->get_clusters_num();
+#ifndef NDEBUG
+            if(clusters_num > MAX_CLUSTERS_NUM)
+                throw OutOfRangeError(_T("clusters number of model is > MAX_CLUSTERS_NUM"));
+#endif //ifndef NDEBUG
+            // for each cluster...
+            for(int i = 0; i < clusters_num; ++i)
             {
-                // step of 3 vectors between consequent 3x4 matrices
-                int step = VECTORS_IN_MATRIX-1;
-                int clusters_num = physical_model->get_clusters_num();
-                // for each cluster...
-                for(int i = 0; i < clusters_num; ++i)
-                {
-                    // ...set initial center of mass...
-                    D3DXVECTOR3 init_pos = math_vector_to_d3dxvector(physical_model->get_cluster_initial_center(i));
-                    set_shader_vector( SHADER_REG_CLUSTER_INIT_CENTER + i, init_pos);
+                // ...set initial center of mass...
+                model_consts->clus_cm[i] = math_vector_to_d3dxvector(physical_model->get_cluster_initial_center(i));
 
-                    // ...and transformation matrices for positions...
-                    D3DXMATRIX cluster_matrix;
-                    build_d3d_matrix(physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i), cluster_matrix);
-                    set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*i, cluster_matrix);
+                // ...and transformation matrices for positions...
+                D3DXMATRIX cluster_matrix;
+                build_d3d_matrix(physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i), cluster_matrix);
+                model_consts->clus_mx[i] = cluster_matrix;
 
-                    // ...and normals
-                    build_d3d_matrix(physical_model->get_cluster_normal_transformation(i), Vector::ZERO, cluster_matrix);
-                    set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*i, cluster_matrix);
-                }
-                set_shader_matrix3x4( SHADER_REG_CLUSTER_MATRIX + step*clusters_num, ZEROS );
-                set_shader_matrix3x4( SHADER_REG_CLUSTER_NORMAL_MATRIX + step*clusters_num, ZEROS );
+                // ...and normals
+                build_d3d_matrix(physical_model->get_cluster_normal_transformation(i), Vector::ZERO, cluster_matrix);
+                model_consts->clus_nrm_mx[i] = cluster_matrix;
             }
+            // Last zero matrix:
+            model_consts->clus_mx[clusters_num]     = ZEROS;
+            model_consts->clus_nrm_mx[clusters_num] = ZEROS;
         }
+
+        model_constants->unlock();
 
         display_model->draw();
 
@@ -309,28 +445,34 @@ void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &
     }
 
     // Draw text info
-    if (text_to_draw != NULL)
+    if (text_to_draw != nullptr)
     {
         draw_text(text_to_draw, MyRect(TEXT_MARGIN, TEXT_MARGIN, TEXT_WIDTH, Window::DEFAULT_WINDOW_SIZE), TEXT_COLOR);
     }
 
-    // End the scene
-    check_render( device->EndScene() );
-
     stopwatch.start();
-    // Present the backbuffer contents to the display
-    check_render( device->Present( NULL, NULL, NULL, NULL ) );
+    // Present the back buffer contents to the display
+    check_render( swap_chain->Present(0, 0) );
     internal_reporter.add_measurement(stopwatch.stop());
 }
 
 void Renderer::release_interfaces()
 {
-    release_interface( d3d );
+    delete_pointer(world_constants);
+    delete_pointer(model_constants);
+    delete_pointer(lighting_constants);
+
     release_interface( device );
+    release_interface( context );
+    release_interface( render_target_view );
+    release_interface( swap_chain );
+    release_interface( rs_wireframe_on );
+    release_interface( rs_wireframe_off );
     release_interface( font );
 }
 
 Renderer::~Renderer(void)
 {
+    context->ClearState();
     release_interfaces();
 }

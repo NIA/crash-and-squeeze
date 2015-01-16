@@ -5,21 +5,25 @@
 
 class AbstractShader
 {
-protected:
+private:
     Renderer *renderer;
-    const TCHAR *filename;
-    const char *profile;
+    const char *filename;
+    const char *target;
 
-    // (should be implemented) creates shader from given compiled buffer
-    virtual HRESULT create(const DWORD * pFunction) = 0;
+protected:
+    // creates shader from given compiled buffer (should be implemented in each subclass)
+    virtual HRESULT create(const void * shader_code, unsigned code_size) = 0;
+
 public:
-    AbstractShader(Renderer * renderer, const TCHAR * shader_filename, const char * profile) :
-        renderer(renderer), filename(shader_filename), profile(profile)
+    AbstractShader(Renderer * renderer, const char * shader_filename, const char * target) :
+        renderer(renderer), filename(shader_filename), target(target)
     {}
+    Renderer * get_renderer() const { return renderer; }
     // compiles shader from file and calls `create`
     void compile();
-    // (should be implemented) sets this shader as current
+    // sets this shader as current (should be implemented in each subclass)
     virtual void set() = 0;
+    // sets no current shader (should be implemented in each subclass)
     virtual void unset() = 0;
     virtual ~AbstractShader() {}
 };
@@ -27,15 +31,19 @@ public:
 class VertexShader : public AbstractShader
 {
 private:
-    IDirect3DVertexDeclaration9 *vertex_decl;   // vertex declaration
-    IDirect3DVertexShader9      *shader;        // vertex shader
+    ID3D11InputLayout   *vertex_layout;   // vertex declaration
+    ID3D11VertexShader  *shader;        // vertex shader
+
+    // for creating input layout: stored for later call of `create`
+    const D3D11_INPUT_ELEMENT_DESC* vertex_desc;
+    unsigned vertex_desc_num;
     
     // Deinitialization steps:
     void release_interfaces();
 protected:
-    virtual HRESULT create(const DWORD * pFunction) override;
+    virtual HRESULT create(const void * shader_code, unsigned code_size) override;
 public:
-    VertexShader(Renderer *renderer, const D3DVERTEXELEMENT9* vertex_declaration, const TCHAR *shader_filename);
+    VertexShader(Renderer *renderer, const D3D11_INPUT_ELEMENT_DESC* vertex_desc, unsigned vertex_desc_num, const char *shader_filename);
     virtual void set() override;
     virtual void unset() override;
     virtual ~VertexShader();
@@ -44,20 +52,28 @@ public:
 class PixelShader : public AbstractShader
 {
 private:
-    IDirect3DPixelShader9 *shader; // pixel shader
+    ID3D11PixelShader *shader; // pixel shader
 
 protected:
-    virtual HRESULT create(const DWORD * pFunction);
+    virtual HRESULT create(const void * shader_code, unsigned code_size) override;
 public:
-    PixelShader(Renderer *renderer, const TCHAR * shader_filename);
-    virtual void set();
+    PixelShader(Renderer *renderer, const char * shader_filename);
+    virtual void set() override;
     virtual void unset() override;
     virtual ~PixelShader();
 };
 
-/* TODO: TO BE IMPLEMENTED:
 class GeometryShader : public AbstractShader
 {
 private:
+    ID3D11GeometryShader *shader; // geometry shader
+
+protected:
+    virtual HRESULT create(const void * shader_code, unsigned code_size) override;
+
+public:
+    GeometryShader(Renderer *renderer, const char * shader_filename);
+    virtual void set() override;
+    virtual void unset() override;
+    virtual ~GeometryShader();
 };
-*/

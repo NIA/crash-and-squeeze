@@ -101,6 +101,7 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
         if(NULL == low_model)
             throw NullPointerError();
 
+#pragma WARNING(DX11 porting unfinished: this code will not work now because it reads from VertexBuffer which is now write-only - D3D11_USAGE_DYNAMIC)
         Vertex * high_vertices = high_model.lock_vertex_buffer();
         Vertex * low_vertices = low_model->lock_vertex_buffer();
         model_entity.physical_model =
@@ -385,6 +386,7 @@ void Application::run()
     {
         if( PeekMessage( &msg, NULL, 0U, 0U, PM_REMOVE ) )
         {
+            // TODO: move this switch into Window's WndProc, and introduce IKeyboardHandler that is passed to Window (and implemented by Application)
             switch(msg.message)
             {
             case WM_KEYDOWN:

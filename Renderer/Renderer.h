@@ -7,6 +7,7 @@
 #include "main.h"
 #include "Camera.h"
 #include "Window.h"
+#include "Buffer.h"
 #include "performance_reporter.h"
 
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
@@ -22,11 +23,17 @@ typedef std::vector<ModelEntity> ModelEntities;
 
 extern const unsigned VECTORS_IN_MATRIX;
 
+// TODO: remove circular dependency (Renderer depends on Model, Camera, Buffer which in turn depend on Renderer)
 class Renderer
 {
 private:
-    IDirect3D9                  *d3d;           // used to create the D3DDevice
-    IDirect3DDevice9            *device;        // our rendering device
+    ID3D11Device                *device;
+    ID3D11DeviceContext         *context;
+
+    ID3D11RenderTargetView      *render_target_view;
+    IDXGISwapChain              *swap_chain;
+    ID3D11RasterizerState       *rs_wireframe_on;
+    ID3D11RasterizerState       *rs_wireframe_off;
     ID3DXFont                   *font;          // font to draw text
 
     bool directional_light_enabled;
@@ -38,44 +45,54 @@ private:
     bool wireframe;
 
     Camera * camera;
-    D3DXMATRIX post_transform;
+    D3DXMATRIX post_transform; // matrix multiplied by model matrix (kinda world matrix)
 
     const TCHAR * text_to_draw;
 
     // Initialization steps:
     void init_device(Window &window);
+    void init_buffers();
     void init_font();
 
-    // Wrappers for SetVertexShaderConstantF:
-    void set_shader_const(unsigned reg, const float *data, unsigned vector4_count)
+    // Shader constants:
+    struct WorldConstants
     {
-        check_render( device->SetVertexShaderConstantF(reg, data, vector4_count) );
-        check_render( device->SetPixelShaderConstantF(reg, data, vector4_count) );
-    }
-    void set_shader_float(unsigned reg, float f)
+        float4x4 world;  // aka post_transform
+        float4x4 view;   // camera's view * projection
+        float3   eye;    // camera's eye
+    };
+    ConstantBuffer<WorldConstants> *world_constants;
+
+    // Currently some little value N, but can be made greater while the following is true:
+    // (2*N+1 matrices)*(4 vectors in matrix) + (N vectors) <= 4096 (maximum number of items in constant buffer)
+    // TODO: pass this value to shader via defines
+    static const unsigned MAX_CLUSTERS_NUM = 50;
+    struct ModelConstants
     {
-        set_shader_const(reg, D3DXVECTOR4(f, f, f, f), 1);
-    }
-    void set_shader_vector(unsigned reg, const D3DXVECTOR3 &vector)
+        float4x4 pos_and_rot; // aka model matrix
+        float3   clus_cm[MAX_CLUSTERS_NUM+1];     // clusters' initial c.m. (centers of mass)
+        float4x4 clus_mx[MAX_CLUSTERS_NUM+1];     // clusters' position tranformation (deform+c.m. shift) matrices PLUS one zero matrix in the end
+        float4x4 clus_nrm_mx[MAX_CLUSTERS_NUM+1]; // clusters' normal   tranformation matrices PLUS one zero matrix in the end
+    };
+    ConstantBuffer<ModelConstants> *model_constants;
+
+    struct LightingConstants
     {
-        set_shader_const(reg, D3DXVECTOR4(vector, 0), 1);
-    }
-    void set_shader_point(unsigned reg, const D3DXVECTOR3 &point)
-    {
-        set_shader_const(reg, D3DXVECTOR4(point, 1.0f), 1);
-    }
-    void set_shader_matrix(unsigned reg, const D3DXMATRIX &matrix)
-    {
-        set_shader_const(reg, matrix, VECTORS_IN_MATRIX);
-    }
-    void set_shader_matrix3x4(unsigned reg, const D3DXMATRIX &matrix)
-    {
-        set_shader_const(reg, matrix, VECTORS_IN_MATRIX-1);
-    }
-    void set_shader_color(unsigned reg, D3DCOLOR color)
-    {
-        set_shader_const(reg, D3DXCOLOR(color), 1);
-    }
+        float    diff_coef;   // diffuse component coefficient
+        float    spec_coef;   // specular component coefficient
+        float    spec_factor; // specular factor (f)
+
+        float3   direct_vec;  // directional light vector
+        float4   direct_col;  // directional light color
+
+        float3   point_pos;   // point light position
+        float4   point_col;   // point light color
+        float3   atten_coefs; // attenuation coeffs (a, b, c)
+
+        float4   ambient_col; // ambient light color
+    };
+    static const LightingConstants LIGHT_CONSTS_INIT_DATA;
+    ConstantBuffer<LightingConstants> *lighting_constants;
 
     void set_alpha_test();
 
@@ -86,7 +103,8 @@ private:
 public:
     Renderer(Window &window, Camera * camera);
 
-    IDirect3DDevice9 * get_device() { return device; }
+    ID3D11Device * get_device() const;
+    ID3D11DeviceContext * get_context() const;
 
     void set_text_to_draw(const TCHAR * text);
     
@@ -101,5 +119,7 @@ public:
     void unset_wireframe();
 
     virtual ~Renderer(void);
+private:
+    DISABLE_COPY(Renderer);
 };
 

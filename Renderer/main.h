@@ -1,6 +1,7 @@
 #pragma once
 
-#include <d3d9.h>
+#include <d3d11.h>
+// TODO: replace D3DX with DirectXMath or DirectXTK
 #include <d3dx9.h>
 #undef ERROR // because WinGDI.h defines this and it's awful!
 #include <cstdlib>
@@ -14,6 +15,7 @@
 #define WARNING(desc) message(__FILE__ "(" _STRINGIZE(__LINE__) ") : warning: " #desc)
 
 #define DISABLE_COPY(ClassName) ClassName(const ClassName &); ClassName &operator=(const ClassName &); // Copying forbidden!
+#define DISABLE_COPY_T(ClassName, T) ClassName(const ClassName<T> &); ClassName<T> &operator=(const ClassName<T> &); // Copying forbidden!
 
 // a helper to release D3D interface if it is not NULL
 template<class Iface> inline void release_interface(Iface *& iface)
@@ -53,6 +55,9 @@ template<size_t SIZE, class T> inline size_t array_size(T (&array)[SIZE])
 }
 
 typedef DWORD Index;
+typedef D3DXVECTOR3 float3;
+typedef D3DXVECTOR4 float4;
+typedef D3DXMATRIX  float4x4;
 
 // a helper for filling index buffers
 inline void add_triangle( Index i1, Index i2, Index i3, Index *indices, DWORD &current_index, Index offset = 0 )

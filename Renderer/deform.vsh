@@ -2,7 +2,7 @@ struct VS_INPUT
 {
     float4 pos : POSITION;
     float3 normal : NORMAL;
-    float4 color : COLOR;
+    float4 color : COLOR0;
     
     int4 ci_0_3 : COLOR1; // cluster indices 0..3
     int4 ci_4_7 : COLOR2; // cluster indices 4..7
@@ -11,19 +11,27 @@ struct VS_INPUT
 
 struct VS_OUTPUT
 {
-    float4  pos : POSITION;
-    float4  color : COLOR;
+    float4  pos : SV_POSITION;
+    float4  color : COLOR0;
     float4  psPos : TEXCOORD0; // pos for pixel shader
     float3  psNormal : TEXCOORD1; // normal for pixel shader
 };
 
-const float4x4  view        : register(c0);
-const float3    eye         : register(c21);
-const float4x4  pos_and_rot : register(c22); // position and rotation matrix
+static int MAX_CLUSTERS_NUM = 50; // TODO: get this value from C++ code through shader defines
+cbuffer WorldConstants : register(b0)
+{
+    float4x4 world;  // aka post_transform
+    float4x4 view;   // camera's view * projection
+    // other fields not used
+};
 
-const float4    clus_cm[24] : register(c26); // initial clusters' centers of mass 
-const float4x3  clus_mx[25] : register(c50); // cluster matrices PLUS last zero matrix
-const float4x3  clus_nrm_mx[25] : register(c125); // cluster normal matrices PLUS last zero matrix
+cbuffer ModelConstants : register(b1)
+{
+    float4x4 pos_and_rot; // aka model matrix
+    float3   clus_cm[MAX_CLUSTERS_NUM+1];     // clusters' initial c.m. (centers of mass)
+    float4x4 clus_mx[MAX_CLUSTERS_NUM+1];     // clusters' position tranformation (deform+c.m. shift) matrices PLUS one zero matrix in the end
+    float4x4 clus_nrm_mx[MAX_CLUSTERS_NUM+1]; // clusters' normal   tranformation matrices PLUS one zero matrix in the end
+};
 
 void sum_iter(float4 pos, float3 normal, inout float3 sum_pos, inout float3 sum_normal, int ci)
 {
@@ -62,7 +70,9 @@ VS_OUTPUT main(const VS_INPUT src)
     
     // transform pos & normal due to shift and rotation
     pos = mul(pos, pos_and_rot);
-    normal = normalize( mul(normal, (float3x3)pos_and_rot) );
+    pos = mul(pos, world);
+    normal = mul(normal, (float3x3)pos_and_rot) );
+    normal = normalize( mul(normal, (float3x3)world) );
     
     // apply projection into view space and lighting
     VS_OUTPUT res;

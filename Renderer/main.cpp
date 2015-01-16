@@ -30,11 +30,11 @@ namespace
     bool DISABLE_MESSAGE_BOXES = true;
     bool PAINT_MODEL = false;
     bool SHOW_NORMALS = false;
-    bool UPDATE_ON_GPU = false;
+    bool UPDATE_ON_GPU = false; // TODO: when update on GPU, create models as immutable (dynamic = false)
 
-    const TCHAR *SIMPLE_SHADER_FILENAME = _T("simple.vsh");
-    const TCHAR *DEFORM_SHADER_FILENAME = UPDATE_ON_GPU ? _T("deform.vsh") : _T("simple.vsh");
-    const TCHAR *LIGHTING_SHADER_FILENAME = _T("lighting.psh");
+    const char *SIMPLE_SHADER_FILENAME = "simple.vsh";
+    const char *DEFORM_SHADER_FILENAME = UPDATE_ON_GPU ? "deform.vsh" : "simple.vsh";
+    const char *LIGHTING_SHADER_FILENAME = "lighting.psh";
     
     const TCHAR *MESH_FILENAME = _T("ford.x");
 
@@ -325,15 +325,14 @@ namespace
 
             hit_region_model = new Model(
                 app.get_renderer(),
-                D3DPT_TRIANGLELIST,
+                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
                 simple_shader,
                 sphere_vertices,
                 SPHERE_VERTICES,
                 sphere_indices,
                 SPHERE_INDICES,
-                SPHERE_INDICES/3,
-                math_vector_to_d3dxvector(hit_region->get_center()),
-                D3DXVECTOR3(0, 0, 0));
+                false,
+                math_vector_to_d3dxvector(hit_region->get_center()));
             hit_region_model->set_draw_ccw(true);
 
             app.set_impact( *hit_region, hit_velocity, hit_rotation_center, *hit_region_model);
@@ -347,8 +346,8 @@ namespace
     public:
         Demo(Application & _app, Index low_vertices_count, DWORD low_indices_count, Index high_vertices_count, DWORD high_indices_count)
             : app(_app),
-              simple_shader(_app.get_renderer(), VERTEX_DECL_ARRAY, SIMPLE_SHADER_FILENAME),
-              deform_shader(_app.get_renderer(), VERTEX_DECL_ARRAY, DEFORM_SHADER_FILENAME),
+              simple_shader(_app.get_renderer(), VERTEX_DESC, VERTEX_DESC_NUM, SIMPLE_SHADER_FILENAME),
+              deform_shader(_app.get_renderer(), VERTEX_DESC, VERTEX_DESC_NUM, DEFORM_SHADER_FILENAME),
               lighting_shader(_app.get_renderer(), LIGHTING_SHADER_FILENAME),
               low_model(NULL), high_model(NULL), hit_region_model(NULL), hit_region(NULL), normals_model(NULL)
         {
@@ -415,15 +414,12 @@ namespace
                      high_model_vertices, high_model_indices );
             Model * high_cylinder_model = new Model(
                 app.get_renderer(),
-                D3DPT_TRIANGLESTRIP,
+                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,
                 deform_shader,
                 high_model_vertices,
                 HIGH_CYLINDER_VERTICES,
                 high_model_indices,
-                HIGH_CYLINDER_INDICES,
-                HIGH_CYLINDER_INDICES - 2,
-                D3DXVECTOR3(0, 0, 0),
-                D3DXVECTOR3(0, 0, 0));
+                HIGH_CYLINDER_INDICES);
             high_cylinder_model->add_shader(lighting_shader); // add lighting
             cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
                      &CYLINDER_COLOR, 1,
@@ -431,15 +427,12 @@ namespace
                      low_model_vertices, low_model_indices );
             Model * low_cylinder_model = new Model(
                 app.get_renderer(),
-                D3DPT_TRIANGLESTRIP,
+                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,
                 simple_shader,
                 low_model_vertices,
                 LOW_CYLINDER_VERTICES,
                 low_model_indices,
-                LOW_CYLINDER_INDICES,
-                LOW_CYLINDER_INDICES - 2,
-                D3DXVECTOR3(0, 0, 0),
-                D3DXVECTOR3(0, 0, 0));
+                LOW_CYLINDER_INDICES);
             PhysicalModel * phys_mod = add_physical_model(high_cylinder_model, low_cylinder_model);
 
             // - Add frame --
@@ -521,10 +514,10 @@ namespace
             // == PREPARE CAR DEMO ==
 
             // - Create models -
-            MeshModel * car = new MeshModel(app.get_renderer(), deform_shader, MESH_FILENAME, CYLINDER_COLOR, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+            MeshModel * car = new MeshModel(app.get_renderer(), deform_shader, MESH_FILENAME, CYLINDER_COLOR);
             car->add_shader(lighting_shader); // add lighting
             Vertex * car_vertices = car->lock_vertex_buffer();
-            PointModel * low_car = new PointModel(app.get_renderer(), simple_shader, car_vertices, car->get_vertices_count(), 10, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0, 0, 0));
+            PointModel * low_car = new PointModel(app.get_renderer(), simple_shader, car_vertices, car->get_vertices_count(), 10);
             car->unlock_vertex_buffer();
             set_camera_position(6.1f, 1.1f, -1.16858f);
             add_physical_model(car, low_car);
@@ -559,27 +552,22 @@ namespace
             // TODO: different vertices for low- and high-model (see //! below)
             Model * high_oval_model = new Model(
                 app.get_renderer(),
-                D3DPT_TRIANGLELIST,
+                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
                 deform_shader,
                 low_model_vertices,  //!
                 OVAL_VERTICES,       //!
                 low_model_indices,   //!
-                OVAL_INDICES,        //!
-                OVAL_INDICES/3,
-                D3DXVECTOR3(0, 0, 0),
-                D3DXVECTOR3(0, 0, 0));
+                OVAL_INDICES         //!
+            );
             high_oval_model->add_shader(lighting_shader); // add lighting
             Model * low_oval_model = new Model(
                 app.get_renderer(),
-                D3DPT_TRIANGLELIST,
+                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
                 simple_shader,
                 low_model_vertices,
                 OVAL_VERTICES,
                 low_model_indices,
-                OVAL_INDICES,
-                OVAL_INDICES/3,
-                D3DXVECTOR3(0, 0, 0),
-                D3DXVECTOR3(0, 0, 0));
+                OVAL_INDICES);
             set_camera_position(3.1f, 0.9f, -0.854f);
             
             PhysicalModel * phys_mod = add_physical_model(high_oval_model, low_oval_model);
