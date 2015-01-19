@@ -31,6 +31,7 @@ private:
     ID3D11DeviceContext         *context;
 
     ID3D11RenderTargetView      *render_target_view;
+    ID3D11DepthStencilView      *depth_stencil_view;
     IDXGISwapChain              *swap_chain;
     ID3D11RasterizerState       *rs_wireframe_on;
     ID3D11RasterizerState       *rs_wireframe_off;
@@ -54,7 +55,13 @@ private:
     void init_buffers();
     void init_font();
 
+#pragma pack( push )
+#pragma pack( 4 ) // use same packing for constant buffer structures as HLSL does (4)
+
+#pragma warning( push )
+#pragma warning( disable : 4324 ) // do not warn me about padding due to __declspec(align) because I know what I'm doing
     // Shader constants:
+    __declspec( align(16) ) // constant buffer data size should be a multiple of 16
     struct WorldConstants
     {
         float4x4 world;  // aka post_transform
@@ -67,6 +74,7 @@ private:
     // (2*N+1 matrices)*(4 vectors in matrix) + (N vectors) <= 4096 (maximum number of items in constant buffer)
     // TODO: pass this value to shader via defines
     static const unsigned MAX_CLUSTERS_NUM = 50;
+    __declspec( align(16) ) // constant buffer data size should be a multiple of 16
     struct ModelConstants
     {
         float4x4 pos_and_rot; // aka model matrix
@@ -76,6 +84,7 @@ private:
     };
     ConstantBuffer<ModelConstants> *model_constants;
 
+    __declspec( align(16) ) // constant buffer data size should be a multiple of 16
     struct LightingConstants
     {
         float    diff_coef;   // diffuse component coefficient
@@ -93,6 +102,8 @@ private:
     };
     static const LightingConstants LIGHT_CONSTS_INIT_DATA;
     ConstantBuffer<LightingConstants> *lighting_constants;
+#pragma warning( pop )
+#pragma pack( pop )
 
     void set_alpha_test();
 

@@ -1,8 +1,9 @@
 struct PS_INPUT
 {
+    float4 _ : SV_POSITION; // this is the position of pixel. It is unused: we use pos passed through TEXCOORD0 for lighting calculation
+    float4 color : COLOR0;
     float3 pos : TEXCOORD0;
     float3 normal : TEXCOORD1;
-    float4 color : COLOR;
 };
 
 cbuffer WorldConstants : register(b0)

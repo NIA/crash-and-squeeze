@@ -58,7 +58,7 @@ public:
     void set_zoom(float zoom);
     
     virtual unsigned get_vertices_count() const = 0;
-    virtual Vertex * lock_vertex_buffer() const = 0;
+    virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const = 0;
     virtual void unlock_vertex_buffer() const = 0;
 
     // Methods for making one model depend on updates of another
@@ -128,7 +128,7 @@ public:
             D3DXVECTOR3 rotation = D3DXVECTOR3(0,0,0));
 
     virtual unsigned get_vertices_count() const override;
-    virtual Vertex * lock_vertex_buffer() const override;
+    virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const override;
     virtual void unlock_vertex_buffer() const override;
 
     void repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color);
@@ -157,7 +157,7 @@ public:
               D3DXVECTOR3 rotation = D3DXVECTOR3(0,0,0));
 
     virtual unsigned get_vertices_count() const override;
-    virtual Vertex * lock_vertex_buffer() const override;
+    virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const override;
     virtual void unlock_vertex_buffer() const override;
 
     virtual TriangleIterator * get_triangles() const override;
@@ -186,7 +186,7 @@ public:
                D3DXVECTOR3 rotation = D3DXVECTOR3(0,0,0));
 
     virtual unsigned get_vertices_count() const override;
-    virtual Vertex * lock_vertex_buffer() const override;
+    virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const override;
     virtual void unlock_vertex_buffer() const override;
 
     virtual ~PointModel();
@@ -219,7 +219,7 @@ public:
                  float normal_length, bool normalize_before_showing = true);
 
     virtual unsigned get_vertices_count() const override;
-    virtual Vertex * lock_vertex_buffer() const override;
+    virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const override;
     virtual void unlock_vertex_buffer() const override;
 
     virtual void on_notify() override;

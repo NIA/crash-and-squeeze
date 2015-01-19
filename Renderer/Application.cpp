@@ -101,9 +101,8 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
         if(NULL == low_model)
             throw NullPointerError();
 
-#pragma WARNING(DX11 porting unfinished: this code will not work now because it reads from VertexBuffer which is now write-only - D3D11_USAGE_DYNAMIC)
-        Vertex * high_vertices = high_model.lock_vertex_buffer();
-        Vertex * low_vertices = low_model->lock_vertex_buffer();
+        Vertex * high_vertices = high_model.lock_vertex_buffer(LOCK_READ);
+        Vertex * low_vertices = low_model->lock_vertex_buffer(LOCK_READ);
         model_entity.physical_model =
             new PhysicalModel(low_vertices,
                               low_model->get_vertices_count(),
@@ -356,7 +355,7 @@ void Application::run()
     PerformanceReporter render_performance_reporter(logger, "rendering");
     PerformanceReporter update_performance_reporter(logger, "updating");
     PerformanceReporter total_performance_reporter(logger, "total");
-    PerformanceReporter internal_render_performance_reporter(logger, "device->Present");
+    PerformanceReporter internal_render_performance_reporter(logger, "swap_chain->Present");
 
     int physics_frames = 0;
     
@@ -401,7 +400,7 @@ void Application::run()
                 SetCapture(window);
                 break;
             case WM_LBUTTONUP:
-                // stop draggging
+                // stop dragging
                 mouse.dragging = false;
                 ReleaseCapture();
                 break;
@@ -496,7 +495,7 @@ void Application::run()
 
                         if( ! (is_updating_vertices_on_gpu && SHOW_GRAPHICAL_VERTICES == show_mode) )
                         {
-                            Vertex *vertices = model->lock_vertex_buffer();
+                            Vertex *vertices = model->lock_vertex_buffer(LOCK_READ_WRITE);
                             int vertices_count = model->get_vertices_count();
 
                             switch(show_mode)

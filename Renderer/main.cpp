@@ -146,7 +146,7 @@ namespace
                 if( region.contains(phy_model.get_vertex(i).get_pos()) )
                     physical_vertices.push_back(i);
             }
-            Vertex * buffer = gfx_model.lock_vertex_buffer();
+            Vertex * buffer = gfx_model.lock_vertex_buffer(LOCK_READ);
             int gfx_vertices_count = static_cast<int>(gfx_model.get_vertices_count());
             for(int i = 0; i < gfx_vertices_count; ++i)
             {
@@ -260,7 +260,7 @@ namespace
             D3DCOLOR_XRGB(255, 255, 0),
             D3DCOLOR_XRGB(0, 255, 255),
         };
-        Vertex * vertices = model.lock_vertex_buffer();
+        Vertex * vertices = model.lock_vertex_buffer(LOCK_READ_WRITE);
         for(unsigned i = 0; i < model.get_vertices_count(); ++i)
         {
             int color_index = vertices[i].clusters_num % COLORS_COUNT;
@@ -516,7 +516,7 @@ namespace
             // - Create models -
             MeshModel * car = new MeshModel(app.get_renderer(), deform_shader, MESH_FILENAME, CYLINDER_COLOR);
             car->add_shader(lighting_shader); // add lighting
-            Vertex * car_vertices = car->lock_vertex_buffer();
+            Vertex * car_vertices = car->lock_vertex_buffer(LOCK_READ);
             PointModel * low_car = new PointModel(app.get_renderer(), simple_shader, car_vertices, car->get_vertices_count(), 10);
             car->unlock_vertex_buffer();
             set_camera_position(6.1f, 1.1f, -1.16858f);
@@ -573,7 +573,7 @@ namespace
             PhysicalModel * phys_mod = add_physical_model(high_oval_model, low_oval_model);
 
             // - Reactions -
-            int x_cells, y_cells, z_cells;
+            int x_cells, /*y_cells,*/ z_cells;
             Vector x_step, y_step, z_step;
             Vector box_min, box_max, box_end;
             Array<ShapeDeformationReaction*> reactions;

@@ -100,6 +100,10 @@ public:
             log_entry_end = " vertex buffer";
         else if (bind_flag & D3D11_BIND_INDEX_BUFFER)
             log_entry_end = " index buffer";
+        else if (bind_flag & D3D11_BIND_CONSTANT_BUFFER)
+            log_entry_end = " constant buffer";
+        else if (bind_flag == 0)
+            log_entry_end = " staging (copy) buffer";
         set_log_entry(log_entry_start, log_entry_end);
     }
 };

@@ -24,6 +24,7 @@ namespace
 {
     const bool        INITIAL_WIREFRAME_STATE = true;
     const D3DXCOLOR   BACKGROUND_COLOR = D3DCOLOR_XRGB( 255, 255, 255 );
+    const float       CLEAR_DEPTH = 1;
     const D3DCOLOR    TEXT_COLOR = D3DCOLOR_XRGB( 255, 255, 0 );
     const int         TEXT_HEIGHT = 20;
     const int         TEXT_MARGIN = 10;
@@ -100,6 +101,7 @@ Renderer::Renderer(Window &window, Camera * camera) :
     try
     {
         init_device(window);
+        init_buffers();
         init_font();
     }
     // using catch(...) because every caught exception is rethrown
@@ -205,10 +207,29 @@ void Renderer::init_device(Window &window)
         throw RendererInitError("IDXGISwapChain::GetBuffer");
     if ( FAILED( device->CreateRenderTargetView(back_buffer, nullptr, &render_target_view) ) )
         throw RendererInitError("ID3D11Device::CreateRenderTargetView");
-    // TODO: do we need a depth stencil view here?
-#pragma WARNING(DX11 porting unfinished: depth stencil view)
-    context->OMSetRenderTargets(1, &render_target_view, nullptr);
     release_interface(back_buffer);
+    // Create a depth stencil view. Use defaults from the book Practical Rendering and Computation with Direct3D 11, page 22
+    D3D11_TEXTURE2D_DESC depth_buffer_desc;
+    depth_buffer_desc.Width = window.get_width();
+    depth_buffer_desc.Height = window.get_height();
+    depth_buffer_desc.MipLevels = 1;
+    depth_buffer_desc.ArraySize = 1;
+    depth_buffer_desc.Format = DXGI_FORMAT_D32_FLOAT;
+    depth_buffer_desc.SampleDesc = swap_chain_desc.SampleDesc; // use the same defaults as we used above for swap chain
+    depth_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+    depth_buffer_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    depth_buffer_desc.CPUAccessFlags = 0;
+    depth_buffer_desc.MiscFlags = 0;
+    ID3D11Texture2D *depth_buffer = nullptr;
+    if ( FAILED( device->CreateTexture2D(&depth_buffer_desc, nullptr, &depth_buffer) ) )
+        throw RendererInitError("ID3D11Device::CreateTexture2D(depth_buffer)");;
+    if ( FAILED( device->CreateDepthStencilView(depth_buffer, nullptr, &depth_stencil_view) ) )
+        throw RendererInitError("ID3D11Device::CreateDepthStencilView");
+    release_interface(depth_buffer);
+
+    // Now set render target view and depth stencil view
+    ID3D11RenderTargetView * rt_views[] = {render_target_view};
+    context->OMSetRenderTargets(array_size(rt_views), rt_views, depth_stencil_view);
 
     // Set viewport
     D3D11_VIEWPORT vp;
@@ -274,6 +295,7 @@ const Renderer::LightingConstants Renderer::LIGHT_CONSTS_INIT_DATA = {
 
     SHADER_VAL_AMBIENT_COLOR
 };
+
 void Renderer::init_buffers()
 {
     world_constants    = new ConstantBuffer<WorldConstants>(this, nullptr, SET_FOR_VS | SET_FOR_PS, WORLD_CONSTANTS_SLOT, true);
@@ -354,7 +376,6 @@ void Renderer::toggle_alpha_test()
     set_alpha_test();
 }
 
-
 void Renderer::set_text_to_draw(const TCHAR * text)
 {
     text_to_draw = text;
@@ -363,9 +384,9 @@ void Renderer::set_text_to_draw(const TCHAR * text)
 void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &internal_reporter, bool is_updating_vertices_on_gpu,  bool show_high_model)
 {
     Stopwatch stopwatch;
-    // Clear render target
+    // Clear render target (NB: if there are multiple render targets, all of them should be cleared)
     context->ClearRenderTargetView(render_target_view, BACKGROUND_COLOR);
-#pragma WARNING(DX11 porting unfinished: clear depth stencil view)
+    context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH, CLEAR_DEPTH, 0);
 
     // Setting constants
     D3DXVECTOR3 directional_vector;
@@ -375,13 +396,13 @@ void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &
     float4 directional_color = directional_light_enabled ? SHADER_VAL_DIRECTIONAL_COLOR : BLACK;
     float4 point_color = point_light_enabled ? SHADER_VAL_POINT_COLOR : BLACK;
 
-    WorldConstants * world_consts = world_constants->lock();
+    WorldConstants * world_consts = world_constants->lock(LOCK_OVERWRITE);
     world_consts->world = post_transform;
     world_consts->view  = camera->get_matrix();
     world_consts->eye   = camera->get_eye();
     world_constants->unlock();
 
-    LightingConstants * light_consts = lighting_constants->lock();
+    LightingConstants * light_consts = lighting_constants->lock(LOCK_OVERWRITE);
     *light_consts = LIGHT_CONSTS_INIT_DATA;
     light_consts->direct_vec  = directional_vector;
     light_consts->direct_col  = directional_color;
@@ -401,7 +422,7 @@ void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &
             display_model->get_shader(i).set();
         }
 
-        ModelConstants * model_consts = model_constants->lock();
+        ModelConstants * model_consts = model_constants->lock(LOCK_OVERWRITE);
         ZeroMemory(model_consts, sizeof(*model_consts));
         model_consts->pos_and_rot = display_model->get_transformation();
         // if updating displayed vertices on GPU then setup matrices for it

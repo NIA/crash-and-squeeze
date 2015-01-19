@@ -25,7 +25,7 @@ public:
     IndexBufferTriangleIterator(const IndexBuffer & buffer)
         : index_buffer(buffer), current_index(0)
     {
-        indices = index_buffer.lock();
+        indices = index_buffer.lock(LOCK_READ);
     }
     virtual bool has_value() const
     {
@@ -167,9 +167,8 @@ AbstractModel::TriangleIterator * AbstractModel::get_triangles() const
 
 void AbstractModel::generate_normals()
 {
-#pragma WARNING(DX11 porting unfinished: this code will not work now because it reads from VertexBuffer which is now write-only - D3D11_USAGE_DYNAMIC)
     unsigned vertices_count = get_vertices_count();
-    Vertex * vertices = lock_vertex_buffer();
+    Vertex * vertices = lock_vertex_buffer(LOCK_READ);
 
     for (unsigned i = 0; i < vertices_count; ++i)
         vertices[i].set_normal(D3DXVECTOR3(0,0,0));
@@ -227,9 +226,9 @@ unsigned Model::get_vertices_count() const
     return vertex_buffer.get_items_count();
 }
 
-Vertex * Model::lock_vertex_buffer() const
+Vertex * Model::lock_vertex_buffer(BufferLockType lock_type) const
 {
-    return vertex_buffer.lock();
+    return vertex_buffer.lock(lock_type);
 }
 void Model::unlock_vertex_buffer() const
 {
@@ -243,7 +242,7 @@ AbstractModel::TriangleIterator * Model::get_triangles() const
 
 void Model::repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color)
 {
-    Vertex *vertices = lock_vertex_buffer();
+    Vertex *vertices = lock_vertex_buffer(LOCK_READ_WRITE);
     for(int i = 0; i < vertex_indices.size(); ++i)
     {
         int vertex_index = vertex_indices[i];
@@ -277,7 +276,7 @@ unsigned MeshModel::get_vertices_count() const
     throw NotYetImplementedError(_T("MeshModel not yet implemented"));
 }
 
-Vertex * MeshModel::lock_vertex_buffer() const
+Vertex * MeshModel::lock_vertex_buffer(BufferLockType lock_type) const
 {
     throw NotYetImplementedError(_T("MeshModel not yet implemented"));
 }
@@ -343,9 +342,9 @@ unsigned PointModel::get_vertices_count() const
     return vertex_buffer->get_items_count();
 }
 
-Vertex * PointModel::lock_vertex_buffer() const
+Vertex * PointModel::lock_vertex_buffer(BufferLockType lock_type) const
 {
-    return vertex_buffer->lock();
+    return vertex_buffer->lock(lock_type);
 }
 
 void PointModel::unlock_vertex_buffer() const
@@ -378,7 +377,7 @@ NormalsModel::NormalsModel(AbstractModel * parent_model, VertexShader &shader, f
     : AbstractModel(parent_model->get_renderer(), shader, parent_model->get_position(), parent_model->get_rotation()),
       parent_model(parent_model),
       normals_count(parent_model->get_vertices_count()),
-      vertex_buffer(parent_model->get_renderer(), nullptr, normals_count*2, true),
+      vertex_buffer(parent_model->get_renderer(), nullptr, normals_count*2, true, false), // the buffer is staging_backed = false because we only write to buffer, not read
       normal_length(normal_length),
       normalize_before_showing(normalize_before_showing)
 {
@@ -399,9 +398,9 @@ unsigned NormalsModel::get_vertices_count() const
     return normals_count*2;
 }
 
-Vertex * NormalsModel::lock_vertex_buffer() const
+Vertex * NormalsModel::lock_vertex_buffer(BufferLockType lock_type) const
 {
-    return vertex_buffer.lock();
+    return vertex_buffer.lock(lock_type);
 }
 
 void NormalsModel::unlock_vertex_buffer() const
@@ -411,8 +410,8 @@ void NormalsModel::unlock_vertex_buffer() const
 
 void NormalsModel::update_normals()
 {
-    Vertex * parent_vertices = parent_model->lock_vertex_buffer();
-    Vertex * normal_vertices = lock_vertex_buffer();
+    Vertex * parent_vertices = parent_model->lock_vertex_buffer(LOCK_READ);
+    Vertex * normal_vertices = lock_vertex_buffer(LOCK_OVERWRITE);
 
     for (unsigned i = 0; i < normals_count; ++i)
     {
@@ -421,7 +420,6 @@ void NormalsModel::update_normals()
         if (normalize_before_showing)
             D3DXVec3Normalize(&normal, &normal);
         D3DCOLOR    color = D3DCOLOR_XRGB(255, 0, 0); // TODO: option to visualize direction with color
-        
             
         normal *= normal_length;
         normal_vertices[2*i].pos = pos;
