@@ -28,6 +28,10 @@ void AbstractShader::compile()
     in.close();
     std::string file_contents = contents.str();
 
+    unsigned flags = 0;
+#ifndef NDEBUG
+    flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif //ifndef NDEBUG
     if( FAILED( D3DCompile(
                     file_contents.c_str(),
                     file_contents.length(),
@@ -36,7 +40,7 @@ void AbstractShader::compile()
                     nullptr, // ID3DInclude not needed: don't use #include in shaders. If used, should have passed D3D_COMPILE_STANDARD_FILE_INCLUDE
                     ENTRY_POINT,
                     target,
-                    0, 0, // no flags1, flags2
+                    flags, 0, // no flags1, flags2
                     &shader_code,
                     &shader_errors) ) )
         throw ShaderCompileError(shader_errors);

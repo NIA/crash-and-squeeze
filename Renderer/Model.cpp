@@ -148,15 +148,32 @@ void AbstractModel::draw() const
 
     pre_draw();
 
-#pragma WARNING(DX11 porting unfinished: cull mode)
+    ID3D11RasterizerState * rs_state = nullptr;
+    D3D11_RASTERIZER_DESC rs_desc;
+    get_context()->RSGetState(&rs_state);
+    // TODO: check for null? Currently we assume that RSSetState was pereviously called by Renderer
+    rs_state->GetDesc(&rs_desc);
+
+    D3D11_CULL_MODE desired_mode = D3D11_CULL_NONE;
     if(draw_ccw && ! draw_cw)
     {
-        // TODO: set cull mode to show only ccw
+        // set cull mode to show only ccw
+        desired_mode = D3D11_CULL_FRONT;
     }
     else if(draw_cw && ! draw_ccw)
     {
-        // TODO: set cull mode to show only cw
+        // set cull mode to show only cw
+        desired_mode = D3D11_CULL_BACK;
+    } // else => D3D11_CULL_NONE (assigned above)
+    if (rs_desc.CullMode != desired_mode)
+    {
+        rs_desc.CullMode = desired_mode;
+        release_interface(rs_state);
+        // TODO: avoid creating state at each frame? But what if we change wireframe and other settings independently?
+        get_device()->CreateRasterizerState(&rs_desc, &rs_state);
+        get_context()->RSSetState(rs_state);
     }
+    release_interface(rs_state);
     do_draw();
 }
 

@@ -78,27 +78,25 @@ private:
     struct ModelConstants
     {
         float4x4 pos_and_rot; // aka model matrix
-        float3   clus_cm[MAX_CLUSTERS_NUM+1];     // clusters' initial c.m. (centers of mass)
         float4x4 clus_mx[MAX_CLUSTERS_NUM+1];     // clusters' position tranformation (deform+c.m. shift) matrices PLUS one zero matrix in the end
         float4x4 clus_nrm_mx[MAX_CLUSTERS_NUM+1]; // clusters' normal   tranformation matrices PLUS one zero matrix in the end
+        float3   clus_cm[MAX_CLUSTERS_NUM+1];     // clusters' initial c.m. (centers of mass)
     };
     ConstantBuffer<ModelConstants> *model_constants;
 
     __declspec( align(16) ) // constant buffer data size should be a multiple of 16
     struct LightingConstants
     {
-        float    diff_coef;   // diffuse component coefficient
-        float    spec_coef;   // specular component coefficient
-        float    spec_factor; // specular factor (f)
-
-        float3   direct_vec;  // directional light vector
+        // TODO: find better way to properly pack these values
         float4   direct_col;  // directional light color
-
-        float3   point_pos;   // point light position
         float4   point_col;   // point light color
-        float3   atten_coefs; // attenuation coeffs (a, b, c)
-
         float4   ambient_col; // ambient light color
+        float3   direct_vec;  // directional light vector
+        float    diff_coef;   // diffuse component coefficient
+        float3   point_pos;   // point light position
+        float    spec_coef;   // specular component coefficient
+        float3   atten_coefs; // attenuation coeffs (a, b, c)
+        float    spec_factor; // specular factor (f)
     };
     static const LightingConstants LIGHT_CONSTS_INIT_DATA;
     ConstantBuffer<LightingConstants> *lighting_constants;

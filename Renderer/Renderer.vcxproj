@@ -143,6 +143,7 @@
   <ItemGroup>
     <None Include="deform.vsh" />
     <None Include="lighting.psh" />
+    <None Include="simple.psh" />
     <None Include="simple.vsh" />
   </ItemGroup>
   <ItemGroup>

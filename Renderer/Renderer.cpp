@@ -282,18 +282,15 @@ void Renderer::init_device(Window &window)
 }
 
 const Renderer::LightingConstants Renderer::LIGHT_CONSTS_INIT_DATA = {
-    SHADER_VAL_DIFFUSE_COEF,
-    SHADER_VAL_SPECULAR_COEF,
-    SHADER_VAL_SPECULAR_F,
-
-    SHADER_VAL_DIRECTIONAL_VECTOR,
     SHADER_VAL_DIRECTIONAL_COLOR,
-
-    SHADER_VAL_POINT_POSITION,
     SHADER_VAL_POINT_COLOR,
+    SHADER_VAL_AMBIENT_COLOR,
+    SHADER_VAL_DIRECTIONAL_VECTOR,
+    SHADER_VAL_DIFFUSE_COEF,
+    SHADER_VAL_POINT_POSITION,
+    SHADER_VAL_SPECULAR_COEF,
     SHADER_VAL_ATTENUATION,
-
-    SHADER_VAL_AMBIENT_COLOR
+    SHADER_VAL_SPECULAR_F,
 };
 
 void Renderer::init_buffers()
@@ -401,6 +398,7 @@ void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &
     world_consts->view  = camera->get_matrix();
     world_consts->eye   = camera->get_eye();
     world_constants->unlock();
+    world_constants->set();
 
     LightingConstants * light_consts = lighting_constants->lock(LOCK_OVERWRITE);
     *light_consts = LIGHT_CONSTS_INIT_DATA;
@@ -410,6 +408,7 @@ void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &
     light_consts->ambient_col = ambient_color;
     // all other constans are left unchanged
     lighting_constants->unlock();
+    lighting_constants->set();
 
     for (ModelEntities::const_iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
     {
@@ -454,6 +453,7 @@ void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &
         }
 
         model_constants->unlock();
+        model_constants->set();
 
         display_model->draw();
 

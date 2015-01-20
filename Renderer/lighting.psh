@@ -15,18 +15,15 @@ cbuffer WorldConstants : register(b0)
 
 cbuffer LightingConstants : register(b2)
 {
-    float    diff_coef;   // diffuse component coefficient
-    float    spec_coef;   // specular component coefficient
-    float    spec_factor; // specular factor (f)
-
-    float3   direct_vec;  // directional light vector
     float4   direct_col;  // directional light color
-
-    float3   point_pos;   // point light position
     float4   point_col;   // point light color
-    float3   atten_coefs; // attenuation coeffs (a, b, c)
-
     float4   ambient_col; // ambient light color
+    float3   direct_vec;  // directional light vector
+    float    diff_coef;   // diffuse component coefficient
+    float3   point_pos;   // point light position
+    float    spec_coef;   // specular component coefficient
+    float3   atten_coefs; // attenuation coeffs (a, b, c)
+    float    spec_factor; // specular factor (f)
 };
 
 float4 directional_light(const float3 pos, const float3 normal, const float3 v)

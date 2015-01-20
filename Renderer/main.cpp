@@ -35,6 +35,7 @@ namespace
     const char *SIMPLE_SHADER_FILENAME = "simple.vsh";
     const char *DEFORM_SHADER_FILENAME = UPDATE_ON_GPU ? "deform.vsh" : "simple.vsh";
     const char *LIGHTING_SHADER_FILENAME = "lighting.psh";
+    const char *SIMPLE_PIXEL_SHADER_FILENAME = "simple.psh";
     
     const TCHAR *MESH_FILENAME = _T("ford.x");
 
@@ -281,6 +282,7 @@ namespace
         VertexShader simple_shader;
         VertexShader deform_shader;
         PixelShader lighting_shader;
+        PixelShader simple_pixel_shader;
 
         AbstractModel * low_model;
         AbstractModel * high_model;
@@ -333,6 +335,7 @@ namespace
                 SPHERE_INDICES,
                 false,
                 math_vector_to_d3dxvector(hit_region->get_center()));
+            hit_region_model->add_shader(simple_pixel_shader);
             hit_region_model->set_draw_ccw(true);
 
             app.set_impact( *hit_region, hit_velocity, hit_rotation_center, *hit_region_model);
@@ -349,6 +352,7 @@ namespace
               simple_shader(_app.get_renderer(), VERTEX_DESC, VERTEX_DESC_NUM, SIMPLE_SHADER_FILENAME),
               deform_shader(_app.get_renderer(), VERTEX_DESC, VERTEX_DESC_NUM, DEFORM_SHADER_FILENAME),
               lighting_shader(_app.get_renderer(), LIGHTING_SHADER_FILENAME),
+              simple_pixel_shader(_app.get_renderer(), SIMPLE_PIXEL_SHADER_FILENAME),
               low_model(NULL), high_model(NULL), hit_region_model(NULL), hit_region(NULL), normals_model(NULL)
         {
             low_model_vertices = new Vertex[low_vertices_count];
@@ -433,6 +437,7 @@ namespace
                 LOW_CYLINDER_VERTICES,
                 low_model_indices,
                 LOW_CYLINDER_INDICES);
+            low_cylinder_model->add_shader(simple_pixel_shader);
             PhysicalModel * phys_mod = add_physical_model(high_cylinder_model, low_cylinder_model);
 
             // - Add frame --
@@ -519,6 +524,7 @@ namespace
             Vertex * car_vertices = car->lock_vertex_buffer(LOCK_READ);
             PointModel * low_car = new PointModel(app.get_renderer(), simple_shader, car_vertices, car->get_vertices_count(), 10);
             car->unlock_vertex_buffer();
+            low_car->add_shader(simple_pixel_shader);
             set_camera_position(6.1f, 1.1f, -1.16858f);
             add_physical_model(car, low_car);
 
@@ -529,9 +535,6 @@ namespace
 
     class OvalDemo : public Demo
     {
-    private:
-        Model * low_oval_model;
-        Model * high_ovel_model;
     public:
         OvalDemo(Application & _app)
             : Demo(_app, OVAL_VERTICES, OVAL_INDICES, OVAL_VERTICES, OVAL_INDICES)
@@ -569,6 +572,7 @@ namespace
                 low_model_indices,
                 OVAL_INDICES);
             set_camera_position(3.1f, 0.9f, -0.854f);
+            low_oval_model->add_shader(simple_pixel_shader);
             
             PhysicalModel * phys_mod = add_physical_model(high_oval_model, low_oval_model);
 

@@ -151,6 +151,9 @@
     <None Include="lighting.psh">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="simple.psh">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="directx.ico">

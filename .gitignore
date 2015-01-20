@@ -44,3 +44,5 @@ My Amplifier*
 # New for VS2012:
 *.opensdf
 *.sdf
+# Graphic Diagnostics files
+*.vsglog

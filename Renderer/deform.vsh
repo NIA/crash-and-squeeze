@@ -28,9 +28,9 @@ cbuffer WorldConstants : register(b0)
 cbuffer ModelConstants : register(b1)
 {
     float4x4 pos_and_rot; // aka model matrix
-    float3   clus_cm[MAX_CLUSTERS_NUM+1];     // clusters' initial c.m. (centers of mass)
     float4x4 clus_mx[MAX_CLUSTERS_NUM+1];     // clusters' position tranformation (deform+c.m. shift) matrices PLUS one zero matrix in the end
     float4x4 clus_nrm_mx[MAX_CLUSTERS_NUM+1]; // clusters' normal   tranformation matrices PLUS one zero matrix in the end
+    float3   clus_cm[MAX_CLUSTERS_NUM+1];     // clusters' initial c.m. (centers of mass)
 };
 
 void sum_iter(float4 pos, float3 normal, inout float3 sum_pos, inout float3 sum_normal, int ci)
