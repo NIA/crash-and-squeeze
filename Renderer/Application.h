@@ -41,8 +41,8 @@ private:
     Model * impact_model;
     bool impact_happened;
     void move_impact(const ::CrashAndSqueeze::Math::Vector & vector);
-    void rotate_impact(const ::CrashAndSqueeze::Math::Vector & rotation_axis);
-    void move_impact_nearer(::CrashAndSqueeze::Math::Real distance, const ::CrashAndSqueeze::Math::Vector & rotation_axis);
+    void rotate_impact(const ::CrashAndSqueeze::Math::Real & angle, const ::CrashAndSqueeze::Math::Vector & rotation_axis);
+    void move_impact_nearer(const ::CrashAndSqueeze::Math::Real & distance, const ::CrashAndSqueeze::Math::Vector & rotation_axis);
 
     WinFactory prim_factory;
 
@@ -56,8 +56,8 @@ private:
 
     void rotate_models(float phi);
     void process_key(unsigned code, bool shift, bool ctrl, bool alt);
-    void process_mouse_drag(short x, short y, short dx, short dy);
-    void process_mouse_wheel(short x, short y, short dw);
+    void process_mouse_drag(short x, short y, short dx, short dy, bool shift, bool ctrl);
+    void process_mouse_wheel(short x, short y, short dw, bool shift, bool ctrl);
 
     const TCHAR * get_text_info();
 

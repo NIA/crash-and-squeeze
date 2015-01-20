@@ -16,10 +16,16 @@ namespace
 {
     const float       CAMERA_ROTATE_SPEED = 3.14f/Window::DEFAULT_WINDOW_SIZE; // when mouse moved to dx pixels, camera angle is changed to dx*CAMERA_ROTATE_SPEED
     const float       WHEEL_ZOOM_SPEED = 0.05f/WHEEL_DELTA; // when wheel is rotated to dw, camera rho is changed to dw*WHEEL_ZOOM_SPEED;
-    const Real        ROTATE_STEP = D3DX_PI/30.0;
-    const Real        MOVE_STEP = 0.06;
+
+    const Real        HIT_ROTATE_STEP = D3DX_PI/30.0;
+    const Real        HIT_MOVE_STEP = 0.06;
+    const Real        HIT_ROTATE_SPEED = 2*3.14f/Window::DEFAULT_WINDOW_SIZE;
+    const Real        HIT_MOVE_SPEED = 3.0f/Window::DEFAULT_WINDOW_SIZE;
+    const Real        HIT_MOVE_WHEEL_SPEED = HIT_MOVE_STEP/WHEEL_DELTA/2;
+
     const int         ROTATION_AXES_COUNT = 3;
     const Vector      ROTATION_AXES[ROTATION_AXES_COUNT] = {Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)};
+
     const float       VERTEX_MASS = 1;
     const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 3, 4};
     const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
@@ -62,7 +68,7 @@ namespace
 Application::Application(Logger &logger) :
     window(Window::DEFAULT_WINDOW_SIZE, Window::DEFAULT_WINDOW_SIZE),
     renderer(window, &camera),
-    emulation_enabled(false), emultate_one_step(true), forces_enabled(false),
+    emulation_enabled(true), emultate_one_step(true), forces_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false),
     forces(NULL), logger(logger), show_help(false), impact_model(NULL), prim_factory(false),
     impact_axis(0), is_updating_vertices_on_gpu(true)
@@ -191,20 +197,20 @@ Vector rotate_vector(const Vector & vector, const Vector & rotation_axis, Real a
     return vector - step*sin(angle/2)*direction_radial + step*cos(angle/2)*normal;
 }
 
-void Application::rotate_impact(const Vector & rotation_axis)
+void Application::rotate_impact(const Real & angle, const Vector & rotation_axis)
 {
     Vector old_pos = impact_region->get_center();
-    Vector new_pos = rotate_vector(old_pos - impact_rot_center, rotation_axis, ROTATE_STEP) + impact_rot_center;
+    Vector new_pos = rotate_vector(old_pos - impact_rot_center, rotation_axis, angle) + impact_rot_center;
     move_impact(new_pos - old_pos);
-    impact_velocity = rotate_vector(impact_velocity, rotation_axis, ROTATE_STEP);
+    impact_velocity = rotate_vector(impact_velocity, rotation_axis, angle);
 }
 
-void Application::move_impact_nearer(Real dist, const Vector & rotation_axis)
+void Application::move_impact_nearer(const Real & dist, const Vector & rotation_axis)
 {
     Vector to_center = impact_rot_center - impact_region->get_center();
     Vector direction;
     to_center.project_to(rotation_axis, &direction);
-    if( dist > 0 && direction.norm() < MOVE_STEP )
+    if( dist > 0 && direction.norm() < HIT_MOVE_STEP )
     {
         return;
     }
@@ -261,25 +267,25 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
         camera.move_counterclockwise();
         break;
     case 'I':
-        move_impact(Vector(0,0,-MOVE_STEP));
+        move_impact(-HIT_MOVE_STEP*ROTATION_AXES[impact_axis]);
         break;
     case 'K':
-        move_impact(Vector(0,0,MOVE_STEP));
+        move_impact(HIT_MOVE_STEP*ROTATION_AXES[impact_axis]);
         break;
     case 'J':
-        rotate_impact(ROTATION_AXES[impact_axis]);
+        rotate_impact(HIT_ROTATE_STEP, ROTATION_AXES[impact_axis]);
         break;
     case 'L':
-        rotate_impact(-ROTATION_AXES[impact_axis]);
+        rotate_impact(-HIT_ROTATE_STEP, ROTATION_AXES[impact_axis]);
         break;
     case 'U':
-        move_impact_nearer(-MOVE_STEP, ROTATION_AXES[impact_axis]);
+        move_impact_nearer(-HIT_MOVE_STEP, ROTATION_AXES[impact_axis]);
         break;
     case 'O':
-        move_impact_nearer(MOVE_STEP, ROTATION_AXES[impact_axis]);
+        move_impact_nearer(HIT_MOVE_STEP, ROTATION_AXES[impact_axis]);
         break;
     case 'H':
-        impact_axis = (impact_axis+1)%ROTATION_AXES_COUNT;
+        impact_axis = (impact_axis+1)%ROTATION_AXES_COUNT; // TODO: also rotate impact velocity // TODO: display impact velocity as arrow :)
         break;
     case '1':
         set_show_mode(0);
@@ -328,21 +334,38 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
 }
 
 
-void Application::process_mouse_drag(short x, short y, short dx, short dy)
+void Application::process_mouse_drag(short x, short y, short dx, short dy, bool shift, bool ctrl)
 {
     UNREFERENCED_PARAMETER(x);
     UNREFERENCED_PARAMETER(y);
+    UNREFERENCED_PARAMETER(ctrl);
 
-    camera.change_phi(dx*CAMERA_ROTATE_SPEED);
-    camera.change_theta(-dy*CAMERA_ROTATE_SPEED);
+    if (shift)
+    {
+        move_impact(dx*HIT_MOVE_SPEED*ROTATION_AXES[impact_axis]);
+        rotate_impact(dy*HIT_ROTATE_SPEED, ROTATION_AXES[impact_axis]);
+    }
+    else 
+    {
+        camera.change_phi(dx*CAMERA_ROTATE_SPEED);
+        camera.change_theta(-dy*CAMERA_ROTATE_SPEED);
+    }
 }
 
-void Application::process_mouse_wheel(short x, short y, short dw)
+void Application::process_mouse_wheel(short x, short y, short dw, bool shift, bool ctrl)
 {
     UNREFERENCED_PARAMETER(x);
     UNREFERENCED_PARAMETER(y);
+    UNREFERENCED_PARAMETER(ctrl);
 
-    camera.change_rho(-dw*WHEEL_ZOOM_SPEED); // minus so that rotating up zooms in
+    if (shift)
+    {
+        move_impact_nearer(HIT_MOVE_WHEEL_SPEED*dw, ROTATION_AXES[impact_axis]);
+    }
+    else
+    {
+        camera.change_rho(-dw*WHEEL_ZOOM_SPEED); // minus so that rotating up zooms in
+    }
 }
 
 void Application::run()
@@ -354,6 +377,7 @@ void Application::run()
     Stopwatch total_stopwatch;
     PerformanceReporter render_performance_reporter(logger, "rendering");
     PerformanceReporter update_performance_reporter(logger, "updating");
+    PerformanceReporter gen_normals_performance_reporter(logger, "generate_normals");
     PerformanceReporter total_performance_reporter(logger, "total");
     PerformanceReporter internal_render_performance_reporter(logger, "swap_chain->Present");
 
@@ -389,6 +413,7 @@ void Application::run()
             switch(msg.message)
             {
             case WM_KEYDOWN:
+                // TODO: is GetAsyncKeyState good way to know WAS the shift pressed when this message was posted (not processed)?
                 process_key( static_cast<unsigned>( msg.wParam ), is_key_pressed(VK_SHIFT),
                              is_key_pressed(VK_CONTROL), is_key_pressed(VK_MENU) );
                 break;
@@ -409,13 +434,19 @@ void Application::run()
                 {
                     short x = GET_X_LPARAM(msg.lParam);
                     short y = GET_Y_LPARAM(msg.lParam);
-                    process_mouse_drag(x, y, x - mouse.prev_x, y - mouse.prev_y);
+                    bool shift = (msg.wParam & MK_SHIFT) != 0;
+                    bool ctrl  = (msg.wParam & MK_CONTROL) != 0;
+                    process_mouse_drag(x, y, x - mouse.prev_x, y - mouse.prev_y, shift, ctrl);
                     mouse.prev_x = x;
                     mouse.prev_y = y;
                 }
                 break;
             case WM_MOUSEWHEEL:
-                process_mouse_wheel(GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam), GET_WHEEL_DELTA_WPARAM(msg.wParam));
+                process_mouse_wheel(GET_X_LPARAM(msg.lParam),
+                                    GET_Y_LPARAM(msg.lParam),
+                                    GET_WHEEL_DELTA_WPARAM(msg.wParam),
+                                    (GET_KEYSTATE_WPARAM(msg.wParam) & MK_SHIFT) != 0,
+                                    (GET_KEYSTATE_WPARAM(msg.wParam) & MK_CONTROL) != 0);
                 break;
             }
 
@@ -518,7 +549,9 @@ void Application::run()
 
                             model->unlock_vertex_buffer();
                             #if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                            stopwatch.start();
                             model->generate_normals();
+                            gen_normals_performance_reporter.add_measurement(stopwatch.stop());
                             #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
                             model->notify_subscriber();
                         }
@@ -545,6 +578,7 @@ void Application::run()
             (*iter).performance_reporter->report_results();
     }
     update_performance_reporter.report_results();
+    gen_normals_performance_reporter.report_results();
     render_performance_reporter.report_results();
     internal_render_performance_reporter.report_results();
     total_performance_reporter.report_results();
