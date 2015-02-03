@@ -51,9 +51,10 @@ namespace CrashAndSqueeze
             // -- fields used in initialization --
             int clusters_by_axes[Math::VECTOR_SIZE];
             Math::Real cluster_padding_coeff;
+            // TODO: check for memory leaks from such not deleted arrays like cluster_regions
             RegionsArray * cluster_regions;
             WeightFuncsArray * cluster_weight_funcs;
-            // index of zero cluster matrix
+            // index of zero cluster matrix (normally it is equal to clusters_num because this zero matrix is placed after the last cluster matrix)
             ClusterIndex null_cluster_index;
             
             // minimum values of coordinates of vertices
@@ -80,7 +81,9 @@ namespace CrashAndSqueeze
             bool create_auto_cluster_regions();
 
             bool init_clusters();
-            void update_cluster_indices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
+
+            template <class VertexType /*: public IVertex*/>
+            void update_cluster_indices(/*out*/ void *out_vertices, int vertices_num, const Collections::Array<VertexType> & src_vertices, const VertexInfo &vertex_info);
             
             bool find_clusters_for_vertex(IVertex &vertex, /*out*/ Collections::Array<Cluster *> & found_clusters);
 

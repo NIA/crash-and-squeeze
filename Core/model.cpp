@@ -9,6 +9,7 @@ namespace CrashAndSqueeze
     using Math::equal;
     using Math::less_or_equal;
     using Math::sign;
+    using Math::minimum;
     using Logging::Logger;
     using Parallel::IPrimFactory;
     using Parallel::TaskQueue;
@@ -157,8 +158,8 @@ namespace CrashAndSqueeze
                     if( false != init_clusters() )
                     {
                         // Update cluster indices for graphical vertices
-                        update_cluster_indices(source_graphical_vertices, graphical_vetrices_num, graphical_vertex_info);
-                        update_cluster_indices(source_physical_vertices, physical_vetrices_num, physical_vertex_info);
+                        update_cluster_indices(source_graphical_vertices, graphical_vetrices_num, graphical_vertices, graphical_vertex_info);
+                        update_cluster_indices(source_physical_vertices, physical_vetrices_num, vertices, physical_vertex_info);
 
                         init_tasks();
                     }
@@ -624,10 +625,10 @@ namespace CrashAndSqueeze
 
         void Model::update_any_positions(PositionFunc pos_func, /*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
-            if(vertices_num > vertices.size())
+            if(vertices_num != vertices.size())
             {
-                Logger::warning("in Model::update_any_vertices: requested to update too many vertices, probably wrong vertices given?", __FILE__, __LINE__);
-                vertices_num = vertices.size();
+                Logger::warning("in Model::update_any_positions: requested to update wrong number of physical vertices, probably wrong vertices given?", __FILE__, __LINE__);
+                vertices_num = minimum(vertices_num, vertices.size());
             }
 
             void *out_vertex = out_vertices;
@@ -644,24 +645,25 @@ namespace CrashAndSqueeze
             }
         }
 
-        void Model::update_cluster_indices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
+        template <class VertexType /*: public IVertex*/>
+        void Model::update_cluster_indices(/*out*/ void *out_vertices, int vertices_num, const Collections::Array<VertexType> & src_vertices, const VertexInfo &vertex_info)
         {
-            if(vertices_num > graphical_vertices.size())
+            if(vertices_num != src_vertices.size())
             {
-                Logger::warning("in Model::update_vertices: requested to update too many vertices, probably wrong vertices given?", __FILE__, __LINE__);
-                vertices_num = vertices.size();
+                Logger::warning("in Model::update_vertices: requested to update wrong number of vertices, probably wrong vertices given?", __FILE__, __LINE__);
+                vertices_num = minimum(vertices_num, src_vertices.size());
             }
             void *out_vertex = out_vertices;
             for(int i = 0; i < vertices_num; ++i)
             {
-                int including_clusters_num = graphical_vertices[i].get_including_clusters_num();
+                int including_clusters_num = src_vertices[i].get_including_clusters_num();
 
                 ClusterIndex *out_cluster_indices =
                     reinterpret_cast<ClusterIndex*>( add_to_pointer(out_vertex, vertex_info.get_cluster_indices_offset()) );
                 for(int j = 0; j < VertexInfo::CLUSTER_INDICES_NUM; ++j)
                 {
                     if(j < including_clusters_num)
-                        out_cluster_indices[j] = graphical_vertices[i].get_including_cluster_index(j);
+                        out_cluster_indices[j] = src_vertices[i].get_including_cluster_index(j);
                     else
                         out_cluster_indices[j] = null_cluster_index;
                 }
@@ -675,10 +677,10 @@ namespace CrashAndSqueeze
 
         void Model::update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
         {
-            if(vertices_num > graphical_vertices.size())
+            if(vertices_num != graphical_vertices.size())
             {
-                Logger::warning("in Model::update_vertices: requested to update too many vertices, probably wrong vertices given?", __FILE__, __LINE__);
-                vertices_num = vertices.size();
+                Logger::warning("in Model::update_vertices: requested to update wrong number of graphical vertices, probably wrong vertices given?", __FILE__, __LINE__);
+                vertices_num = minimum(vertices_num, graphical_vertices.size());
             }
             if(vertex_info.get_points_num() > graphical_vertices[0].get_points_num())
             {

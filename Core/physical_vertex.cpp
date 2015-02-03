@@ -78,6 +78,7 @@ namespace CrashAndSqueeze
         void PhysicalVertex::include_to_one_more_cluster(int cluster_index, Real weight)
         {
             ignore_unreferenced(cluster_index);
+            // TODO: do not ignore weight (requires change in velocity addition summation)
             ignore_unreferenced(weight);
             ++including_clusters_num;
         }

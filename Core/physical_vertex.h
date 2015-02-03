@@ -75,10 +75,16 @@ namespace CrashAndSqueeze
             bool integrate_velocity(const ForcesArray & forces, Math::Real dt);
             void integrate_position(Math::Real dt);
 
-            // implement IVertex
-            virtual void include_to_one_more_cluster(int cluster_index, Math::Real weight);
-            virtual int get_including_clusters_num() const { return including_clusters_num; }
-            virtual bool check_in_cluster();
+            // -- implement IVertex --
+            
+            // Adds vertex to another cluster with given weight. Weight is ignored currently
+            virtual void include_to_one_more_cluster(int cluster_index, Math::Real weight) /* override */;
+            // Returns total number of clusters this vertex belongs to
+            virtual int get_including_clusters_num() const /* override */ { return including_clusters_num; }
+            // Returns 0 because PhysicalVertex doesn't store these indices (PhysicalVertex)
+            virtual ClusterIndex get_including_cluster_index(int) const /* override */ { return 0; };
+            // An assertion that checks if the vertex belongs to _any_ cluster
+            virtual bool check_in_cluster() /* override */;
         };
 
         typedef Collections::Array<PhysicalVertex> PhysicalVertexArray;

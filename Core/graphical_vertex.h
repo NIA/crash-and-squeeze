@@ -41,14 +41,18 @@ namespace CrashAndSqueeze
             void set_vector(int index, const Math::Vector & value);
             void add_part_to_vector(int index, const Math::Vector & addition);
 
-            // Implement IVertex
+            // -- Implement IVertex --
             virtual const Math::Vector & get_pos() const;
+            // Adds vertex to another cluster with given weight.
             virtual void include_to_one_more_cluster(int cluster_index, Math::Real weight = 1);
+            // Returns total number of clusters this vertex belongs to
             virtual int get_including_clusters_num() const { return including_clusters_num; }
+            // Returns the index of i'th cluster this vertex belongs to
+            ClusterIndex get_including_cluster_index(int index) const;
+            // An assertion that checks if the vertex belongs to _any_ cluster
             virtual bool check_in_cluster();
             // and add something special:
 
-            ClusterIndex get_including_cluster_index(int index) const;
             // make sure all cluster weights sum up to 1
             void normalize_weights();
             Math::Real get_cluster_weight(int index) const;

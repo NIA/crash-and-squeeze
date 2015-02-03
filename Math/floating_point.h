@@ -43,7 +43,8 @@ namespace CrashAndSqueeze
             b = temp;
         }
 
-        inline Real minimum(Real a, Real b)
+        template <typename T> /* requires LessThanComparable<T> */
+        inline T minimum(T a, T b)
         {
             return (a < b) ? a : b;
         }
