@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- put this file into Common7/Packages/Debugger/Visualizers -->
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <!-- Vector -->
+  <Type Name="CrashAndSqueeze::Math::Vector">
+    <DisplayString>({(float)values[0]}; {(float)values[1]}; {(float)values[2]})</DisplayString>
+    <Expand>
+        <Item Name="[x]">values[0]</Item>
+        <Item Name="[y]">values[1]</Item>
+        <Item Name="[z]">values[2]</Item>
+    </Expand>
+  </Type>
+  <!-- Matrix -->
+  <Type Name="CrashAndSqueeze::Math::Matrix">
+    <DisplayString>{{{{{(float)values[0]}; {(float)values[1]}; {(float)values[2]}}}; {{{(float)values[3]}; {(float)values[4]}; {(float)values[5]}}}; {{{(float)values[6]}; {(float)values[7]}; {(float)values[8]}}}}}</DisplayString>
+    <Expand>
+        <Item Name="[0][1]">values[0]</Item>
+        <Item Name="[0][2]">values[1]</Item>
+        <Item Name="[0][3]">values[2]</Item>
+        <Item Name="[1][1]">values[3]</Item>
+        <Item Name="[1][1]">values[4]</Item>
+        <Item Name="[1][2]">values[5]</Item>
+        <Item Name="[2][3]">values[6]</Item>
+        <Item Name="[2][2]">values[7]</Item>
+        <Item Name="[2][3]">values[8]</Item>
+    </Expand>
+  </Type>
+  <!-- Array -->
+  <Type Name="CrashAndSqueeze::Collections::Array&lt;*&gt;">
+    <DisplayString>{{size = {items_num}}}</DisplayString>
+    <Expand>
+      <Item Name="[size]">items_num</Item>
+      <Item Name="[capacity]">allocated_items_num</Item>
+      <ArrayItems>
+        <Size>items_num</Size>
+        <ValuePointer>items</ValuePointer>
+      </ArrayItems>
+      <Synthetic Name="Frozen" Condition="frozen">
+        <DisplayString>No new members can be added to this array</DisplayString>
+      </Synthetic>
+      <Synthetic Name="No realloc" Condition="reallocation_forbidden">
+        <DisplayString>Reallocation is forbidden: [size] will not exceed [capacity]</DisplayString>
+      </Synthetic>
+    </Expand>
+  </Type> 
+  <!-- Cluster -->
+  <Type Name="CrashAndSqueeze::Core::Cluster">
+    <DisplayString>{{phy_vertices = {physical_vertex_infos.items_num} gfx_vertices={graphical_vertex_infos.items_num} c.m.={center_of_mass}}}</DisplayString>
+  </Type>
+</AutoVisualizer>
+
