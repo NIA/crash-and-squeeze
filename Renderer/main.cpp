@@ -308,6 +308,7 @@ namespace
             }
             if(SHOW_NORMALS) {
                 normals_model = new NormalsModel(high_model, simple_shader, 0.1f);
+                normals_model->add_shader(simple_pixel_shader);
                 high_model->add_subscriber(normals_model);
                 app.add_model(*normals_model, false);
             }

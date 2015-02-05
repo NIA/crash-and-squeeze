@@ -1,6 +1,7 @@
 #include "Model.h"
 #include "Renderer.h"
 #include "matrices.h"
+#include <algorithm>
 
 extern const unsigned VECTORS_IN_MATRIX;
 
@@ -20,12 +21,14 @@ private:
     const IndexBuffer & index_buffer;
     Index * indices;
     Index current_index;
-    //bool is_strip; TODO: support triangle strip primitive
+    bool is_strip;
+    bool swap_indices; // if is_strip, each even triangle should have indices swapped
 public:
-    IndexBufferTriangleIterator(const IndexBuffer & buffer)
-        : index_buffer(buffer), current_index(0)
+    IndexBufferTriangleIterator(const IndexBuffer & buffer, D3D_PRIMITIVE_TOPOLOGY prim_topology)
+        : index_buffer(buffer), current_index(0), swap_indices(false)
     {
         indices = index_buffer.lock(LOCK_READ);
+        is_strip = (prim_topology == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
     }
     virtual bool has_value() const
     {
@@ -43,6 +46,11 @@ public:
         AbstractModel::Triangle res;
         for (int i = 0; i < VERTICES_PER_TRIANGLE; ++i)
             res.indices[i] = indices[current_index + i];
+        if (is_strip)
+        {
+            if (swap_indices)
+                std::swap(res.indices[0], res.indices[1]); // each even triangle should have indices swapped in order to preserve orientation
+        }
         return res;
     }
     virtual void operator++()
@@ -53,7 +61,15 @@ public:
         }
         #endif //ifndef NDEBUG
 
-        current_index += VERTICES_PER_TRIANGLE;
+        if (is_strip)
+        {
+            current_index += 1;
+            swap_indices = !swap_indices;
+        }
+        else
+        {
+            current_index += VERTICES_PER_TRIANGLE;
+        }
     }
     virtual ~IndexBufferTriangleIterator()
     {
@@ -254,7 +270,7 @@ void Model::unlock_vertex_buffer() const
 
 AbstractModel::TriangleIterator * Model::get_triangles() const
 {
-    return new IndexBufferTriangleIterator(index_buffer);
+    return new IndexBufferTriangleIterator(index_buffer, primitive_topology);
 }
 
 void Model::repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color)
@@ -457,6 +473,7 @@ void NormalsModel::on_notify()
 void NormalsModel::pre_draw() const
 {
     vertex_buffer.set();
+    get_context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 }
 
 void NormalsModel::do_draw() const
