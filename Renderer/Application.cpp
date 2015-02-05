@@ -74,6 +74,8 @@ Application::Application(Logger &logger) :
     impact_axis(0), is_updating_vertices_on_gpu(true)
 {
     set_show_mode(SHOW_GRAPHICAL_VERTICES);
+    // TODO: is it good? Seems like it can affect performance (see MSDN for SetThreadAffinityMask)
+    SetThreadAffinityMask(GetCurrentThread(), 0x0000000); // restrict main thread to 1st processor so that QueryPerformanceCounter works correctly
 }
 
 
@@ -107,8 +109,9 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
         if(NULL == low_model)
             throw NullPointerError();
 
-        Vertex * high_vertices = high_model.lock_vertex_buffer(LOCK_READ);
-        Vertex * low_vertices = low_model->lock_vertex_buffer(LOCK_READ);
+        // lock not only for read but also for write, because PhysicalModel constructor will update cluster indices
+        Vertex * high_vertices = high_model.lock_vertex_buffer(LOCK_READ_WRITE);
+        Vertex * low_vertices = low_model->lock_vertex_buffer(LOCK_READ_WRITE);
         model_entity.physical_model =
             new PhysicalModel(low_vertices,
                               low_model->get_vertices_count(),

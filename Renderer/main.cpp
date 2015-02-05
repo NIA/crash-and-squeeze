@@ -17,6 +17,7 @@ using CrashAndSqueeze::Core::SphericalRegion;
 using CrashAndSqueeze::Core::IRegion;
 using CrashAndSqueeze::Core::CylindricalRegion;
 using CrashAndSqueeze::Core::BoxRegion;
+using CrashAndSqueeze::Core::Reaction;
 using CrashAndSqueeze::Core::ShapeDeformationReaction;
 using CrashAndSqueeze::Core::HitReaction;
 using CrashAndSqueeze::Core::RegionReaction;
@@ -50,15 +51,15 @@ namespace
 
     const Real      THRESHOLD_DISTANCE = 0.05;
 
-    const Index LOW_EDGES_PER_BASE = 40;
-    const Index LOW_EDGES_PER_HEIGHT = 48;
-    const Index LOW_EDGES_PER_CAP = 5;
+    const Index LOW_EDGES_PER_BASE = 60;
+    const Index LOW_EDGES_PER_HEIGHT = 68;
+    const Index LOW_EDGES_PER_CAP = 8;
     const Index LOW_CYLINDER_VERTICES = cylinder_vertices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
     const DWORD LOW_CYLINDER_INDICES = cylinder_indices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
 
-    const Index HIGH_EDGES_PER_BASE = 300; // 100; //
-    const Index HIGH_EDGES_PER_HEIGHT = 300; // 120; //
-    const Index HIGH_EDGES_PER_CAP = 50; // 40; //
+    const Index HIGH_EDGES_PER_BASE = 100; // 300; //
+    const Index HIGH_EDGES_PER_HEIGHT = 120; // 300; //
+    const Index HIGH_EDGES_PER_CAP = 40; // 50; //
     const Index HIGH_CYLINDER_VERTICES = cylinder_vertices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
     const DWORD HIGH_CYLINDER_INDICES = cylinder_indices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
 
@@ -391,7 +392,12 @@ namespace
     class CylinderDemo : public Demo
     {
     public:
-        CylinderDemo(Application & _app) : Demo(_app, LOW_CYLINDER_VERTICES, LOW_CYLINDER_INDICES, HIGH_CYLINDER_VERTICES, HIGH_CYLINDER_INDICES)
+        CylinderDemo(Application & _app, float cylinder_radius, float cylinder_height)
+            : Demo(_app, LOW_CYLINDER_VERTICES, LOW_CYLINDER_INDICES, HIGH_CYLINDER_VERTICES, HIGH_CYLINDER_INDICES),
+              cylinder_radius(cylinder_radius), cylinder_height(cylinder_height), cylinder_z(-cylinder_height/2),
+              hit_point(1),
+              inside(Vector(0,0,cylinder_z+cylinder_height), Vector(0,0,cylinder_z), cylinder_radius - 0.1),
+              outside(Vector(0,0,cylinder_z+cylinder_height), Vector(0,0,cylinder_z), cylinder_radius + 0.012)
         {}
 
         virtual ~CylinderDemo()
@@ -401,7 +407,32 @@ namespace
         }
 
     private:
-        Array<ShapeDeformationReaction*> reactions;
+        const float cylinder_radius;
+        const float cylinder_height;
+        const float cylinder_z;
+
+        // All reactions in one array (to easily delete them)
+        Array<Reaction*> reactions;
+
+        // For Shapes and shape callbacks
+        static const int SHAPE_SIZE = LOW_EDGES_PER_BASE;
+        static const int SHAPE_LINES_OFFSET = 3;
+        static const int SHAPES_COUNT = 8;
+        static const int SHAPE_STEP = (SHAPES_COUNT > 1) ?
+            ((LOW_EDGES_PER_HEIGHT - 2*SHAPE_LINES_OFFSET)/(SHAPES_COUNT - 1))*LOW_EDGES_PER_BASE :
+            0;
+        static const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*LOW_EDGES_PER_BASE;
+        static const int SUBSHAPES_COUNT = 4;
+        static const int SUBSHAPE_SIZE = SHAPE_SIZE/SUBSHAPES_COUNT;
+        IndexArray vertex_indices[SHAPES_COUNT*SUBSHAPES_COUNT];
+
+        // For hit reaction
+        IndexArray hit_point;
+
+        // For region reaction
+        CylindricalRegion inside;
+        CylindricalRegion outside;
+        IndexArray shape;
     
     protected:
         virtual void prepare()
@@ -409,10 +440,6 @@ namespace
             // == PREPARE CYLINDER DEMO ==
 
             // - Create models -
-            const float cylinder_radius = 0.25;
-            const float cylinder_height = 1;
-            const float cylinder_z = -cylinder_height/2;
-
             cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
                      &CYLINDER_COLOR, 1,
                      HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP,
@@ -426,10 +453,15 @@ namespace
                 high_model_indices,
                 HIGH_CYLINDER_INDICES);
             high_cylinder_model->add_shader(lighting_shader); // add lighting
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            float random_amp = 0.3f;
+#else
+            float random_amp = 0.0f; // no need for randomization without quadratic extensions
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
                      &CYLINDER_COLOR, 1,
                      LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP,
-                     low_model_vertices, low_model_indices );
+                     low_model_vertices, low_model_indices, random_amp );
             Model * low_cylinder_model = new Model(
                 app.get_renderer(),
                 D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,
@@ -441,6 +473,9 @@ namespace
             low_cylinder_model->add_shader(simple_pixel_shader);
             PhysicalModel * phys_mod = add_physical_model(high_cylinder_model, low_cylinder_model);
 
+            // - Set impact -
+            set_impact(Vector(0, 0.64, 0), Vector(0, 0, 0), Vector(0,-70,0.0));
+
             // - Add frame --
             IndexArray frame;
             const Index LOW_VERTICES_PER_SIDE = LOW_EDGES_PER_BASE*LOW_EDGES_PER_HEIGHT;
@@ -450,20 +485,6 @@ namespace
             low_cylinder_model->repaint_vertices(frame, FRAME_COLOR);
 
             // - Shapes and shape callbacks definition -
-            const int SHAPE_SIZE = LOW_EDGES_PER_BASE;
-            const int SHAPE_LINES_OFFSET = 3;
-            const int SHAPES_COUNT = 8;
-            const int SHAPE_STEP = (SHAPES_COUNT > 1) ?
-                                   ((LOW_EDGES_PER_HEIGHT - 2*SHAPE_LINES_OFFSET)/(SHAPES_COUNT - 1))*LOW_EDGES_PER_BASE :
-                                   0;
-            const int SHAPE_OFFSET = SHAPE_LINES_OFFSET*LOW_EDGES_PER_BASE;
-
-            const int SUBSHAPES_COUNT = 4;
-            const int SUBSHAPE_SIZE = SHAPE_SIZE/SUBSHAPES_COUNT;
-
-            // let's have some static array of dynamic arrays... :)
-            IndexArray vertex_indices[SHAPES_COUNT*SUBSHAPES_COUNT];
-            // ...and fill it
             int subshape_index = 0;
             for(int i = 0; i < SHAPES_COUNT; ++i)
             {
@@ -483,29 +504,29 @@ namespace
                 }
             }
 
-            IndexArray hit_point(1);
+            // -- Hit reactions --
+
             hit_point.push_back(390); // oops, hard-coded...
         
-            MessageBoxHitReaction weak_hit_reaction(hit_point, 1, _T("[All OK] Weak hit occured!"));
-            MessageBoxHitReaction strong_hit_reaction(hit_point, 100, _T("[!BUG!] Strong hit occured!"));
+            HitReaction * weak_hit_reaction =   new MessageBoxHitReaction(hit_point, 1,   _T("[All OK] Weak hit occured!"));
+            HitReaction * strong_hit_reaction = new MessageBoxHitReaction(hit_point, 100, _T("[!BUG!] Strong hit occured!"));
 
-            phys_mod->add_hit_reaction(weak_hit_reaction);
-            phys_mod->add_hit_reaction(strong_hit_reaction);
+            phys_mod->add_hit_reaction(*weak_hit_reaction);
+            phys_mod->add_hit_reaction(*strong_hit_reaction);
+            reactions.push_back(weak_hit_reaction);
+            reactions.push_back(strong_hit_reaction);
 
-            CylindricalRegion inside(Vector(0,0,cylinder_z+cylinder_height), Vector(0,0,cylinder_z), cylinder_radius - 0.1);
-            CylindricalRegion outside(Vector(0,0,cylinder_z+cylinder_height), Vector(0,0,cylinder_z), cylinder_radius + 0.012);
-
-            IndexArray shape;
+            // -- Region reactions --
+            
             add_range(shape, 9*LOW_EDGES_PER_BASE, 10*LOW_EDGES_PER_BASE);
 
-            MessageBoxRegionReaction inside_reaction(shape, inside, true, _T("[OK] Entered inside!"));
-            MessageBoxRegionReaction outside_reaction(shape, outside, false, _T("[OK] Left out!"));
+            RegionReaction * inside_reaction = new MessageBoxRegionReaction(shape, inside, true, _T("[OK] Entered inside!"));
+            RegionReaction * outside_reaction = new MessageBoxRegionReaction(shape, outside, false, _T("[OK] Left out!"));
+            reactions.push_back(inside_reaction);
+            reactions.push_back(outside_reaction);
 
-            //phys_mod->add_region_reaction(inside_reaction);
-            //phys_mod->add_region_reaction(outside_reaction);
-
-            // - Set impact -
-            set_impact(Vector(0,2.2,-0.9), Vector(0, 0, 0), Vector(0,-30,0.0));
+            phys_mod->add_region_reaction(*inside_reaction);
+            phys_mod->add_region_reaction(*outside_reaction);
         }
     };
 
@@ -642,7 +663,7 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
 
         // TODO: fix Cylinder and Car demos
         OvalDemo demo(app);
-        // or - CylinderDemo demo(app);
+        // or - CylinderDemo demo(app, 0.5, 1);
         // or - CarDemo demo(app);
 
         demo.run();

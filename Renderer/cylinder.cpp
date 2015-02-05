@@ -1,4 +1,5 @@
 #include "cylinder.h"
+#include <cstdlib>
 
 Index cylinder_vertices_count(Index edges_per_base, Index edges_per_height, Index edges_per_cap)
 {
@@ -10,11 +11,16 @@ DWORD cylinder_indices_count(Index edges_per_base, Index edges_per_height, Index
 {
     return 2*(edges_per_base + 1)*(edges_per_height + 2*(edges_per_cap - 1)) // indices per edges_per_height levels plus edges_per_cap-1 levels per each of 2 caps
            + 2*(2*edges_per_base + 1) // plus 2 ends of caps
-           + 2; // plus degenerate triagnle for jump from top to bottom
+           + 2; // plus degenerate triangle for jump from top to bottom
 }
 
 namespace
 {
+    float random(float max)
+    {
+        return rand()/static_cast<float>(RAND_MAX+1)*max;
+    }
+
     struct GENERATION_PARAMS
     {
         // output buffers
@@ -22,6 +28,7 @@ namespace
         Index *res_indices;
         // sizes
         float radius;
+        float random_amp;
         float height;
         D3DXVECTOR3 position;
         // mesh dimensions
@@ -56,7 +63,8 @@ namespace
         {
             for( Index step = 0; step < params.edges_per_base; ++step )
             {
-                float radius = params.vertical ? params.radius : (params.radius - STEP_RADIAL*level);
+                // !! randomization !!
+                float radius = params.vertical ? params.radius*(1 + random(params.random_amp)) : (params.radius - STEP_RADIAL*level);
                 float z, weight;
                 D3DXVECTOR3 normal;
                 if (params.vertical)
@@ -122,7 +130,7 @@ namespace
 void cylinder( float radius, float height, D3DXVECTOR3 position,
                const D3DCOLOR *colors, unsigned colors_count,
                Index edges_per_base, Index edges_per_height, Index edges_per_cap,
-               Vertex *res_vertices, Index *res_indices)
+               Vertex *res_vertices, Index *res_indices, float random_amp)
 // Writes data into arrays given as `res_vertices' and `res_indices',
 {
     Index vertex = 0; // current vertex
@@ -139,6 +147,7 @@ void cylinder( float radius, float height, D3DXVECTOR3 position,
     params.res_indices = res_indices;
     // sizes
     params.radius = radius;
+    params.random_amp = random_amp;
     params.height = height;
     params.position = position;
     // mesh dimensions

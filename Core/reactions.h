@@ -14,11 +14,14 @@ namespace CrashAndSqueeze
             bool enabled;
         public:
             Enabled() : enabled(true) {}
+            virtual ~Enabled() {}
 
             bool is_enabled() { return enabled; }
             void enable() { enabled = true; }
             void disable() { enabled = false; }
         };
+
+        typedef Enabled Reaction; // Currently Reaction is simply = Enabled, but in future we can make it a more sensible class
 
         // An abstract reaction to shape deformation: is invoked when at least one
         // vertex of the shape goes farther than `threshold_distance' from its initial position.
@@ -30,7 +33,7 @@ namespace CrashAndSqueeze
         //
         // If two or more vertices from shape exceed threshold distance, the index
         // of vertex with the greatest distance is passed to invoke().
-        class ShapeDeformationReaction : public Enabled
+        class ShapeDeformationReaction : public Reaction
         {
         private:
             const IndexArray & shape_vertex_indices;
@@ -61,7 +64,7 @@ namespace CrashAndSqueeze
         // To implement your own reaction, inherit your class from this
         // and override invoke(), then pass an instance of your class
         // to Model::add_region_reaction.
-        class RegionReaction : public Enabled
+        class RegionReaction : public Reaction
         {
         private:
             const IndexArray & shape_vertex_indices;
@@ -93,7 +96,7 @@ namespace CrashAndSqueeze
         // To implement your own reaction, inherit your class from this
         // and override invoke(), then pass an instance of your class
         // to Model::add_hit_reaction.
-        class HitReaction : public Enabled
+        class HitReaction : public Reaction
         {
         private:
             const IndexArray & shape_vertex_indices;
@@ -122,7 +125,8 @@ namespace CrashAndSqueeze
         // To implement your own reaction, inherit your class from this
         // and override invoke(), then pass an instance of your class
         // to Model::add_stretch_reaction.
-        class StretchReaction : public Enabled
+        // TODO: test this class
+        class StretchReaction : public Reaction
         {
         private:
             // TODO: maybe not just two vector indices, but kind of array of pairs?
