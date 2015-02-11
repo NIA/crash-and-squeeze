@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include "main.h"
+#include "IInputHandler.h"
 
 class Window
 {
@@ -10,6 +11,14 @@ private:
     int width;
     int height;
 
+    IInputHandler * input_handler;
+    struct MouseState {
+        bool dragging;
+        short prev_x;
+        short prev_y;
+    } mouse;
+
+
     void unregister_class();
 public:
     static const int DEFAULT_WINDOW_SIZE = 1000;
@@ -17,10 +26,15 @@ public:
     Window(int width, int height);
     void show() const;
     void update() const;
-    static LRESULT WINAPI MsgProc( HWND, UINT, WPARAM, LPARAM );
+    // Actual processing function (non-static member)
+    LRESULT WINAPI MsgProc( HWND, UINT, WPARAM, LPARAM );
+    // Wrapper of processing function (static member), that is passed to window class
+    static LRESULT WINAPI _MsgProc( HWND, UINT, WPARAM, LPARAM );
 
     int get_width() { return width; }
     int get_height() { return height; }
+
+    void set_input_handler(IInputHandler * handler) { input_handler = handler; }
 
     inline operator HWND() { return this->hwnd; }
     inline operator HWND() const { return this->hwnd; }

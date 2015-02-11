@@ -8,8 +8,9 @@
 #include "logger.h"
 #include "worker_thread.h"
 #include "Renderer.h"
+#include "IInputHandler.h"
 
-class Application
+class Application : public IInputHandler
 {
 private:
     Logger &logger;
@@ -55,9 +56,6 @@ private:
     void set_show_mode(int new_show_mode);
 
     void rotate_models(float phi);
-    void process_key(unsigned code, bool shift, bool ctrl, bool alt);
-    void process_mouse_drag(short x, short y, short dx, short dy, bool shift, bool ctrl);
-    void process_mouse_wheel(short x, short y, short dw, bool shift, bool ctrl);
 
     const TCHAR * get_text_info();
 
@@ -81,6 +79,12 @@ public:
     void set_camera_position(float rho, float theta, float phi) { camera.set_position(rho, theta, phi); }
 
     void run();
+
+    // Implement IInputHandler:
+    void process_key(unsigned code, bool shift, bool ctrl, bool alt) override;
+    void process_mouse_drag(short x, short y, short dx, short dy, bool shift, bool ctrl) override;
+    void process_mouse_wheel(short x, short y, short dw, bool shift, bool ctrl) override;
+
 
     ~Application();
 

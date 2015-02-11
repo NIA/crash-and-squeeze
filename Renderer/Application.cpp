@@ -2,7 +2,6 @@
 #include "Stopwatch.h"
 #include "matrices.h"
 #include <time.h>
-#include <Windowsx.h> // for GET_[XY]_LPARAM
 
 using CrashAndSqueeze::Core::ForcesArray;
 using CrashAndSqueeze::Math::Vector;
@@ -55,11 +54,6 @@ namespace
                                   _T("F: toggle forces on/off,\n")
                                   _T("W: toggle wireframe on/off,\n")
                                   _T("T: toggle alpha test of/off.\n");
-
-    inline bool is_key_pressed(int virtual_key)
-    {
-        return ::GetAsyncKeyState(virtual_key) < 0;
-    }
 
 
 }
@@ -373,6 +367,7 @@ void Application::process_mouse_wheel(short x, short y, short dw, bool shift, bo
 
 void Application::run()
 {
+    window.set_input_handler(this);
     window.show();
     window.update();
     
@@ -401,58 +396,10 @@ void Application::run()
     // Enter the message loop
     MSG msg;
     ZeroMemory( &msg, sizeof( msg ) );
-    // Init mouse state
-    struct {
-        bool dragging;
-        short prev_x;
-        short prev_y;
-    } mouse = {0};
-    mouse.dragging = false;
     while( msg.message != WM_QUIT )
     {
         if( PeekMessage( &msg, NULL, 0U, 0U, PM_REMOVE ) )
         {
-            // TODO: move this switch into Window's WndProc, and introduce IKeyboardHandler that is passed to Window (and implemented by Application)
-            switch(msg.message)
-            {
-            case WM_KEYDOWN:
-                // TODO: is GetAsyncKeyState good way to know WAS the shift pressed when this message was posted (not processed)?
-                process_key( static_cast<unsigned>( msg.wParam ), is_key_pressed(VK_SHIFT),
-                             is_key_pressed(VK_CONTROL), is_key_pressed(VK_MENU) );
-                break;
-            case WM_LBUTTONDOWN:
-                // start dragging
-                mouse.dragging = true;
-                mouse.prev_x = GET_X_LPARAM(msg.lParam);
-                mouse.prev_y = GET_Y_LPARAM(msg.lParam);
-                SetCapture(window);
-                break;
-            case WM_LBUTTONUP:
-                // stop dragging
-                mouse.dragging = false;
-                ReleaseCapture();
-                break;
-            case WM_MOUSEMOVE:
-                if (mouse.dragging)
-                {
-                    short x = GET_X_LPARAM(msg.lParam);
-                    short y = GET_Y_LPARAM(msg.lParam);
-                    bool shift = (msg.wParam & MK_SHIFT) != 0;
-                    bool ctrl  = (msg.wParam & MK_CONTROL) != 0;
-                    process_mouse_drag(x, y, x - mouse.prev_x, y - mouse.prev_y, shift, ctrl);
-                    mouse.prev_x = x;
-                    mouse.prev_y = y;
-                }
-                break;
-            case WM_MOUSEWHEEL:
-                process_mouse_wheel(GET_X_LPARAM(msg.lParam),
-                                    GET_Y_LPARAM(msg.lParam),
-                                    GET_WHEEL_DELTA_WPARAM(msg.wParam),
-                                    (GET_KEYSTATE_WPARAM(msg.wParam) & MK_SHIFT) != 0,
-                                    (GET_KEYSTATE_WPARAM(msg.wParam) & MK_CONTROL) != 0);
-                break;
-            }
-
             TranslateMessage( &msg );
             DispatchMessage( &msg );
         }

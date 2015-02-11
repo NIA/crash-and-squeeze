@@ -123,6 +123,7 @@
     <ClInclude Include="cubic.h" />
     <ClInclude Include="cylinder.h" />
     <ClInclude Include="Error.h" />
+    <ClInclude Include="IInputHandler.h" />
     <ClInclude Include="logger.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="matrices.h" />
