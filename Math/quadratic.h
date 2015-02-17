@@ -81,6 +81,9 @@ namespace CrashAndSqueeze
 
             TriVector operator*(const Real &scalar) const;
 
+            // Allow assignment TriVector = Vector
+            TriVector & operator=(const Vector &v) { set_vector(v); return *this; }
+
             const Vector & to_vector() const { return vectors[0]; }
         };
 
@@ -111,6 +114,9 @@ namespace CrashAndSqueeze
 
             const Matrix & to_matrix() const { return matrices[0]; }
             Matrix & as_matrix() { return matrices[0]; }
+
+            const Matrix & to_quad_matrix() const { return matrices[1]; }
+            const Matrix & to_mix_matrix() const { return matrices[2]; }
         };
 
         // A 9x9 matrix (that is, 3x3=9 normal matrices)

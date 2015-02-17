@@ -24,24 +24,29 @@ namespace CrashAndSqueeze
     {
         // a constant, determining how fast points are pulled to
         // their position, i.e. how rigid the body is:
-        // 0 means no constraint at all, 1 means absolutely rigid
-        const Real Cluster::DEFAULT_GOAL_SPEED_CONSTANT = 1;
+        // 0 means no constraint at all, 1 means that current position = goal position
+        const Real Cluster::DEFAULT_GOAL_SPEED_CONSTANT = 0.8;
         
         // a constant, determining how rigid body is:
         // if it equals `b`, then optimal deformation for goal positions
         // is calculated as (1 - b)*A + b*R, where R is optimal rotation
         // and A is optimal linear transformation.
-        // Thus 1 matches only rotated and shifted shape,
+        // Thus 1 matches only rotated and shifted shape (rigid),
         // 0 allows any linear transformation
         const Real Cluster::DEFAULT_LINEAR_ELASTICITY_CONSTANT = 0.1;
         
         // plasticity parameter: a threshold of strain, after
         // which deformation becomes non-reversible
-        const Real Cluster::DEFAULT_YIELD_CONSTANT = 100000; // TODO: temporarily disabled, should be 0.1;
+        const Real Cluster::DEFAULT_YIELD_CONSTANT = 0.1;
 
         // plasticity paramter: a coefficient determining how fast
         // plasticity_state will be changed on large deformation
         const Real Cluster::DEFAULT_CREEP_CONSTANT = 60;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+        // another plasticity paramter: a coefficient determining how fast
+        // quadratic part of plasticity_state will be changed on large deformation
+        const Real Cluster::DEFAULT_QX_CREEP_CONSTANT = 10;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
 
         // plasticity paramter: a threshold of maximum allowed strain
         const Real Cluster::DEFAULT_MAX_DEFORMATION_CONSTANT = 1.5;
@@ -49,11 +54,7 @@ namespace CrashAndSqueeze
         void PhysicalVertexMappingInfo::setup_initial_values(const Vector & center_of_mass)
         {
             initial_offset_pos = vertex->get_pos() - center_of_mass;
-#if CAS_QUADRATIC_EXTENSIONS_ENABLED
-            equilibrium_offset_pos.set_vector(initial_offset_pos);
-#else
             equilibrium_offset_pos = initial_offset_pos;
-#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             equilibrium_pos = vertex->get_pos();
         }
 
@@ -82,6 +83,9 @@ namespace CrashAndSqueeze
               linear_elasticity_constant(DEFAULT_LINEAR_ELASTICITY_CONSTANT),
               yield_constant(DEFAULT_YIELD_CONSTANT),
               creep_constant(DEFAULT_CREEP_CONSTANT),
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+              qx_creep_constant(DEFAULT_QX_CREEP_CONSTANT),
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
               max_deformation_constant(DEFAULT_MAX_DEFORMATION_CONSTANT),
 
               center_of_mass(Vector::ZERO),
@@ -91,7 +95,11 @@ namespace CrashAndSqueeze
 #else
               total_deformation(Matrix::IDENTITY),
 #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+              plasticity_state(Matrix::IDENTITY, Matrix::ZERO, Matrix::ZERO),
+#else
               plasticity_state(Matrix::IDENTITY),
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
               plasticity_state_inv_trans(Matrix::IDENTITY),
               plastic_deformation_measure(0)
         {
@@ -200,7 +208,12 @@ namespace CrashAndSqueeze
 #if CAS_GRAPHICAL_TRANSFORM_TOTAL
     #if CAS_QUADRATIC_EXTENSIONS_ENABLED
             graphical_pos_transform = total_deformation;
+        #if CAS_QUADRATIC_PLASTICITY_ENABLED
+            // TODO: implement proper superposition of tri-matrices graphical_pos_transform and plasticity_state (if it is possible...)
+            graphical_pos_transform.as_matrix() = graphical_pos_transform.to_matrix()*plasticity_state.to_matrix();
+        #else
             graphical_pos_transform.as_matrix() = graphical_pos_transform.to_matrix()*plasticity_state;
+        #endif // CAS_QUADRATIC_PLASTICITY_ENABLED
             // TODO: use quadratic transformation for graphical vertices normals as well
             graphical_nrm_transform = graphical_pos_transform.to_matrix().inverted().transposed();
     #else
@@ -209,7 +222,12 @@ namespace CrashAndSqueeze
     #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 #else
     #if CAS_QUADRATIC_EXTENSIONS_ENABLED
+        #if CAS_QUADRATIC_PLASTICITY_ENABLED
+            // TODO: implement proper superposition of tri-matrices graphical_pos_transform and plasticity_state (if it is possible...)
+            graphical_pos_transform = TriMatrix(rotation*plasticity_state.to_matrix(), Matrix::ZERO, Matrix::ZERO);
+        #else
             graphical_pos_transform = TriMatrix(rotation*plasticity_state, Matrix::ZERO, Matrix::ZERO);
+        #endif // CAS_QUADRATIC_PLASTICITY_ENABLED
             // TODO: use quadratic transformation for graphical vertices normals as well
             graphical_nrm_transform = rotation*plasticity_state_inv_trans;
     #else
@@ -338,23 +356,47 @@ namespace CrashAndSqueeze
 
             Matrix deformation = scale - Matrix::IDENTITY;
             Real deformation_measure = deformation.norm();
+
             if(deformation_measure > yield_constant)
             {
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+                // Plasticity state [Pa Pq Pm] is changed like this:
+                // Pa = (E + dt*c*(S-E))*Pa (just like linear case)
+                // Pq = Pq + dt*c*Q, Pm = Pm + dt*c*M
+                TriMatrix new_plasticity_state = optimal_transformation;
+                new_plasticity_state *= dt*qx_creep_constant;
+                new_plasticity_state += plasticity_state;
+                new_plasticity_state.as_matrix() = (Matrix::IDENTITY + dt*creep_constant*deformation)*plasticity_state.to_matrix();
+                Real det = new_plasticity_state.to_matrix().determinant();
+#else
                 Matrix new_plasticity_state = (Matrix::IDENTITY + dt*creep_constant*deformation)*plasticity_state;
                 Real det = new_plasticity_state.determinant();
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+
                 if( ! equal(0, det) )
                 {
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+                    // enforce volume conservation
+                    new_plasticity_state.as_matrix() /= cube_root(det);
+
+                    Real new_plastic_deform_measure = (new_plasticity_state.to_matrix() - Matrix::IDENTITY).norm();
+#else
                     // enforce volume conservation
                     new_plasticity_state /= cube_root(det);
 
                     Real new_plastic_deform_measure = (new_plasticity_state - Matrix::IDENTITY).norm();
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
 
                     // TODO: is condition of (new_plastic_deform_measure > plastic_deformation_measure) useful?
                     if( new_plastic_deform_measure < max_deformation_constant &&
                         new_plastic_deform_measure > plastic_deformation_measure )
                     {
                         plasticity_state = new_plasticity_state;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+                        plasticity_state_inv_trans = plasticity_state.to_matrix().inverted().transposed();
+#else
                         plasticity_state_inv_trans = plasticity_state.inverted().transposed();
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
                         plastic_deformation_measure = new_plastic_deform_measure;
                         update_equilibrium_positions(true);
                         compute_symmetric_term();

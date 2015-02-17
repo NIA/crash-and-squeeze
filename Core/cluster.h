@@ -20,7 +20,11 @@ namespace CrashAndSqueeze
 
             // initial position of vertex measured off
             // the cluster's center of mass
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+            Math::TriVector initial_offset_pos;
+#else
             Math::Vector initial_offset_pos;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
             // position in deformed shape (plasticity_state*initial_offset_position),
             // used for computing symmetric and asymmetric terms of A (Apq and Aqq)
 #if CAS_QUADRATIC_EXTENSIONS_ENABLED
@@ -91,6 +95,12 @@ namespace CrashAndSqueeze
             // plasticity_state will be changed on large deformation
             Math::Real creep_constant;
 
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+            // another plasticity paramter: a coefficient determining how fast
+            // quadratic part of plasticity_state will be changed on large deformation
+            const Math::Real qx_creep_constant;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+
             // plasticity parameter: a threshold of maximum allowed strain
             Math::Real max_deformation_constant;
 
@@ -99,7 +109,11 @@ namespace CrashAndSqueeze
             // center of mass of vertices
             Math::Vector center_of_mass;
             // plastic deformation applied to initial shape
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+            Math::TriMatrix plasticity_state;
+#else
             Math::Matrix plasticity_state;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
             // plasticity_state.inverted().transposed()
             Math::Matrix plasticity_state_inv_trans;
             // measure of plasticity_state
@@ -235,6 +249,9 @@ namespace CrashAndSqueeze
             static const Math::Real DEFAULT_LINEAR_ELASTICITY_CONSTANT;
             static const Math::Real DEFAULT_YIELD_CONSTANT;
             static const Math::Real DEFAULT_CREEP_CONSTANT;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+            static const Math::Real DEFAULT_QX_CREEP_CONSTANT;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
             static const Math::Real DEFAULT_MAX_DEFORMATION_CONSTANT;
         private:
             // No copying!
