@@ -87,7 +87,7 @@ const TCHAR* Application::get_text_info()
     }
 }
 
-Renderer* Application::get_renderer()
+IRenderer* Application::get_renderer()
 {
     return &renderer;
 }

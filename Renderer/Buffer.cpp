@@ -1,8 +1,7 @@
 #include "Buffer.h"
-#include "Renderer.h"
 
 // Buffer implementation:
-BufferImpl::BufferImpl(Renderer * renderer, unsigned bind_flag, const void *buffer_data, unsigned items_count, unsigned item_size, bool dynamic, bool staging_backed) :
+BufferImpl::BufferImpl(IRenderer * renderer, unsigned bind_flag, const void *buffer_data, unsigned items_count, unsigned item_size, bool dynamic, bool staging_backed) :
     renderer(renderer), buffer(nullptr), staging_buffer(nullptr), bind_flag(bind_flag), items_count(items_count),
     dynamic(dynamic), staging_backed(staging_backed), locked_buffer(nullptr), update_after_unlock(false)
 {

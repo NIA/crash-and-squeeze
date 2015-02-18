@@ -1,8 +1,7 @@
 #pragma once
 #include "main.h"
 #include "Vertex.h"
-
-class Renderer;
+#include "IRenderer.h"
 
 enum BufferLockType
 {
@@ -37,7 +36,7 @@ public:
      *  dynamic - is the buffer going to be updated
      *  staging_backed - is an additional buffer with D3D11_USAGE_STAGING created to enable LOCK_READ_WRITE and LOCK_READ lock types (see Buffer::LockType enum)
      */
-    Buffer(Renderer * renderer, unsigned bind_flag, const T *buffer_data, unsigned items_count, bool dynamic = true, bool staging_backed = true);
+    Buffer(IRenderer * renderer, unsigned bind_flag, const T *buffer_data, unsigned items_count, bool dynamic = true, bool staging_backed = true);
     unsigned get_items_count() const;
 
     // this method must be implemented in a subclass
@@ -62,7 +61,7 @@ public:
      *  dynamic - is the buffer going to be updated
      *  staging_backed - is an additional buffer with D3D11_USAGE_STAGING created to enable LOCK_READ_WRITE and LOCK_READ lock types (see Buffer::LockType enum)
      */
-    VertexBuffer(Renderer * renderer, const Vertex * vertices, unsigned vertices_count, bool dynamic = true, bool staging_backed = true):
+    VertexBuffer(IRenderer * renderer, const Vertex * vertices, unsigned vertices_count, bool dynamic = true, bool staging_backed = true):
         Buffer(renderer, D3D11_BIND_VERTEX_BUFFER, vertices, vertices_count, dynamic, staging_backed)
     {}
 
@@ -82,7 +81,7 @@ public:
      *  dynamic - is the buffer going to be updated
      *  staging_backed - is an additional buffer with D3D11_USAGE_STAGING created to enable LOCK_READ_WRITE and LOCK_READ lock types (see Buffer::LockType enum)
      */
-    IndexBuffer(Renderer * renderer, const Index * indices, unsigned indices_count, bool dynamic = true, bool staging_backed = true) :
+    IndexBuffer(IRenderer * renderer, const Index * indices, unsigned indices_count, bool dynamic = true, bool staging_backed = true) :
         Buffer(renderer, D3D11_BIND_INDEX_BUFFER, indices, indices_count, dynamic, staging_backed)
     {}
 
@@ -113,7 +112,7 @@ public:
      *  staging_backed - is an additional buffer with D3D11_USAGE_STAGING created to enable LOCK_READ_WRITE and LOCK_READ lock types (see Buffer::LockType enum)
      *                   NB: by default staging_backed is false (as opposed to VertexBuffer/IndexBuffer) because constant buffer is usually updated with LOCK_OVERWRITE
      */
-    ConstantBuffer(Renderer * renderer, const BufferStruct *initial_data, unsigned set_flags, unsigned start_slot, bool dynamic = true, bool staging_backed = false) :
+    ConstantBuffer(IRenderer * renderer, const BufferStruct *initial_data, unsigned set_flags, unsigned start_slot, bool dynamic = true, bool staging_backed = false) :
         Buffer(renderer, D3D11_BIND_CONSTANT_BUFFER, initial_data, 1, dynamic, staging_backed),
         set_flags(set_flags), start_slot(start_slot)
     {}
@@ -138,7 +137,7 @@ private:
 class BufferImpl
 {
 private:
-    Renderer * renderer;
+    IRenderer * renderer;
 
     ID3D11Buffer * buffer;
     unsigned bind_flag;
@@ -154,9 +153,9 @@ private:
     bool update_after_unlock;
 
 public:
-    BufferImpl(Renderer * renderer, unsigned bind_flag, const void *buffer_data, unsigned items_count, unsigned item_size, bool dynamic = true, bool staging_backed = false);
+    BufferImpl(IRenderer * renderer, unsigned bind_flag, const void *buffer_data, unsigned items_count, unsigned item_size, bool dynamic = true, bool staging_backed = false);
 
-    Renderer * get_renderer() const { return renderer; }
+    IRenderer * get_renderer() const { return renderer; }
     ID3D11Buffer * get_buffer() const { return buffer; }
 
     unsigned get_items_count() const { return items_count; }
@@ -170,7 +169,7 @@ private:
 };
 
 template<class T>
-Buffer<T>::Buffer(Renderer * renderer, unsigned bind_flag, const T *buffer_data, unsigned items_count, bool dynamic = true, bool staging_backed = true)
+Buffer<T>::Buffer(IRenderer * renderer, unsigned bind_flag, const T *buffer_data, unsigned items_count, bool dynamic = true, bool staging_backed = true)
     : impl(nullptr)
 {
     impl = new BufferImpl(renderer, bind_flag, buffer_data, items_count, sizeof(T), dynamic, staging_backed);

@@ -65,7 +65,7 @@ private:
 
 public:
     Application(Logger &logger);
-    Renderer* get_renderer();
+    IRenderer* get_renderer();
 
     // Adds given model to Application's list of models;
     // creates a physical model if `physical` is true (and returns it);

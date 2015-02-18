@@ -81,7 +81,7 @@ private:
 
 // -- AbstractModel --
 
-AbstractModel::AbstractModel(Renderer *renderer, VertexShader &shader, D3DXVECTOR3 position, D3DXVECTOR3 rotation)
+AbstractModel::AbstractModel(IRenderer *renderer, VertexShader &shader, const float3 & position, const float3 & rotation)
 : renderer(renderer), position(position), rotation(rotation), zoom(1), draw_cw(true), draw_ccw(false), subscriber(NULL)
 {
         add_shader(shader);
@@ -114,7 +114,7 @@ ID3D11DeviceContext *AbstractModel::get_context() const
     return renderer->get_context();
 }
 
-Renderer * AbstractModel::get_renderer() const
+IRenderer * AbstractModel::get_renderer() const
 {
     return renderer;
 }
@@ -232,7 +232,7 @@ void AbstractModel::generate_normals()
 
 // -- Model --
 
-Model::Model(   Renderer *renderer, D3D11_PRIMITIVE_TOPOLOGY primitive_topology, VertexShader &shader,
+Model::Model(   IRenderer *renderer, D3D11_PRIMITIVE_TOPOLOGY primitive_topology, VertexShader &shader,
                 const Vertex *vertices, unsigned vertices_count, const Index *indices, unsigned indices_count,
                 bool dynamic, D3DXVECTOR3 position, D3DXVECTOR3 rotation )
  
@@ -295,7 +295,7 @@ Model::~Model()
 }
 
 // -- MeshModel --
-MeshModel::MeshModel(Renderer *renderer, VertexShader &shader,
+MeshModel::MeshModel(IRenderer *renderer, VertexShader &shader,
                      const TCHAR * mesh_file, const D3DCOLOR color,
                      D3DXVECTOR3 position, D3DXVECTOR3 rotation)
 : AbstractModel(renderer, shader, position, rotation)
@@ -339,7 +339,7 @@ MeshModel::~MeshModel()
     release_interfaces();
 }
 
-PointModel::PointModel(Renderer *renderer, VertexShader &shader,
+PointModel::PointModel(IRenderer *renderer, VertexShader &shader,
                        const Vertex * src_vertices, unsigned src_vertices_count, unsigned int step,
                        bool dynamic, D3DXVECTOR3 position, D3DXVECTOR3 rotation)
 : AbstractModel(renderer, shader, position, rotation), vertex_buffer(nullptr)

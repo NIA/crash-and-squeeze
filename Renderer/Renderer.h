@@ -5,6 +5,7 @@
 #include "Core/model.h"
 
 #include "main.h"
+#include "IRenderer.h"
 #include "Camera.h"
 #include "Window.h"
 #include "Buffer.h"
@@ -23,8 +24,7 @@ typedef std::vector<ModelEntity> ModelEntities;
 
 extern const unsigned VECTORS_IN_MATRIX;
 
-// TODO: remove circular dependency (Renderer depends on Model, Camera, Buffer which in turn depend on Renderer)
-class Renderer
+class Renderer : public IRenderer
 {
 private:
     ID3D11Device                *device;

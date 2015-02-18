@@ -3,9 +3,10 @@
 #include "Vertex.h"
 #include "Shader.h"
 #include "Buffer.h"
+#include "IRenderer.h"
 #include "Collections/array.h"
 
-class Renderer;
+#include <vector>
 
 class ISubscriber
 {
@@ -16,7 +17,7 @@ public:
 class AbstractModel
 {
 private:
-    Renderer    *renderer;
+    IRenderer    *renderer;
     ::std::vector<AbstractShader*> shaders;
     ISubscriber *subscriber;
 
@@ -39,12 +40,12 @@ protected:
 
     
 public:
-    AbstractModel(Renderer *renderer,
+    AbstractModel(IRenderer *renderer,
                   VertexShader &shader,
                   D3DXVECTOR3 position = D3DXVECTOR3(0,0,0),
                   D3DXVECTOR3 rotation = D3DXVECTOR3(0,0,0));
     
-    Renderer * get_renderer() const;
+    IRenderer * get_renderer() const;
     
     int get_shaders_count() const { return shaders.size(); }
     AbstractShader &get_shader(int index) const;
@@ -116,7 +117,7 @@ protected:
     virtual void do_draw() const override;
 
 public:
-    Model(  Renderer *renderer,
+    Model(  IRenderer *renderer,
             D3D11_PRIMITIVE_TOPOLOGY primitive_topology,
             VertexShader &shader,
             const Vertex *vertices,
@@ -151,7 +152,7 @@ protected:
     virtual void do_draw() const override;
 
 public:
-    MeshModel(Renderer *renderer, VertexShader &shader,
+    MeshModel(IRenderer *renderer, VertexShader &shader,
               const TCHAR * mesh_file, const D3DCOLOR color,
               D3DXVECTOR3 position = D3DXVECTOR3(0,0,0),
               D3DXVECTOR3 rotation = D3DXVECTOR3(0,0,0));
@@ -179,7 +180,7 @@ protected:
     virtual void do_draw() const override;
 
 public:
-    PointModel(Renderer *renderer, VertexShader &shader,
+    PointModel(IRenderer *renderer, VertexShader &shader,
                const Vertex * src_vertices, unsigned src_vertices_count, unsigned step,
                bool dynamic = true, // set to true if vertex data will be modified later, false for static data
                D3DXVECTOR3 position = D3DXVECTOR3(0,0,0),

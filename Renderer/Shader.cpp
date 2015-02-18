@@ -40,7 +40,7 @@ void AbstractShader::compile()
                     nullptr, // ID3DInclude not needed: don't use #include in shaders. If used, should have passed D3D_COMPILE_STANDARD_FILE_INCLUDE
                     ENTRY_POINT,
                     target,
-                    flags, 0, // no flags1, flags2
+                    flags, 0, // no flags2
                     &shader_code,
                     &shader_errors) ) )
         throw ShaderCompileError(shader_errors);
@@ -58,7 +58,7 @@ void AbstractShader::compile()
 /*                          Vertex shader                               */
 /************************************************************************/
 
-VertexShader::VertexShader(Renderer *renderer, const D3D11_INPUT_ELEMENT_DESC* vertex_desc, unsigned vertex_desc_num, const char *shader_filename)
+VertexShader::VertexShader(IRenderer *renderer, const D3D11_INPUT_ELEMENT_DESC* vertex_desc, unsigned vertex_desc_num, const char *shader_filename)
     : AbstractShader(renderer, shader_filename, VS_TARGET), vertex_layout(nullptr), shader(nullptr),
       vertex_desc(vertex_desc), vertex_desc_num(vertex_desc_num)
 {}
@@ -100,7 +100,7 @@ VertexShader::~VertexShader()
 /*                           Pixel shader                               */
 /************************************************************************/
 
-PixelShader::PixelShader(Renderer *renderer, const char * shader_filename)
+PixelShader::PixelShader(IRenderer *renderer, const char * shader_filename)
     : AbstractShader(renderer, shader_filename, PS_TARGET), shader(nullptr)
 {}
 
@@ -131,7 +131,7 @@ PixelShader::~PixelShader()
 /*                          Geometry shader                             */
 /************************************************************************/
 
-GeometryShader::GeometryShader(Renderer *renderer, const char * shader_filename)
+GeometryShader::GeometryShader(IRenderer *renderer, const char * shader_filename)
     : AbstractShader(renderer, shader_filename, GS_TARGET), shader(nullptr)
 {}
 

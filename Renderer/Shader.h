@@ -1,12 +1,12 @@
 #pragma once
 
 #include "main.h"
-#include "Renderer.h"
+#include "IRenderer.h"
 
 class AbstractShader
 {
 private:
-    Renderer *renderer;
+    IRenderer *renderer;
     const char *filename;
     const char *target;
 
@@ -15,10 +15,10 @@ protected:
     virtual HRESULT create(const void * shader_code, unsigned code_size) = 0;
 
 public:
-    AbstractShader(Renderer * renderer, const char * shader_filename, const char * target) :
+    AbstractShader(IRenderer * renderer, const char * shader_filename, const char * target) :
         renderer(renderer), filename(shader_filename), target(target)
     {}
-    Renderer * get_renderer() const { return renderer; }
+    IRenderer * get_renderer() const { return renderer; }
     // compiles shader from file and calls `create`
     void compile();
     // sets this shader as current (should be implemented in each subclass)
@@ -43,7 +43,7 @@ private:
 protected:
     virtual HRESULT create(const void * shader_code, unsigned code_size) override;
 public:
-    VertexShader(Renderer *renderer, const D3D11_INPUT_ELEMENT_DESC* vertex_desc, unsigned vertex_desc_num, const char *shader_filename);
+    VertexShader(IRenderer *renderer, const D3D11_INPUT_ELEMENT_DESC* vertex_desc, unsigned vertex_desc_num, const char *shader_filename);
     virtual void set() override;
     virtual void unset() override;
     virtual ~VertexShader();
@@ -57,7 +57,7 @@ private:
 protected:
     virtual HRESULT create(const void * shader_code, unsigned code_size) override;
 public:
-    PixelShader(Renderer *renderer, const char * shader_filename);
+    PixelShader(IRenderer *renderer, const char * shader_filename);
     virtual void set() override;
     virtual void unset() override;
     virtual ~PixelShader();
@@ -72,7 +72,7 @@ protected:
     virtual HRESULT create(const void * shader_code, unsigned code_size) override;
 
 public:
-    GeometryShader(Renderer *renderer, const char * shader_filename);
+    GeometryShader(IRenderer *renderer, const char * shader_filename);
     virtual void set() override;
     virtual void unset() override;
     virtual ~GeometryShader();
