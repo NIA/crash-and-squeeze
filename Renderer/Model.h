@@ -21,10 +21,12 @@ private:
     ::std::vector<AbstractShader*> shaders;
     ISubscriber *subscriber;
 
-    D3DXVECTOR3 position;
-    D3DXVECTOR3 rotation;
-    float zoom;
-    D3DXMATRIX transformation;
+    float3 position;
+    // Rotation is defined by three angles: of rotating around x,
+    // then around y and then around z axis
+    float3 rotation;
+    float scale;
+    float4x4 transformation;
 
     bool draw_cw;
     bool draw_ccw;
@@ -42,8 +44,8 @@ protected:
 public:
     AbstractModel(IRenderer *renderer,
                   VertexShader &shader,
-                  D3DXVECTOR3 position = D3DXVECTOR3(0,0,0),
-                  D3DXVECTOR3 rotation = D3DXVECTOR3(0,0,0));
+                  const float3 & position = float3(0,0,0),
+                  const float3 & rotation = float3(0,0,0));
     
     IRenderer * get_renderer() const;
     
@@ -51,12 +53,12 @@ public:
     AbstractShader &get_shader(int index) const;
     void add_shader(AbstractShader &shader);
 
-    const D3DXMATRIX &get_transformation() const;
-    const D3DXVECTOR3 &get_position() { return position; }
-    const D3DXVECTOR3 &get_rotation() { return rotation; }
+    const float4x4 &get_transformation() const;
+    const float3 &get_position() const { return position; }
+    const float3 &get_rotation() const { return rotation; }
     void rotate(float phi);
-    void move(D3DXVECTOR3 vector);
-    void set_zoom(float zoom);
+    void move(const float3 & vector);
+    void set_scale(float scale);
     
     virtual unsigned get_vertices_count() const = 0;
     virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const = 0;
@@ -125,14 +127,14 @@ public:
             const Index *indices,
             unsigned indices_count,
             bool dynamic = true,    // set to true if vertex data will be modified later, false for static data
-            D3DXVECTOR3 position = D3DXVECTOR3(0,0,0),
-            D3DXVECTOR3 rotation = D3DXVECTOR3(0,0,0));
+            const float3 & position = float3(0,0,0),
+            const float3 & rotation = float3(0,0,0));
 
     virtual unsigned get_vertices_count() const override;
     virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const override;
     virtual void unlock_vertex_buffer() const override;
 
-    void repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color);
+    void repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, const float4 & color);
 
     virtual TriangleIterator * get_triangles() const override;
 
@@ -153,9 +155,9 @@ protected:
 
 public:
     MeshModel(IRenderer *renderer, VertexShader &shader,
-              const TCHAR * mesh_file, const D3DCOLOR color,
-              D3DXVECTOR3 position = D3DXVECTOR3(0,0,0),
-              D3DXVECTOR3 rotation = D3DXVECTOR3(0,0,0));
+              const TCHAR * mesh_file, const float4 & color,
+              const float3 & position = float3(0,0,0),
+              const float3 & rotation = float3(0,0,0));
 
     virtual unsigned get_vertices_count() const override;
     virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const override;
@@ -183,8 +185,8 @@ public:
     PointModel(IRenderer *renderer, VertexShader &shader,
                const Vertex * src_vertices, unsigned src_vertices_count, unsigned step,
                bool dynamic = true, // set to true if vertex data will be modified later, false for static data
-               D3DXVECTOR3 position = D3DXVECTOR3(0,0,0),
-               D3DXVECTOR3 rotation = D3DXVECTOR3(0,0,0));
+               const float3 & position = float3(0,0,0),
+               const float3 & rotation = float3(0,0,0));
 
     virtual unsigned get_vertices_count() const override;
     virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const override;

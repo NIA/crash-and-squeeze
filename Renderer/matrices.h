@@ -2,44 +2,35 @@
 
 #include "main.h"
 
-inline D3DXMATRIX shift_matrix(D3DXVECTOR3 shift, float zoom = 1)
+// Transposes matrix so that it is column-major (as it is expected for shaders).
+inline DirectX::XMMATRIX fix(const DirectX::XMMATRIX & m) { return DirectX::XMMatrixTranspose(m); }
+
+inline DirectX::XMMATRIX shift_matrix(const float3 & shift)
 {
-    return D3DXMATRIX(  zoom,    0,    0, shift.x,
-                           0, zoom,    0, shift.y,
-                           0,    0, zoom, shift.z,
-                           0,    0,    0,       1 );
+    return fix(DirectX::XMMatrixTranslation(shift.x, shift.y, shift.z));
 }
 
-inline D3DXMATRIX rotate_x_matrix(float angle)
+inline DirectX::XMMATRIX scale_matrix(float scale)
 {
-    return D3DXMATRIX( 1,          0,           0, 0,
-                       0, cos(angle), -sin(angle), 0,
-                       0, sin(angle),  cos(angle), 0,
-                       0,          0,           0, 1 );
+    return fix(DirectX::XMMatrixScaling(scale, scale, scale));
 }
 
-inline D3DXMATRIX rotate_y_matrix(float angle)
+inline DirectX::XMMATRIX rotate_x_matrix(float angle)
 {
-    return D3DXMATRIX(  cos(angle), 0, sin(angle), 0,
-                                 0, 1,          0, 0,
-                       -sin(angle), 0, cos(angle), 0,
-                                 0, 0,          0, 1 );
+    return fix(DirectX::XMMatrixRotationX(angle));
 }
 
-inline D3DXMATRIX rotate_z_matrix(float angle)
+inline DirectX::XMMATRIX rotate_y_matrix(float angle)
 {
-    return D3DXMATRIX( cos(angle), -sin(angle), 0, 0,
-                       sin(angle),  cos(angle), 0, 0,
-                                0,           0, 1, 0,
-                                0,           0, 0, 1 );
+    return fix(DirectX::XMMatrixRotationY(angle));
 }
 
-inline D3DXMATRIX rotate_x_matrix(float angle, D3DXVECTOR3 center)
+inline DirectX::XMMATRIX rotate_z_matrix(float angle)
 {
-    return shift_matrix(center)*rotate_x_matrix(angle)*shift_matrix(-center) ;
+    return fix(DirectX::XMMatrixRotationZ(angle));
 }
 
-inline D3DXMATRIX rotate_and_shift_matrix(D3DXVECTOR3 angles, D3DXVECTOR3 shift, float zoom)
+inline DirectX::XMMATRIX rotate_and_shift_matrix(const float3 & angles, const float3 & shift)
 {
-    return shift_matrix(shift, zoom)*rotate_z_matrix(angles.z)*rotate_y_matrix(angles.y)*rotate_x_matrix(angles.x);
+    return shift_matrix(shift)*rotate_z_matrix(angles.z)*rotate_y_matrix(angles.y)*rotate_x_matrix(angles.x);
 }

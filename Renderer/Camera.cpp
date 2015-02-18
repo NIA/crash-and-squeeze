@@ -1,5 +1,7 @@
 #include "Camera.h"
 
+using namespace DirectX;
+
 namespace
 {
     const float NEAR_CLIP = 1.2f;
@@ -7,22 +9,23 @@ namespace
     const float COEFF_A = FAR_CLIP / (FAR_CLIP - NEAR_CLIP);
     const float COEFF_B = - COEFF_A * NEAR_CLIP;
 
-    const D3DXMATRIX PROJ_MX ( NEAR_CLIP,         0,       0,       0,
+    const float4x4 _PROJ_MX (  NEAR_CLIP,         0,       0,       0,
                                        0, NEAR_CLIP,       0,       0,
                                        0,         0, COEFF_A, COEFF_B,
                                        0,         0,       1,       0 );
+    const XMMATRIX PROJ_MX = XMLoadFloat4x4(&_PROJ_MX);
 
     const float RHO_STEP = 0.1f;
-    const float THETA_STEP = D3DX_PI/200.0f;
-    const float PHI_STEP = D3DX_PI/100.0f;
+    const float THETA_STEP = XM_PI/200.0f;
+    const float PHI_STEP = XM_PI/100.0f;
 
     const float RHO_MIN = 0.5f + NEAR_CLIP; // // Suppose models are inside the cube 1x1x1 => in sphere with radius sqrt(3) (approx. 1,74).
     const float THETA_MIN = 0.01f;
 
     const float RHO_MAX = FAR_CLIP;
-    const float THETA_MAX = D3DX_PI - 0.01f; // A little subtraction - to prevent looking parallel to the 'up' vector
+    const float THETA_MAX = XM_PI - 0.01f; // A little subtraction - to prevent looking parallel to the 'up' vector
 
-    const D3DXVECTOR3 DEFAULT_POSITION(1.5f*RHO_MIN, D3DX_PI/3.0f, D3DX_PI/3.0f);
+    const float3 DEFAULT_POSITION(1.5f*RHO_MIN, XM_PI/3.0f, XM_PI/3.0f);
 }
 
 Camera::Camera()
@@ -39,21 +42,21 @@ void Camera::set(float pos_rho, float pos_theta, float pos_phi, float at_x, floa
 
 void Camera::set_position(float rho, float theta, float phi, bool update_mx)
 {
-    eye_spheric = D3DXVECTOR3(rho, theta, phi);
+    eye_spheric = float3(rho, theta, phi);
     if( update_mx )
         update_matrices();
 }
 
 void Camera::set_at_position(float x, float y, float z, bool update_mx)
 {
-    at = D3DXVECTOR3(x, y, z);
+    at = float3(x, y, z);
     if( update_mx )
         update_matrices();
 }
 
 void Camera::set_up_direction(float x, float y, float z, bool update_mx)
 {
-    up = D3DXVECTOR3(x, y, z);
+    up = float3(x, y, z);
     if( update_mx )
         update_matrices();
 }
@@ -124,44 +127,41 @@ void Camera::move_counterclockwise()
     change_phi( -PHI_STEP );
 }
 
-static D3DXVECTOR3 spheric_to_cartesian( D3DXVECTOR3 spheric )
+static float3 spheric_to_cartesian( const float3 & spheric )
 {
     float rho = spheric.x;
     float theta = spheric.y;
     float phi = spheric.z;
 
-    return D3DXVECTOR3( rho*sin(theta)*cos(phi), rho*sin(theta)*sin(phi), rho*cos(theta) );
+    return float3( rho*sin(theta)*cos(phi), rho*sin(theta)*sin(phi), rho*cos(theta) );
 }
 
 void Camera::update_matrices()
 {
-    D3DXVECTOR3 eye = get_eye();
-    D3DXVECTOR3 axis_x, axis_y, axis_z;
-    axis_z = at - eye;
-    D3DXVec3Cross( &axis_x, &up, &axis_z );
-    D3DXVec3Cross( &axis_y, &axis_z, &axis_x );
+    const float3 _eye = get_eye();
+    const XMVECTOR eye = XMLoadFloat3(&_eye);
+    XMVECTOR axis_x, axis_y, axis_z;
+    axis_z = XMVector3Normalize( XMLoadFloat3(&at) - eye );
+    axis_x = XMVector3Normalize( XMVector3Cross(XMLoadFloat3(&up), axis_z) );
+    axis_y = XMVector3Normalize( XMVector3Cross(axis_z,            axis_x) );
 
-    D3DXVec3Normalize( &axis_x, &axis_x );
-    D3DXVec3Normalize( &axis_y, &axis_y );
-    D3DXVec3Normalize( &axis_z, &axis_z );
+    const float3 d( - XMVectorGetX(XMVector3Dot( eye, axis_x )),
+                    - XMVectorGetX(XMVector3Dot( eye, axis_y )),
+                    - XMVectorGetX(XMVector3Dot( eye, axis_z )) );
 
-    D3DXVECTOR3 d( - D3DXVec3Dot( &eye, &axis_x ),
-                   - D3DXVec3Dot( &eye, &axis_y ),
-                   - D3DXVec3Dot( &eye, &axis_z ) );
-
-    D3DXMATRIX view_mx( axis_x.x, axis_x.y, axis_x.z, d.x,
-                        axis_y.x, axis_y.y, axis_y.z, d.y,
-                        axis_z.x, axis_z.y, axis_z.z, d.z,
-                               0,        0,        0,   1 );
-    mx = PROJ_MX * view_mx;
+    const float4x4 view_mx( XMVectorGetX(axis_x), XMVectorGetY(axis_x), XMVectorGetZ(axis_x), d.x,
+                            XMVectorGetX(axis_y), XMVectorGetY(axis_y), XMVectorGetZ(axis_y), d.y,
+                            XMVectorGetX(axis_z), XMVectorGetY(axis_z), XMVectorGetZ(axis_z), d.z,
+                                               0,                     0,                   0,   1 );
+    XMStoreFloat4x4(&mx, PROJ_MX * XMLoadFloat4x4(&view_mx));
 }
 
-const D3DXMATRIX & Camera::get_matrix() const
+const float4x4 & Camera::get_matrix() const
 {
     return mx;
 }
 
-D3DXVECTOR3 Camera::get_eye() const
+float3 Camera::get_eye() const
 {
     return spheric_to_cartesian( eye_spheric );
 }

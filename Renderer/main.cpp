@@ -26,6 +26,11 @@ using CrashAndSqueeze::Math::Real;
 using CrashAndSqueeze::Core::IndexArray;
 using CrashAndSqueeze::Collections::Array;
 
+using DirectX::XMVECTOR;
+using DirectX::XMStoreFloat4;
+using DirectX::XMStoreFloat4;
+using DirectX::XMVectorLerp;
+
 namespace
 {
     bool DISABLE_MESSAGE_BOXES = true;
@@ -40,14 +45,13 @@ namespace
     
     const TCHAR *MESH_FILENAME = _T("ford.x");
 
-    const D3DCOLOR CYLINDER_COLOR = D3DCOLOR_XRGB(100, 150, 255);
-    const D3DCOLOR OBSTACLE_COLOR = D3DCOLOR_XRGB(100, 100, 100);
+    const float4 CYLINDER_COLOR (0.4f, 0.6f, 1.0f, 1);
+    const float4 OBSTACLE_COLOR (0.4f, 0.4f, 0.4f, 1);
 
-    const D3DXCOLOR NO_DEFORM_COLOR = CYLINDER_COLOR;
-    const D3DXCOLOR MAX_DEFORM_COLOR = D3DCOLOR_XRGB(255, 0, 0);
-    const D3DXCOLOR MEDIUM_DEFORM_COLOR = (NO_DEFORM_COLOR + MAX_DEFORM_COLOR)/2.0f;
+    const float4 NO_DEFORM_COLOR = CYLINDER_COLOR;
+    const float4 MAX_DEFORM_COLOR (1, 0, 0, 1);
 
-    const D3DXCOLOR FRAME_COLOR = D3DCOLOR_XRGB(128, 255, 0);
+    const float4 FRAME_COLOR (0.5f, 1, 0, 1);
 
     const Real      THRESHOLD_DISTANCE = 0.05;
 
@@ -55,18 +59,18 @@ namespace
     const Index LOW_EDGES_PER_HEIGHT = 68;
     const Index LOW_EDGES_PER_CAP = 8;
     const Index LOW_CYLINDER_VERTICES = cylinder_vertices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
-    const DWORD LOW_CYLINDER_INDICES = cylinder_indices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
+    const Index LOW_CYLINDER_INDICES = cylinder_indices_count(LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP);
 
     const Index HIGH_EDGES_PER_BASE = 100; // 300; //
     const Index HIGH_EDGES_PER_HEIGHT = 120; // 300; //
     const Index HIGH_EDGES_PER_CAP = 40; // 50; //
     const Index HIGH_CYLINDER_VERTICES = cylinder_vertices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
-    const DWORD HIGH_CYLINDER_INDICES = cylinder_indices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
+    const Index HIGH_CYLINDER_INDICES = cylinder_indices_count(HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP);
 
     const Index SPHERE_EDGES_PER_DIAMETER = 8;
     const Index SPHERE_VERTICES = sphere_vertices_count(SPHERE_EDGES_PER_DIAMETER);
-    const DWORD SPHERE_INDICES = sphere_indices_count(SPHERE_EDGES_PER_DIAMETER);
-    const D3DXCOLOR HIT_REGION_COLOR = D3DCOLOR_RGBA(255, 255, 0, 128);
+    const Index SPHERE_INDICES = sphere_indices_count(SPHERE_EDGES_PER_DIAMETER);
+    const float4 HIT_REGION_COLOR (1, 1, 0, 0.5f);
 
     const Index OVAL_EDGES_PER_DIAMETER = 100;
     const Index OVAL_VERTICES = sphere_vertices_count(OVAL_EDGES_PER_DIAMETER);
@@ -152,7 +156,7 @@ namespace
             int gfx_vertices_count = static_cast<int>(gfx_model.get_vertices_count());
             for(int i = 0; i < gfx_vertices_count; ++i)
             {
-                if( region.contains( d3dxvector_to_math_vector(buffer[i].pos) ) )
+                if( region.contains( float3_to_math_vector(buffer[i].pos) ) )
                     graphical_vertices.push_back(i);
             }
             gfx_model.unlock_vertex_buffer();
@@ -170,8 +174,8 @@ namespace
         Real max_distance;
         RegionWithVertices rgnwv;
 
-        D3DXCOLOR no_deform_color;
-        D3DXCOLOR max_deform_color;
+        float4 no_deform_color;
+        float4 max_deform_color;
 
     public:
         RepaintReaction(IRegion &region,
@@ -179,27 +183,27 @@ namespace
                         Model &gfx_mod,
                         Real threshold_distance,
                         Real max_distance,
-                        D3DXCOLOR no_deform_color = NO_DEFORM_COLOR,
-                        D3DXCOLOR max_deform_color = MAX_DEFORM_COLOR)
+                        float4 no_deform_color = NO_DEFORM_COLOR,
+                        float4 max_deform_color = MAX_DEFORM_COLOR)
             : rgnwv(region, phy_mod, gfx_mod),
               ShapeDeformationReaction(rgnwv.get_physical_vertices(), threshold_distance),
               model(gfx_mod), max_distance(max_distance),
               no_deform_color(no_deform_color), max_deform_color(max_deform_color)
         {
             // TEST REGION!
-            //model.repaint_vertices(rgnwv.get_graphical_vertices(), D3DCOLOR_XRGB(255,255,0));
+            //model.repaint_vertices(rgnwv.get_graphical_vertices(), float4(1,1,0,1));
         }
 
         virtual void invoke(int vertex_index, Real distance)
         {
             UNREFERENCED_PARAMETER(vertex_index);
 
-            D3DXCOLOR color;
+            float4 color;
             Real coeff = (distance - get_threshold_distance())/(max_distance - get_threshold_distance());
             if(coeff > 1)
                 coeff = 1;
 
-            D3DXColorLerp(&color, &no_deform_color, &max_deform_color, static_cast<float>(coeff));
+            XMStoreFloat4(&color, XMVectorLerp(XMLoadFloat4(&no_deform_color), XMLoadFloat4(&max_deform_color), static_cast<float>(coeff)));
             model.repaint_vertices(rgnwv.get_graphical_vertices(), color);
         }
     };
@@ -254,13 +258,13 @@ namespace
     void paint_model(AbstractModel &model)
     {
         static const int COLORS_COUNT = 5;
-        static D3DCOLOR colors[COLORS_COUNT] =
+        static float4 colors[COLORS_COUNT] =
         {
-            D3DCOLOR_XRGB(0, 0, 255),
-            D3DCOLOR_XRGB(0, 150, 0),
-            D3DCOLOR_XRGB(150, 255, 0),
-            D3DCOLOR_XRGB(255, 255, 0),
-            D3DCOLOR_XRGB(0, 255, 255),
+            float4(0.0f, 0.0f, 1.0f, 1),
+            float4(0.0f, 0.6f, 0.0f, 1),
+            float4(0.6f, 1.0f, 0.0f, 1),
+            float4(1.0f, 1.0f, 0.0f, 1),
+            float4(0.0f, 1.0f, 1.0f, 1),
         };
         Vertex * vertices = model.lock_vertex_buffer(LOCK_READ_WRITE);
         for(unsigned i = 0; i < model.get_vertices_count(); ++i)
@@ -324,7 +328,7 @@ namespace
             Vertex * sphere_vertices = new Vertex[SPHERE_VERTICES];
             Index * sphere_indices = new Index[SPHERE_INDICES];
 
-            sphere(static_cast<float>(hit_region->get_radius()), D3DXVECTOR3(0,0,0), HIT_REGION_COLOR,
+            sphere(static_cast<float>(hit_region->get_radius()), float3(0,0,0), HIT_REGION_COLOR,
                    SPHERE_EDGES_PER_DIAMETER, sphere_vertices, sphere_indices);
 
             hit_region_model = new Model(
@@ -336,7 +340,7 @@ namespace
                 sphere_indices,
                 SPHERE_INDICES,
                 false,
-                math_vector_to_d3dxvector(hit_region->get_center()));
+                math_vector_to_float3(hit_region->get_center()));
             hit_region_model->add_shader(simple_pixel_shader);
             hit_region_model->set_draw_ccw(true);
 
@@ -440,7 +444,7 @@ namespace
             // == PREPARE CYLINDER DEMO ==
 
             // - Create models -
-            cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
+            cylinder( cylinder_radius, cylinder_height, float3(0,0,cylinder_z),
                      &CYLINDER_COLOR, 1,
                      HIGH_EDGES_PER_BASE, HIGH_EDGES_PER_HEIGHT, HIGH_EDGES_PER_CAP,
                      high_model_vertices, high_model_indices );
@@ -458,7 +462,7 @@ namespace
 #else
             float random_amp = 0.0f; // no need for randomization without quadratic extensions
 #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
-            cylinder( cylinder_radius, cylinder_height, D3DXVECTOR3(0,0,cylinder_z),
+            cylinder( cylinder_radius, cylinder_height, float3(0,0,cylinder_z),
                      &CYLINDER_COLOR, 1,
                      LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP,
                      low_model_vertices, low_model_indices, random_amp );
@@ -566,11 +570,11 @@ namespace
         virtual void prepare()
         {
             // == PREPARE OVAL DEMO ==
-            const D3DCOLOR OVAL_COLOR = D3DCOLOR_XRGB(170, 140, 120);
+            const float4 OVAL_COLOR (0.67f, 0.55f, 0.47f, 1);
 
             // - Create models -
             const float oval_radius = 2;
-            sphere(oval_radius, D3DXVECTOR3(0, 0, 0), OVAL_COLOR, OVAL_EDGES_PER_DIAMETER, low_model_vertices, low_model_indices);
+            sphere(oval_radius, float3(0, 0, 0), OVAL_COLOR, OVAL_EDGES_PER_DIAMETER, low_model_vertices, low_model_indices);
             // Make oval
             squeeze_sphere(0.75f, 1, low_model_vertices, OVAL_VERTICES);
             squeeze_sphere(0.5f, 0, low_model_vertices, OVAL_VERTICES);

@@ -35,7 +35,6 @@ private:
     IDXGISwapChain              *swap_chain;
     ID3D11RasterizerState       *rs_wireframe_on;
     ID3D11RasterizerState       *rs_wireframe_off;
-    ID3DXFont                   *font;          // font to draw text
 
     bool directional_light_enabled;
     bool point_light_enabled;
@@ -46,7 +45,7 @@ private:
     bool wireframe;
 
     Camera * camera;
-    D3DXMATRIX post_transform; // matrix multiplied by model matrix (kinda world matrix)
+    float4x4 post_transform; // matrix multiplied by model matrix (kinda world matrix)
 
     const TCHAR * text_to_draw;
 
@@ -105,15 +104,15 @@ private:
 
     void set_alpha_test();
 
-    void draw_text(const TCHAR * text, RECT rect, D3DCOLOR color, bool align_right = false);
+    void draw_text(const TCHAR * text, RECT rect, float4 color, bool align_right = false);
 
     void release_interfaces();
 
 public:
     Renderer(Window &window, Camera * camera);
 
-    ID3D11Device * get_device() const;
-    ID3D11DeviceContext * get_context() const;
+    ID3D11Device        * get_device()  const override;
+    ID3D11DeviceContext * get_context() const override;
 
     void set_text_to_draw(const TCHAR * text);
     

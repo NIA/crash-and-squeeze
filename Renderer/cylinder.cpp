@@ -30,13 +30,13 @@ namespace
         float radius;
         float random_amp;
         float height;
-        D3DXVECTOR3 position;
+        float3 position;
         // mesh dimensions
         Index edges_per_base;
         Index edges_per_height;
         Index edges_per_cap;
         // colors
-        const D3DCOLOR *colors;
+        const float4 *colors;
         unsigned colors_count;
         // options
         bool radial_strips; // radial (depending on step) or vertical (depending on level) color distribution
@@ -46,7 +46,7 @@ namespace
 
     void generate_levels(Index &vertex, DWORD &index, const GENERATION_PARAMS &params)
     {
-        const float STEP_ANGLE = 2*D3DX_PI/params.edges_per_base;
+        const float STEP_ANGLE = 2*DirectX::XM_PI/params.edges_per_base;
         const float STEP_UP = params.height/params.edges_per_height;
         const float STEP_RADIAL = params.radius/params.edges_per_cap;
 
@@ -55,7 +55,7 @@ namespace
         _ASSERT(params.colors_count != 0);
         Index part_size = (levels_or_steps_count + params.colors_count)/params.colors_count; // `+ colors_count' just for excluding a bound of interval [0, colors_count)
         
-        D3DXVECTOR3 normal_if_horisontal = D3DXVECTOR3(0, 0, params.top ? 1.0f : -1.0f);
+        float3 normal_if_horisontal = float3(0, 0, params.top ? 1.0f : -1.0f);
         float z_if_horisontal = params.top ? params.height : 0.0f;
         float weight_if_horisontal = params.top ? 1.0f : 0.0f;
     
@@ -66,12 +66,12 @@ namespace
                 // !! randomization !!
                 float radius = params.vertical ? params.radius*(1 + random(params.random_amp)) : (params.radius - STEP_RADIAL*level);
                 float z, weight;
-                D3DXVECTOR3 normal;
+                float3 normal;
                 if (params.vertical)
                 {
                     z = level*STEP_UP;
                     weight = static_cast<float>(level)/params.edges_per_height;
-                    normal = D3DXVECTOR3( cos(step*STEP_ANGLE), sin(step*STEP_ANGLE), 0 );
+                    normal = float3( cos(step*STEP_ANGLE), sin(step*STEP_ANGLE), 0 );
                 }
                 else
                 {
@@ -79,10 +79,10 @@ namespace
                     z = z_if_horisontal;
                     weight = weight_if_horisontal;
                 }
-                D3DXVECTOR3 position = params.position + D3DXVECTOR3( radius*cos(step*STEP_ANGLE),
-                                                                      radius*sin(step*STEP_ANGLE),
-                                                                      z);
-                D3DCOLOR color = params.radial_strips ? params.colors[step/part_size] : params.colors[level/part_size];
+                float3 position = params.position + float3( radius*cos(step*STEP_ANGLE),
+                                                            radius*sin(step*STEP_ANGLE),
+                                                            z);
+                float4 color = params.radial_strips ? params.colors[step/part_size] : params.colors[level/part_size];
 
                 if( level == 0 && !params.vertical)
                 {
@@ -114,7 +114,7 @@ namespace
         if( !params.vertical )
         {
             // for caps: add center vertex and triangles with it
-            D3DXVECTOR3 position = D3DXVECTOR3( 0, 0, z_if_horisontal ) + params.position;
+            float3 position = float3( 0, 0, z_if_horisontal ) + params.position;
             params.res_vertices[vertex] = Vertex( position, params.colors[0], normal_if_horisontal );
             for( Index step = 0; step < params.edges_per_base; ++step )
             {
@@ -127,8 +127,8 @@ namespace
     }
 }
 
-void cylinder( float radius, float height, D3DXVECTOR3 position,
-               const D3DCOLOR *colors, unsigned colors_count,
+void cylinder( float radius, float height, float3 position,
+               const float4 *colors, unsigned colors_count,
                Index edges_per_base, Index edges_per_height, Index edges_per_cap,
                Vertex *res_vertices, Index *res_indices, float random_amp)
 // Writes data into arrays given as `res_vertices' and `res_indices',

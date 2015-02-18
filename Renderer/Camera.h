@@ -4,11 +4,11 @@
 class Camera
 {
 private:
-    D3DXVECTOR3 eye_spheric;  // a point, spheric coordinates
-    D3DXVECTOR3 at;           // a point, cartesian coordinates
-    D3DXVECTOR3 up;           // a vector, cartesian coordinates
+    float3 eye_spheric;  // a point, spheric coordinates
+    float3 at;           // a point, Cartesian coordinates
+    float3 up;           // a vector, Cartesian coordinates
 
-    D3DXMATRIX mx;
+    float4x4 mx;
 
     void check_coord_bounds();
     
@@ -37,6 +37,6 @@ public:
     Camera(float pos_rho, float pos_theta, float pos_phi, float at_x, float at_y, float at_z) { set(pos_rho,pos_theta,pos_phi,at_x,at_y,at_z); }
     void update_matrices();
 
-    const D3DXMATRIX & get_matrix() const;
-    D3DXVECTOR3 get_eye() const;
+    const float4x4 & get_matrix() const;
+    float3 get_eye() const;
 };

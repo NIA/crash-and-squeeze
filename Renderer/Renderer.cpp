@@ -3,38 +3,35 @@
 #include "matrices.h"
 #include "Model.h"
 
-#include <DirectXMath.h>
-
 using CrashAndSqueeze::Math::Matrix;
 using CrashAndSqueeze::Math::Vector;
 using CrashAndSqueeze::Math::VECTOR_SIZE;
+
+using namespace DirectX;
 
 // Library imports
 #pragma comment( lib, "d3d11.lib" )
 #pragma comment( lib, "DXGI.lib" )
 
-#pragma WARNING(DX11 porting unfinished: replace D3DX math with DirectXMath)
-#ifdef NDEBUG
-#pragma comment( lib, "d3dx9.lib" )
-#else
-#pragma comment( lib, "d3dx9d.lib" )
-#endif //ifdef NDEBUG
+const unsigned VECTORS_IN_MATRIX = sizeof(float4x4)/sizeof(float4);
+const unsigned COLOR_COMPONENTS  = VECTORS_IN_MATRIX;
 
 namespace
 {
     const bool        INITIAL_WIREFRAME_STATE = true;
-    const D3DXCOLOR   BACKGROUND_COLOR = D3DCOLOR_XRGB( 255, 255, 255 );
+    const float       BACKGROUND_COLOR[COLOR_COMPONENTS] = { 1, 1, 1, 1 };
     const float       CLEAR_DEPTH = 1;
-    const D3DCOLOR    TEXT_COLOR = D3DCOLOR_XRGB( 255, 255, 0 );
+    const float4      TEXT_COLOR( 1, 1, 0, 1 );
     const int         TEXT_HEIGHT = 20;
     const int         TEXT_MARGIN = 10;
     const int         TEXT_SPACING = 0;
     const int         TEXT_WIDTH = Window::DEFAULT_WINDOW_SIZE - 2*TEXT_MARGIN;
     const int         TEXT_LINE_HEIGHT = TEXT_HEIGHT + TEXT_SPACING;
 
-    void build_d3d_matrix(Matrix transformation, Vector pos, /*out*/ D3DXMATRIX &out_matrix)
+    // Creates 4x4 matrix from float3x3 transformation and float3 shift
+    void build_d3d_matrix(float4x4 &out_matrix /*out*/, Matrix transformation, Vector pos)
     {
-        const int LAST = VECTORS_IN_MATRIX - 1; // index of last row/col in D3DXMATRIX
+        const int LAST = VECTORS_IN_MATRIX - 1; // index of last row/col in matrix
 
         // copy transformation
         for(int i = 0; i < VECTOR_SIZE; ++i)
@@ -63,7 +60,6 @@ namespace
 
 
     // constant values of shader constants:
-#pragma WARNING(DX11 porting unfinished: replace D3DX math with DirectXMath)
     const float SHADER_VAL_DIFFUSE_COEF  = 1.0f;
     const float SHADER_VAL_SPECULAR_COEF = 0.3f;
     const float SHADER_VAL_SPECULAR_F    = 25.0f;
@@ -79,27 +75,28 @@ namespace
 
 
     const float4      BLACK ( 0, 0, 0, 0 );
-    const D3DMATRIX   ZEROS = {0};
+    const float       ZEROS_VALUES[VECTORS_IN_MATRIX*VECTORS_IN_MATRIX] = {0};
+    const float4x4    ZEROS (ZEROS_VALUES);
 
     enum {
         WORLD_CONSTANTS_SLOT,    // = 0
         MODEL_CONSTANTS_SLOT,    // = 1
-        LIGHTING_CONSTANTS_SLOT, // =2
+        LIGHTING_CONSTANTS_SLOT, // = 2
         _CONTANTS_SLOTS_COUNT
     };
 }
 
-const unsigned VECTORS_IN_MATRIX = sizeof(D3DXMATRIX)/sizeof(D3DXVECTOR4);
-
 Renderer::Renderer(Window &window, Camera * camera) :
-    device(nullptr), context(nullptr), render_target_view(nullptr), font(nullptr), swap_chain(nullptr),
+    device(nullptr), context(nullptr), render_target_view(nullptr), swap_chain(nullptr),
     rs_wireframe_on(nullptr), rs_wireframe_off(nullptr), camera(camera),
-    alpha_test_enabled(false), wireframe(INITIAL_WIREFRAME_STATE), post_transform(rotate_x_matrix(D3DX_PI/2)),
+    alpha_test_enabled(false), wireframe(INITIAL_WIREFRAME_STATE),
     directional_light_enabled(true), point_light_enabled(true), spot_light_enabled(false), ambient_light_enabled(true),
     text_to_draw(nullptr), world_constants(nullptr), model_constants(nullptr), lighting_constants(nullptr)
 {
     try
     {
+        XMStoreFloat4x4(&post_transform, rotate_x_matrix(XM_PI/2));
+
         init_device(window);
         init_buffers();
         init_font();
@@ -114,15 +111,6 @@ Renderer::Renderer(Window &window, Camera * camera) :
 
 void Renderer::init_device(Window &window)
 {
-    // Set up the structure used to create the device
-    D3DPRESENT_PARAMETERS present_parameters;
-    ZeroMemory( &present_parameters, sizeof( present_parameters ) );
-    present_parameters.Windowed = TRUE;
-    present_parameters.SwapEffect = D3DSWAPEFFECT_DISCARD;
-    present_parameters.BackBufferFormat = D3DFMT_UNKNOWN;
-    present_parameters.EnableAutoDepthStencil = TRUE;
-    present_parameters.AutoDepthStencilFormat = D3DFMT_D16;
-    present_parameters.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
     // Set default adapter and driver type settings
     IDXGIAdapter* adapter_to_use = nullptr;
     D3D_DRIVER_TYPE driver_type = D3D_DRIVER_TYPE_HARDWARE;
@@ -323,7 +311,7 @@ ID3D11DeviceContext * Renderer::get_context() const
     return context;
 }
 
-void Renderer::draw_text(const TCHAR * text, RECT rect, D3DCOLOR color, bool align_right)
+void Renderer::draw_text(const TCHAR * text, RECT rect, float4 color, bool align_right /*= false*/)
 {
 #pragma WARNING(DX11 porting unfinished: font)
     // TODO: probably use GDI+ ?
@@ -386,8 +374,8 @@ void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &
     context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH, CLEAR_DEPTH, 0);
 
     // Setting constants
-    D3DXVECTOR3 directional_vector;
-    D3DXVec3Normalize(&directional_vector, &SHADER_VAL_DIRECTIONAL_VECTOR);
+    float3 directional_vector;
+    XMStoreFloat3(&directional_vector, XMVector3Normalize(XMLoadFloat3(&SHADER_VAL_DIRECTIONAL_VECTOR)));
 
     float4 ambient_color = ambient_light_enabled ? SHADER_VAL_AMBIENT_COLOR : BLACK;
     float4 directional_color = directional_light_enabled ? SHADER_VAL_DIRECTIONAL_COLOR : BLACK;
@@ -436,15 +424,15 @@ void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &
             for(int i = 0; i < clusters_num; ++i)
             {
                 // ...set initial center of mass...
-                model_consts->clus_cm[i] = math_vector_to_d3dxvector(physical_model->get_cluster_initial_center(i));
+                model_consts->clus_cm[i] = math_vector_to_float3(physical_model->get_cluster_initial_center(i));
 
                 // ...and transformation matrices for positions...
-                D3DXMATRIX cluster_matrix;
-                build_d3d_matrix(physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i), cluster_matrix);
+                float4x4 cluster_matrix;
+                build_d3d_matrix(cluster_matrix, physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i));
                 model_consts->clus_mx[i] = cluster_matrix;
 
                 // ...and normals
-                build_d3d_matrix(physical_model->get_cluster_normal_transformation(i), Vector::ZERO, cluster_matrix);
+                build_d3d_matrix(cluster_matrix, physical_model->get_cluster_normal_transformation(i), Vector::ZERO);
                 model_consts->clus_nrm_mx[i] = cluster_matrix;
             }
             // Last zero matrix:
@@ -489,7 +477,6 @@ void Renderer::release_interfaces()
     release_interface( swap_chain );
     release_interface( rs_wireframe_on );
     release_interface( rs_wireframe_off );
-    release_interface( font );
 }
 
 Renderer::~Renderer(void)

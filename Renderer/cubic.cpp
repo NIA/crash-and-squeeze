@@ -24,24 +24,26 @@ namespace
         float x_step;
         float y_step;
         float z_step;
-        D3DXVECTOR3 position;
-        D3DCOLOR color;
+        float3 position;
+        float4 color;
 
         Vertex *res_vertices;
         Index *res_indices;
     };
 
     // generates an adge along x-axis
-    void generate_edge(float x_step, D3DXVECTOR3 position, D3DCOLOR color,
+    void generate_edge(float x_step, float3 position, float4 color,
                        bool connect_with_previous_edge, bool connect_with_previous_layer, bool inside,
                        Index &vertex, DWORD &index, Vertex *res_vertices, Index *res_indices)
     {
-        D3DXCOLOR no_alpha_color(color);
-        no_alpha_color.a = 0;
+        float4 no_alpha_color(color); // same color as color, but with alpha = 0
+        no_alpha_color.w = 0;
+        Vertex start_vertex(position, color, float3(0,0,0));
         
         for(int i = 0; i <= CUBIC_X_EDGES; ++i)
         {
-            res_vertices[vertex] = Vertex(position + D3DXVECTOR3(i*x_step, 0, 0), color, D3DXVECTOR3(0,0,0));
+            res_vertices[vertex] = start_vertex;
+            res_vertices[vertex].pos += float3(i*x_step, 0, 0);
             
             if(inside && 0 != i && CUBIC_X_EDGES != i)
             {
@@ -68,7 +70,7 @@ namespace
         }
     }
     
-    void generate_layer(float x_step, float y_step, D3DXVECTOR3 position, D3DCOLOR color,
+    void generate_layer(float x_step, float y_step, const float3 & position, const float4 & color,
                         bool connect_with_previous_layer, bool inside,
                         Index &vertex, DWORD &index, Vertex *res_vertices, Index *res_indices)
     {
@@ -77,14 +79,14 @@ namespace
             bool connect_with_previous_edge = ( 0 != i );
             bool actually_inside = ( inside && 0 != i && CUBIC_Y_EDGES != i );
             
-                generate_edge(x_step, position + D3DXVECTOR3(0, i*y_step, 0), color,
+                generate_edge(x_step, position + float3(0, i*y_step, 0), color,
                               connect_with_previous_edge, connect_with_previous_layer, actually_inside,
                               vertex, index, res_vertices, res_indices);
         }
     }
 }
 
-void cubic( float x_size, float y_size, float z_size, D3DXVECTOR3 position, const D3DCOLOR color,
+void cubic( float x_size, float y_size, float z_size, const float3 & position, const float4 & color,
             Vertex *res_vertices, Index *res_indices)
 {
     Index vertex = 0; // index of current vertex
@@ -101,7 +103,7 @@ void cubic( float x_size, float y_size, float z_size, D3DXVECTOR3 position, cons
     {
         bool connect_with_previous_level = ( 0 != i);
         bool inside = ( 0 != i && CUBIC_Z_EDGES != i);
-        generate_layer(x_step, y_step, position + D3DXVECTOR3(0, 0, i*z_step), color,
+        generate_layer(x_step, y_step, position + float3(0, 0, i*z_step), color,
                        connect_with_previous_level, inside,
                        vertex, index, res_vertices, res_indices);
     }

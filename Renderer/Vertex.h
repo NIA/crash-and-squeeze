@@ -6,40 +6,41 @@ extern const DXGI_FORMAT INDEX_FORMAT;
 
 const int VERTICES_PER_TRIANGLE = 3;
 
-inline int rand_col_comp()
-// Returns random color component: an integer between 0 and 255
+inline float rand_col_comp()
+// Returns random color component: a float between 0.0f and 1.0f
 {
-    return rand()*255/RAND_MAX;
+    return static_cast<float>(rand())/RAND_MAX;
 }
 
-inline D3DCOLOR random_color()
+inline float4 random_color()
 {
-    return D3DCOLOR_XRGB( rand_col_comp(), rand_col_comp(), rand_col_comp() );
+    return float4( rand_col_comp(), rand_col_comp(), rand_col_comp(), 1.0f );
 }
 
 class Vertex
 {
 public:
-    D3DXVECTOR3 pos;            // The position for the vertex
-    D3DXVECTOR3 normal;         // The outer normal of model
-    D3DCOLOR color;             // The vertex color
+    float3 pos;            // The position for the vertex
+    float3 normal;         // The outer normal of model
+    float4 color;          // The vertex color // TODO: use more compact DirectX::PackedVector::XMCOLOR instead??
     // 8 BYTE cluster indices = 2 UBYTE4s
     BYTE cluster_indices[CrashAndSqueeze::Core::VertexInfo::CLUSTER_INDICES_NUM];
     DWORD clusters_num;
     
-    void set_normal(D3DXVECTOR3 tri_normal)
+    void set_normal(const float3 & tri_normal)
     {
         normal = tri_normal;
     }
-    Vertex() : color(0)
+    Vertex()
     {
-        set_normal(D3DXVECTOR3(1.0f, 0, 0));
+        color = random_color();
+        set_normal(float3(1.0f, 0, 0));
     }
-    Vertex(D3DXVECTOR3 pos, D3DCOLOR color, D3DXVECTOR3 normal) : pos(pos), color(color)
+    Vertex(const float3 & pos, const float4 & color, const float3 & normal) : pos(pos), color(color)
     {
         set_normal(normal);
     }
-    Vertex(D3DXVECTOR3 pos, D3DXVECTOR3 normal) : pos(pos)
+    Vertex(const float3 & pos, const float3 & normal) : pos(pos)
     {
         color = random_color();
         set_normal(normal);

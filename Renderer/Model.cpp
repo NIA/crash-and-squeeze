@@ -1,10 +1,10 @@
 #include "Model.h"
-#include "Renderer.h"
 #include "matrices.h"
 #include <algorithm>
 
 extern const unsigned VECTORS_IN_MATRIX;
 
+using namespace DirectX;
 
 // -- Triangle iterators
 class EmptyTriangleIterator : public AbstractModel::TriangleIterator
@@ -82,7 +82,7 @@ private:
 // -- AbstractModel --
 
 AbstractModel::AbstractModel(IRenderer *renderer, VertexShader &shader, const float3 & position, const float3 & rotation)
-: renderer(renderer), position(position), rotation(rotation), zoom(1), draw_cw(true), draw_ccw(false), subscriber(NULL)
+: renderer(renderer), position(position), rotation(rotation), scale(1), draw_cw(true), draw_ccw(false), subscriber(NULL)
 {
         add_shader(shader);
         update_matrix();
@@ -121,7 +121,7 @@ IRenderer * AbstractModel::get_renderer() const
 
 void AbstractModel::update_matrix()
 {
-    transformation = zoom*rotate_and_shift_matrix(rotation, position, zoom);
+    XMStoreFloat4x4(&transformation, rotate_and_shift_matrix(rotation, position)*scale_matrix(scale));
 }
 
 void AbstractModel::rotate(float phi)
@@ -130,19 +130,19 @@ void AbstractModel::rotate(float phi)
     update_matrix();
 }
 
-void AbstractModel::move(D3DXVECTOR3 vector)
+void AbstractModel::move(const float3 & vector)
 {
     position += vector;
     update_matrix();
 }
 
-void AbstractModel::set_zoom(float zoom)
+void AbstractModel::set_scale(float scale)
 {
-    this->zoom = zoom;
+    this->scale = scale;
     update_matrix();
 }
 
-const D3DXMATRIX &AbstractModel::get_transformation() const
+const float4x4 &AbstractModel::get_transformation() const
 {
     return transformation;
 }
@@ -201,21 +201,22 @@ AbstractModel::TriangleIterator * AbstractModel::get_triangles() const
 void AbstractModel::generate_normals()
 {
     unsigned vertices_count = get_vertices_count();
-    Vertex * vertices = lock_vertex_buffer(LOCK_READ);
+    Vertex * vertices = lock_vertex_buffer(LOCK_READ_WRITE);
 
     for (unsigned i = 0; i < vertices_count; ++i)
-        vertices[i].set_normal(D3DXVECTOR3(0,0,0));
+        vertices[i].set_normal(float3(0,0,0));
 
     TriangleIterator * triangle_iterator = get_triangles();
     for (TriangleIterator & t = *triangle_iterator; t.has_value(); ++t)
     {
         // Find normal of triangle
         Triangle triangle = *t;
-        D3DXVECTOR3 v1 = vertices[triangle[1]].pos - vertices[triangle[0]].pos;
-        D3DXVECTOR3 v2 = vertices[triangle[2]].pos - vertices[triangle[0]].pos;
-        D3DXVECTOR3 n;
-        D3DXVec3Cross(&n, &v1, &v2);
-        D3DXVec3Normalize(&n, &n);
+        XMVECTOR positions[VERTICES_PER_TRIANGLE];
+        for (unsigned i = 0; i < VERTICES_PER_TRIANGLE; ++i)
+            positions[i] = XMLoadFloat3(&vertices[triangle[i]].pos);
+        XMVECTOR v1 = positions[1] - positions[0];
+        XMVECTOR v2 = positions[2] - positions[0];
+        XMVECTOR n = XMVector3NormalizeEst(XMVector3Cross(v1, v2)); // use *Est version of XMVector3Normalize because accuracy is not critical for a normal
 
         // Add triangle normal to each vertex of this triangle to find average
         for (unsigned i = 0; i < VERTICES_PER_TRIANGLE; ++i)
@@ -234,7 +235,7 @@ void AbstractModel::generate_normals()
 
 Model::Model(   IRenderer *renderer, D3D11_PRIMITIVE_TOPOLOGY primitive_topology, VertexShader &shader,
                 const Vertex *vertices, unsigned vertices_count, const Index *indices, unsigned indices_count,
-                bool dynamic, D3DXVECTOR3 position, D3DXVECTOR3 rotation )
+                bool dynamic, const float3 & position, const float3 & rotation )
  
 : AbstractModel(renderer, shader, position, rotation),
   primitive_topology(primitive_topology),
@@ -273,7 +274,7 @@ AbstractModel::TriangleIterator * Model::get_triangles() const
     return new IndexBufferTriangleIterator(index_buffer, primitive_topology);
 }
 
-void Model::repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, D3DCOLOR color)
+void Model::repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, const float4 & color)
 {
     Vertex *vertices = lock_vertex_buffer(LOCK_READ_WRITE);
     for(int i = 0; i < vertex_indices.size(); ++i)
@@ -296,8 +297,8 @@ Model::~Model()
 
 // -- MeshModel --
 MeshModel::MeshModel(IRenderer *renderer, VertexShader &shader,
-                     const TCHAR * mesh_file, const D3DCOLOR color,
-                     D3DXVECTOR3 position, D3DXVECTOR3 rotation)
+                     const TCHAR * mesh_file, const float4 & color,
+                     const float3 & position, const float3 & rotation)
 : AbstractModel(renderer, shader, position, rotation)
 {
 #pragma WARNING(DX11 porting unfinished: implement reading mesh from file: replace D3DX with DirectXTK or implement yourself)
@@ -341,7 +342,7 @@ MeshModel::~MeshModel()
 
 PointModel::PointModel(IRenderer *renderer, VertexShader &shader,
                        const Vertex * src_vertices, unsigned src_vertices_count, unsigned int step,
-                       bool dynamic, D3DXVECTOR3 position, D3DXVECTOR3 rotation)
+                       bool dynamic, const float3 & position, const float3 & rotation)
 : AbstractModel(renderer, shader, position, rotation), vertex_buffer(nullptr)
 {
     _ASSERT(src_vertices != NULL);
@@ -448,16 +449,18 @@ void NormalsModel::update_normals()
 
     for (unsigned i = 0; i < normals_count; ++i)
     {
-        D3DXVECTOR3 pos    = parent_vertices[i].pos;
-        D3DXVECTOR3 normal = parent_vertices[i].normal;
+        float3   pos    = parent_vertices[i].pos;
+        XMVECTOR normal = XMLoadFloat3(&parent_vertices[i].normal);
         if (normalize_before_showing)
-            D3DXVec3Normalize(&normal, &normal);
-        D3DCOLOR    color = D3DCOLOR_XRGB(255, 0, 0); // TODO: option to visualize direction with color
-            
+            normal = XMVector3Normalize(normal);
         normal *= normal_length;
-        normal_vertices[2*i].pos = pos;
+
+        float4 color(1, 0, 0, 1); // TODO: option to visualize direction with color
+
+        normal_vertices[2*i].pos   = pos;
         normal_vertices[2*i].color = color;
-        normal_vertices[2*i + 1].pos = pos + normal;
+        pos += normal;
+        normal_vertices[2*i + 1].pos   = pos;
         normal_vertices[2*i + 1].color = color;
     }
     

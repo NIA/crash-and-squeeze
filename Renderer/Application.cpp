@@ -16,7 +16,7 @@ namespace
     const float       CAMERA_ROTATE_SPEED = 3.14f/Window::DEFAULT_WINDOW_SIZE; // when mouse moved to dx pixels, camera angle is changed to dx*CAMERA_ROTATE_SPEED
     const float       WHEEL_ZOOM_SPEED = 0.05f/WHEEL_DELTA; // when wheel is rotated to dw, camera rho is changed to dw*WHEEL_ZOOM_SPEED;
 
-    const Real        HIT_ROTATE_STEP = D3DX_PI/30.0;
+    const Real        HIT_ROTATE_STEP = DirectX::XM_PI/30.0;
     const Real        HIT_MOVE_STEP = 0.06;
     const Real        HIT_ROTATE_SPEED = 2*3.14f/Window::DEFAULT_WINDOW_SIZE;
     const Real        HIT_MOVE_SPEED = 3.0f/Window::DEFAULT_WINDOW_SIZE;
@@ -177,7 +177,7 @@ void Application::move_impact(const Vector &vector)
 {
     if(NULL != impact_model)
     {
-        impact_model->move(math_vector_to_d3dxvector(vector));
+        impact_model->move(math_vector_to_float3(vector));
         impact_region->move(vector);
     }
 }

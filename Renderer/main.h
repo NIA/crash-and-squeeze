@@ -1,8 +1,7 @@
 #pragma once
 
 #include <d3d11.h>
-// TODO: replace D3DX with DirectXMath or DirectXTK
-#include <d3dx9.h>
+#include <DirectXMath.h>
 #undef ERROR // because WinGDI.h defines this and it's awful!
 #include <cstdlib>
 #include <ctime>
@@ -54,27 +53,58 @@ template<size_t SIZE, class T> inline size_t array_size(T (&array)[SIZE])
     return SIZE;
 }
 
-typedef DWORD Index;
-typedef D3DXVECTOR3 float3;
-typedef D3DXVECTOR4 float4;
-typedef D3DXMATRIX  float4x4;
+typedef unsigned Index;
+typedef DirectX::XMFLOAT3   float3;
+typedef DirectX::XMFLOAT4   float4;
+typedef DirectX::XMFLOAT4X4 float4x4;
+
+// performs a+=b by converting a to XMVECTOR (and back)
+inline float3 & operator+=(float3 & a /*in/out*/, const DirectX::XMVECTOR & b)
+{
+    DirectX::XMStoreFloat3(&a, DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&a), b));
+    return a;
+}
+
+// performs a+=b by converting a and b to XMVECTOR (and back)
+inline float3 & operator+=(float3 & a /*in/out*/, const float3 & b)
+{
+    a += DirectX::XMLoadFloat3(&b);
+    return a;
+}
+
+// performs a + b by converting a and b to XMVECTOR (and back)
+inline float3 operator+(const float3 &a, const float3 &b)
+{
+    float3 res = a;
+    res += b;
+    return res;
+}
+
+// performs v * a by converting v and a to XMVECTOR (and back)
+inline float3 operator*(const float3 &v, const float a)
+{
+    float3 res;
+    DirectX::XMStoreFloat3(&res, DirectX::XMVectorMultiply(DirectX::XMLoadFloat3(&v), DirectX::XMVectorReplicate(a)));
+    return res;
+}
+
 
 // a helper for filling index buffers
-inline void add_triangle( Index i1, Index i2, Index i3, Index *indices, DWORD &current_index, Index offset = 0 )
+inline void add_triangle( Index i1, Index i2, Index i3, Index *indices, Index &current_index, Index offset = 0 )
 {
     indices[current_index++] = i1 + offset;
     indices[current_index++] = i2 + offset;
     indices[current_index++] = i3 + offset;
 }
 
-inline D3DXVECTOR3 math_vector_to_d3dxvector(const CrashAndSqueeze::Math::Vector &v)
+inline float3 math_vector_to_float3(const CrashAndSqueeze::Math::Vector &v)
 {
-    return D3DXVECTOR3(static_cast<float>(v[0]),
-                       static_cast<float>(v[1]),
-                       static_cast<float>(v[2]));
+    return float3(static_cast<float>(v[0]),
+                  static_cast<float>(v[1]),
+                  static_cast<float>(v[2]));
 }
 
-inline CrashAndSqueeze::Math::Vector d3dxvector_to_math_vector(const D3DXVECTOR3 &v)
+inline CrashAndSqueeze::Math::Vector float3_to_math_vector(const float3 &v)
 {
     return CrashAndSqueeze::Math::Vector(static_cast<CrashAndSqueeze::Math::Real>(v.x),
                                          static_cast<CrashAndSqueeze::Math::Real>(v.y),
