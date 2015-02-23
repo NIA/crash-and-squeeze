@@ -42,7 +42,7 @@ void PerformanceReporter::report_time(char *prefix, double time)
     static char buf[BUF_SIZE];
     sprintf_s(buf, BUF_SIZE,
               "%3s:%7.2f ms/frame (%6.1f fps)",
-              prefix, time*1000, 1/time, description, RELEASE_OR_DEBUG);
+              prefix, time*1000, 1/time);
     logger.log("        [Renderer]", buf);
 }
 

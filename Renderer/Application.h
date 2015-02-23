@@ -66,6 +66,7 @@ private:
 public:
     Application(Logger &logger);
     IRenderer* get_renderer();
+    Logger & get_logger() const { return logger; }
 
     // Adds given model to Application's list of models;
     // creates a physical model if `physical` is true (and returns it);

@@ -5,6 +5,8 @@
 #include "plane.h"
 #include "cylinder.h"
 #include "sphere.h"
+#include "ObjMeshLoader.h"
+#include "Stopwatch.h"
 #include <ctime>
 #include "logger.h" // application logger
 
@@ -43,7 +45,7 @@ namespace
     const char *LIGHTING_SHADER_FILENAME = "lighting.psh";
     const char *SIMPLE_PIXEL_SHADER_FILENAME = "simple.psh";
     
-    const TCHAR *MESH_FILENAME = _T("ford.x");
+    const char *MESH_FILENAME = "ford.obj";
 
     const float4 CYLINDER_COLOR (0.4f, 0.6f, 1.0f, 1);
     const float4 OBSTACLE_COLOR (0.4f, 0.4f, 0.4f, 1);
@@ -544,8 +546,29 @@ namespace
         {
             // == PREPARE CAR DEMO ==
 
+            // - Load model from obj
+            ObjMeshLoader loader(MESH_FILENAME, CYLINDER_COLOR);
+            Stopwatch stopwatch;
+            stopwatch.start();
+            loader.load();
+            double time = stopwatch.stop();
+            static const int BUF_SIZE = 128;
+            static char buf[BUF_SIZE];
+            sprintf_s(buf, BUF_SIZE,
+                "loading mesh from %s: %7.2f ms",
+                loader.get_filename(), time*1000);
+            app.get_logger().log("        [Importer]", buf);
+
             // - Create models -
-            MeshModel * car = new MeshModel(app.get_renderer(), deform_shader, MESH_FILENAME, CYLINDER_COLOR);
+            Model * car = new Model(
+                app.get_renderer(),
+                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+                deform_shader,
+                loader.get_vertices().data(),
+                loader.get_vertices().size(),
+                loader.get_indices().data(),
+                loader.get_indices().size()
+            );
             car->add_shader(lighting_shader); // add lighting
             Vertex * car_vertices = car->lock_vertex_buffer(LOCK_READ);
             PointModel * low_car = new PointModel(app.get_renderer(), simple_shader, car_vertices, car->get_vertices_count(), 10);
@@ -665,7 +688,6 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         Application app(logger);
         app.set_updating_vertices_on_gpu(UPDATE_ON_GPU);
 
-        // TODO: fix Cylinder and Car demos
         OvalDemo demo(app);
         // or - CylinderDemo demo(app, 0.5, 1);
         // or - CarDemo demo(app);

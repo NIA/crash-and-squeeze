@@ -170,7 +170,11 @@ public:
 class MeshError : public RuntimeError
 {
 public:
-    MeshError() : RuntimeError( _T("Error while loading mesh from file") ) {}
+    MeshError(const char * filename, const char * log_entry_start = "Failed to load mesh from file ")
+        : RuntimeError( _T("Error while loading mesh from file") )
+    {
+        set_log_entry(log_entry_start, filename);
+    }
 };
 class NotYetImplementedError : public RuntimeError
 {

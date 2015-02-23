@@ -143,33 +143,6 @@ private:
     DISABLE_COPY(Model)
 };
 
-class MeshModel : public AbstractModel 
-{
-private:
-    DWORD materials_num;
-
-    void release_interfaces();
-
-protected:
-    virtual void do_draw() const override;
-
-public:
-    MeshModel(IRenderer *renderer, VertexShader &shader,
-              const TCHAR * mesh_file, const float4 & color,
-              const float3 & position = float3(0,0,0),
-              const float3 & rotation = float3(0,0,0));
-
-    virtual unsigned get_vertices_count() const override;
-    virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const override;
-    virtual void unlock_vertex_buffer() const override;
-
-    virtual TriangleIterator * get_triangles() const override;
-
-    virtual ~MeshModel();
-private:
-    DISABLE_COPY(MeshModel)
-};
-
 class PointModel : public AbstractModel
 {
 private:

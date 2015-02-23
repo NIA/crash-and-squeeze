@@ -104,6 +104,7 @@
     <ClCompile Include="logger.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Model.cpp" />
+    <ClCompile Include="ObjMeshLoader.cpp" />
     <ClCompile Include="parallel.cpp" />
     <ClCompile Include="performance_reporter.cpp" />
     <ClCompile Include="plane.cpp" />
@@ -129,6 +130,7 @@
     <ClInclude Include="main.h" />
     <ClInclude Include="matrices.h" />
     <ClInclude Include="Model.h" />
+    <ClInclude Include="ObjMeshLoader.h" />
     <ClInclude Include="parallel.h" />
     <ClInclude Include="performance_reporter.h" />
     <ClInclude Include="plane.h" />

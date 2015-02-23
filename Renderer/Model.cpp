@@ -295,50 +295,7 @@ Model::~Model()
     release_interfaces();
 }
 
-// -- MeshModel --
-MeshModel::MeshModel(IRenderer *renderer, VertexShader &shader,
-                     const TCHAR * mesh_file, const float4 & color,
-                     const float3 & position, const float3 & rotation)
-: AbstractModel(renderer, shader, position, rotation)
-{
-#pragma WARNING(DX11 porting unfinished: implement reading mesh from file: replace D3DX with DirectXTK or implement yourself)
-    throw NotYetImplementedError(_T("MeshModel not yet implemented"));
-}
-
-unsigned MeshModel::get_vertices_count() const
-{
-    throw NotYetImplementedError(_T("MeshModel not yet implemented"));
-}
-
-Vertex * MeshModel::lock_vertex_buffer(BufferLockType lock_type) const
-{
-    throw NotYetImplementedError(_T("MeshModel not yet implemented"));
-}
-
-void MeshModel::unlock_vertex_buffer() const
-{
-    throw NotYetImplementedError(_T("MeshModel not yet implemented"));
-}
-
-void MeshModel::do_draw() const
-{
-    throw NotYetImplementedError(_T("MeshModel not yet implemented"));
-}
-
-AbstractModel::TriangleIterator * MeshModel::get_triangles() const
-{
-    throw NotYetImplementedError(_T("MeshModel not yet implemented"));
-}
-
-void MeshModel::release_interfaces()
-{
-    // Nothing to release in current implementation. This space was intentionally left blank.
-}
-
-MeshModel::~MeshModel()
-{
-    release_interfaces();
-}
+// -- PointModel --
 
 PointModel::PointModel(IRenderer *renderer, VertexShader &shader,
                        const Vertex * src_vertices, unsigned src_vertices_count, unsigned int step,
@@ -406,6 +363,8 @@ PointModel::~PointModel()
 {
     release_interfaces();
 }
+
+// -- NormalsModel --
 
 NormalsModel::NormalsModel(AbstractModel * parent_model, VertexShader &shader, float normal_length, bool normalize_before_showing /*= true*/)
     : AbstractModel(parent_model->get_renderer(), shader, parent_model->get_position(), parent_model->get_rotation()),

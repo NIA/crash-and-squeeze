@@ -88,6 +88,11 @@ inline float3 operator*(const float3 &v, const float a)
     return res;
 }
 
+inline bool operator==(const float3 & v1, const float3 & v2)
+{
+    return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z;
+}
+
 
 // a helper for filling index buffers
 inline void add_triangle( Index i1, Index i2, Index i3, Index *indices, Index &current_index, Index offset = 0 )
