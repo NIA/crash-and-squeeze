@@ -100,7 +100,7 @@ namespace
 Index ObjMeshLoader::find_or_add_vertex(const Vertex &v)
 {
     const Index vertices_count = vertices.size();
-    for (Index i = 0; i < vertices_count; i++)
+    for (int i = vertices_count - 1; i >= 0; --i)
     {
         if (same_vertex(vertices[i], v))
             return i;
