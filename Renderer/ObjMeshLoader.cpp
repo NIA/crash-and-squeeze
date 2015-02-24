@@ -1,5 +1,6 @@
 #include "ObjMeshLoader.h"
 #include <string>
+#include <cstring> // for memcmp
 
 ObjMeshLoader::ObjMeshLoader(const char * filename, float4 color)
     : filename(filename), color(color), loaded(false)
@@ -53,39 +54,40 @@ void ObjMeshLoader::load()
         }
         else if ("f" == cmd )
         {
-            Index index;
+            Index pos_index, tex_index, nrm_index;
             Vertex vertex;
             vertex.color = color;
             for (int iFace = 0; iFace < VERTICES_PER_TRIANGLE; iFace++)
             {
-                in >> index;
+                in >> pos_index;
                 if ( ! in )
                     throw MeshError(filename, "Failed to read face position index from mesh file "); // TODO: line number
-                if (index < 1 || index > positions.size())
+                if (pos_index < 1 || pos_index > positions.size())
                     throw MeshError(filename, "Incorrect face position index in mesh file "); // TODO: line number
-                vertex.pos = positions[index - 1];
+                vertex.pos = positions[pos_index - 1];
                 in.ignore(); // skip '/'
 
-                in >> index;
+                in >> tex_index;
                 if ( ! in )
                     throw MeshError(filename, "Failed to read face texcoord index from mesh file "); // TODO: line number
-                /* if (index < 1 || index > texcoords.size())
+                /* if (tex_index < 1 || tex_index > texcoords.size())
                     throw MeshError(filename, "Incorrect face texcoord position index in mesh file "); // TODO: line number
-                vertex.texcoord = texcoords[index - 1]; */ // TODO: support texture coordinates
+                vertex.texcoord = texcoords[tex_index - 1]; */ // TODO: support texture coordinates
                 in.ignore(); // skip '/'
 
-                in >> index;
+                in >> nrm_index;
                 if ( ! in )
                     throw MeshError(filename, "Failed to read face normal index from mesh file "); // TODO: line number
-                if (index < 1 || index > normals.size())
+                if (nrm_index < 1 || nrm_index > normals.size())
                     throw MeshError(filename, "Incorrect face normal index in mesh file "); // TODO: line number
-                vertex.set_normal(normals[index - 1]);
+                vertex.set_normal(normals[nrm_index - 1]);
 
-                indices.push_back(find_or_add_vertex(vertex));
+                indices.push_back(find_or_add_vertex(vertex, pos_index));
             }
         }
     }
     loaded = true;
+    vertex_cache.clear();
 }
 
 namespace
@@ -93,21 +95,38 @@ namespace
     // it is the same vertex if it has same pos and normal [and texcoord]
     bool same_vertex(const Vertex &a, const Vertex &b)
     {
-        return a.pos == b.pos && a.normal == b.normal; // && a.texcoord = b.texcoord // TODO: support texture coordinates
+        return 0 == memcmp(&a.pos, &b.pos, sizeof(a.pos)) && 0 == memcmp(&a.normal, &b.normal, sizeof(a.normal)); // && a.texcoord = b.texcoord // TODO: support texture coordinates
     }
 }
 
-Index ObjMeshLoader::find_or_add_vertex(const Vertex &v)
+Index ObjMeshLoader::find_or_add_vertex(const Vertex &v, Index hash)
 {
-    const Index vertices_count = vertices.size();
-    for (int i = vertices_count - 1; i >= 0; --i)
+    // Hash table optimization taken from %DirectXSDK%\Samples\C++\Direct3D10\MeshFromOBJ10\MeshLoader10.cpp
+    if ( vertex_cache.size() > hash )
     {
-        if (same_vertex(vertices[i], v))
-            return i;
+        // Indices of vertices with same hash will be in the list `entry`
+        const CacheEntry & entry = vertex_cache[hash];
+        // So go throw this indices until we find the same vertex
+        for (CacheEntry::const_iterator it = entry.begin(), end = entry.end(); it != end; ++it) {
+            const Index index = *it;
+            const Vertex & old_vertex = vertices[index];
+            if (same_vertex(old_vertex, v))
+                return index;
+        }
     }
-    // if not found - add new
+    else
+    {
+        // if hash value is more than cache size => grow cache
+        vertex_cache.resize(hash + 1);
+    }
+
+    // If we got here => no vertex with such hash value is in cache.
+    // Add it to vertices array...
     vertices.push_back(v);
-    return vertices_count; // return old vertex count which is now last index
+    // ...and its index (which is last index) to the cache
+    Index index = vertices.size() - 1;
+    vertex_cache[hash].push_back(index);
+    return index;
 }
 
 const std::vector<Vertex> & ObjMeshLoader::get_vertices() const
