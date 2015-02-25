@@ -2,6 +2,10 @@
 #include <string>
 #include <cstring> // for memcmp
 
+// undefinde max macro from windows.h so that numeric_limits::max can be used
+#undef max
+
+// TODO: use TCHAR/wchar_t instead of char
 ObjMeshLoader::ObjMeshLoader(const char * filename, float4 color)
     : filename(filename), color(color), loaded(false)
 {
@@ -25,7 +29,7 @@ void ObjMeshLoader::load()
     std::string cmd;
     for(;;)
     {
-        in >> cmd; // TODO: maybe read line-by-line with std::getline, like in http://stackoverflow.com/a/7868998/693538 ?
+        in >> cmd;
         if (!in)
             break;
 
@@ -57,34 +61,50 @@ void ObjMeshLoader::load()
             Index pos_index, tex_index, nrm_index;
             Vertex vertex;
             vertex.color = color;
-            for (int iFace = 0; iFace < VERTICES_PER_TRIANGLE; iFace++)
+            for (int iFace = 0; iFace < VERTICES_PER_TRIANGLE; ++iFace)
             {
                 in >> pos_index;
                 if ( ! in )
                     throw MeshError(filename, "Failed to read face position index from mesh file "); // TODO: line number
                 if (pos_index < 1 || pos_index > positions.size())
                     throw MeshError(filename, "Incorrect face position index in mesh file "); // TODO: line number
-                vertex.pos = positions[pos_index - 1];
-                in.ignore(); // skip '/'
+                vertex.pos = positions[pos_index - 1]; // subtract 1 because OBJ uses 1-based arrays
 
-                in >> tex_index;
-                if ( ! in )
-                    throw MeshError(filename, "Failed to read face texcoord index from mesh file "); // TODO: line number
-                /* if (tex_index < 1 || tex_index > texcoords.size())
-                    throw MeshError(filename, "Incorrect face texcoord position index in mesh file "); // TODO: line number
-                vertex.texcoord = texcoords[tex_index - 1]; */ // TODO: support texture coordinates
-                in.ignore(); // skip '/'
+                if ('/' == in.peek())
+                {
+                    in.ignore(); // skip '/'
 
-                in >> nrm_index;
-                if ( ! in )
-                    throw MeshError(filename, "Failed to read face normal index from mesh file "); // TODO: line number
-                if (nrm_index < 1 || nrm_index > normals.size())
-                    throw MeshError(filename, "Incorrect face normal index in mesh file "); // TODO: line number
-                vertex.set_normal(normals[nrm_index - 1]);
+                    if ('/' != in.peek()) // optional texture coordinate
+                    {
+                        in >> tex_index;
+                        if ( ! in )
+                            throw MeshError(filename, "Failed to read face texcoord index from mesh file "); // TODO: line number
+                        /* if (tex_index < 1 || tex_index > texcoords.size())
+                            throw MeshError(filename, "Incorrect face texcoord position index in mesh file "); // TODO: line number
+                        vertex.texcoord = texcoords[tex_index - 1]; */ // TODO: support texture coordinates
+                    }
+
+                    if ('/' == in.peek())
+                    {
+                        in.ignore(); // skip '/'
+                        in >> nrm_index;
+                        if ( ! in )
+                            throw MeshError(filename, "Failed to read face normal index from mesh file "); // TODO: line number
+                        if (nrm_index < 1 || nrm_index > normals.size())
+                            throw MeshError(filename, "Incorrect face normal index in mesh file "); // TODO: line number
+                        vertex.set_normal(normals[nrm_index - 1]);
+                    }
+                }
 
                 indices.push_back(find_or_add_vertex(vertex, pos_index));
             }
         }
+        else
+        {
+            // Comment or unimplemented/unrecognized command - ignore
+        }
+        // In any case, skip everything that is left until the end of line
+        in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
     loaded = true;
     vertex_cache.clear();
