@@ -46,3 +46,6 @@ My Amplifier*
 *.sdf
 # Graphic Diagnostics files
 *.vsglog
+# Performance analysis files
+*.psess
+*.vsp
