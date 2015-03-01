@@ -151,7 +151,7 @@
     <None Include="simple.vsh" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="directx.ico" />
+    <Image Include="modelling.ico" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Renderer.rc" />

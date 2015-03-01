@@ -1,6 +1,7 @@
 #include "Window.h"
 #include <Windowsx.h> // for GET_[XY]_LPARAM
 #include <map>
+#include "resource.h"
 
 namespace
 {
@@ -32,6 +33,7 @@ Window::Window(int width, int height) :
     window_class.lpfnWndProc = &_MsgProc;
     window_class.hInstance = GetModuleHandle( NULL );
     window_class.lpszClassName = WINDOW_CLASS;
+    window_class.hIcon = LoadIcon(window_class.hInstance, MAKEINTRESOURCE(IDI_MAIN_ICON));
 
     RegisterClassEx( &window_class );
 

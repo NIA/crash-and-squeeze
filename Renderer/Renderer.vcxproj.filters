@@ -168,7 +168,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="directx.ico">
+    <Image Include="modelling.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
