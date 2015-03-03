@@ -138,3 +138,83 @@ Window::~Window()
     unregister_class();
 }
 
+// Enable visual styles
+#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+
+void ControlsWindow::create(Window & main_window)
+{
+    this->main_window = main_window;
+    Create(main_window);
+}
+
+void ControlsWindow::show()
+{
+    // show window...
+    ShowWindow(SW_SHOW);
+    // ... and position it next to main_window
+
+    RECT mw_rect;
+    main_window.GetWindowRect(&mw_rect);
+    SetWindowPos(main_window, mw_rect.right, mw_rect.top, -1, -1, SWP_NOSIZE /*ignore -1 size*/);
+}
+
+LRESULT ControlsWindow::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+{
+    HICON icon = AtlLoadIconImage(IDI_MAIN_ICON, LR_DEFAULTCOLOR, ::GetSystemMetrics(SM_CXICON), ::GetSystemMetrics(SM_CYICON));
+    SetIcon(icon, TRUE);
+    HICON icon_small = AtlLoadIconImage(IDI_MAIN_ICON, LR_DEFAULTCOLOR, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON));
+    SetIcon(icon_small, FALSE);
+
+    UIAddChildWindowContainer(m_hWnd);
+
+    return TRUE;
+}
+
+LRESULT ControlsWindow::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+{
+    // to be filled in future
+    return 0;
+}
+
+class AboutDlg : public CDialogImpl<AboutDlg>
+{
+public:
+    enum { IDD = IDD_ABOUT };
+
+    BEGIN_MSG_MAP(AboutDlg)
+        MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
+        COMMAND_ID_HANDLER(IDOK, OnCloseCmd)
+        COMMAND_ID_HANDLER(IDCANCEL, OnCloseCmd)
+    END_MSG_MAP()
+
+    LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+    {
+        CenterWindow(GetParent());
+        return TRUE;
+    }
+
+    LRESULT OnCloseCmd(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+    {
+        EndDialog(wID);
+        return 0;
+    }
+};
+
+LRESULT ControlsWindow::OnHelpAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+    AboutDlg dlg;
+    dlg.DoModal();
+    return 0;
+}
+
+LRESULT ControlsWindow::OnApply(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+    // TODO: do data exchange
+    return 0;
+}
+
+LRESULT ControlsWindow::OnHide(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+    ShowWindow(SW_HIDE);
+    return 0;
+}

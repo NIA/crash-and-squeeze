@@ -370,6 +370,8 @@ void Application::run()
     window.set_input_handler(this);
     window.show();
     window.update();
+    controls_window.create(window);
+    controls_window.show();
     
     Stopwatch stopwatch;
     Stopwatch total_stopwatch;

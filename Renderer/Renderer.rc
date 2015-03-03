@@ -30,6 +30,143 @@ LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_MAIN_ICON           ICON                    "modelling.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_CONTROLS DIALOGEX 0, 0, 348, 248
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Crash-And-Squeeze simulation parameters"
+MENU IDR_CONTROLS_MENU
+FONT 10, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Apply",IDOK,30,230,50,14
+    PUSHBUTTON      "Hide",IDCANCEL,85,230,50,14
+    LTEXT           "Goal spped const (a)",IDC_STATIC,10,32,84,8
+    LTEXT           "Linear elasticity const (b)",IDC_STATIC,10,47,84,10
+    LTEXT           "Yield const",IDC_STATIC,10,143,84,8
+    LTEXT           "Creep const",IDC_STATIC,10,158,84,8
+    LTEXT           "QX Creep const",IDC_STATIC,10,173,84,8
+    LTEXT           "Max deformation const",IDC_STATIC,10,188,84,8
+    LTEXT           "Damping const",IDC_STATIC,10,62,84,8
+    PUSHBUTTON      "Play",IDC_PLAY,30,5,50,14,BS_ICON
+    PUSHBUTTON      "Pause",IDC_PAUSE,85,5,50,14
+    EDITTEXT        IDC_ED_GOAL_SPEED,100,30,40,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ED_LINEAR_ELAST,100,45,40,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ED_DAMPING,100,60,40,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ED_YIELD,100,141,40,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ED_CREEP,100,156,40,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ED_QX_CREEP,100,171,40,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ED_MAX_DEFORM,100,186,40,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ED_CLUSTERS_X,45,210,25,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ED_CLUSTERS_Y,89,210,25,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ED_CLUSTERS_Z,135,210,25,12,ES_AUTOHSCROLL
+    LTEXT           "0.1 .. 1.0 (0.8)",IDC_HELP_GOAL_SPEED,155,32,50,8
+    LTEXT           "0.0 .. 1.0 (0.7)",IDC_HELP_LINEAR_ELAST,155,47,49,8
+    LTEXT           "Clusters no.",IDC_STATIC,5,212,40,8
+    LTEXT           "x",IDC_STATIC,82,211,6,8
+    LTEXT           "x",IDC_STATIC,129,212,6,8
+    PUSHBUTTON      "Restart",IDC_RESTART,175,210,40,14
+    EDITTEXT        IDC_INFO,222,5,120,240,ES_AUTOHSCROLL | ES_READONLY
+    GROUPBOX        "Genera parameters",IDC_STATIC,5,20,210,60
+    GROUPBOX        "Plasticity parameters",IDC_STATIC,5,130,210,76
+    LTEXT           "0.2 .. 1.0 (0.5)",IDC_HELP_DAMPING,155,62,49,8
+    CONTROL         "",IDC_SPIN_GOAL_SPEED,"msctls_updown32",UDS_ARROWKEYS,140,30,10,12
+    CONTROL         "",IDC_SPIN_LINEAR_ELAST,"msctls_updown32",UDS_ARROWKEYS,140,45,10,12
+    CONTROL         "",IDC_SPIN_DAMPING,"msctls_updown32",UDS_ARROWKEYS,140,60,10,12
+    CONTROL         "",IDC_SPIN_YIELD,"msctls_updown32",UDS_ARROWKEYS,140,141,10,12
+    CONTROL         "",IDC_SPIN_CREEP,"msctls_updown32",UDS_ARROWKEYS,140,156,10,12
+    CONTROL         "",IDC_SPIN_QX_CREEP,"msctls_updown32",UDS_ARROWKEYS,140,171,10,12
+    CONTROL         "",IDC_SPIN_MAX_DEFORM,"msctls_updown32",UDS_ARROWKEYS,140,186,10,12
+    LTEXT           "0.05 .. 1.0 (0.1)",IDC_HELP_YIELD,155,143,53,8
+    LTEXT           "0.0 .. 100 (60)",IDC_HELP_CREEP,155,158,48,8
+    LTEXT           "0.0 .. 100 (10)",IDC_HELP_QX_CREEP,155,173,48,8
+    LTEXT           "0.0 .. 10 (10)",IDC_HELP_MAX_DEFORM,155,188,44,8
+    CONTROL         "Quadratic deformation",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,95,95,10
+    GROUPBOX        "Algorithm options",IDC_STATIC,5,85,210,40
+    CONTROL         "Quadratic plasticity",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,110,95,10
+    CONTROL         "Graphical transform total",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,110,95,100,10
+    CONTROL         "Update on GPU",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,110,110,100,10
+    PUSHBUTTON      "Step",IDC_STEP,140,5,50,14
+    PUSHBUTTON      "Defaults",IDC_DEFAULTS,140,230,50,14
+    CONTROL         "",IDC_SPIN_CLUSTERS_X,"msctls_updown32",UDS_ARROWKEYS,69,210,10,12
+    CONTROL         "",IDC_SPIN_CLUSTERS_Y,"msctls_updown32",UDS_ARROWKEYS,115,210,10,12
+    CONTROL         "",IDC_SPIN_CLUSTERS_Z,"msctls_updown32",UDS_ARROWKEYS,160,210,10,12
+END
+
+IDD_ABOUT DIALOGEX 0, 0, 165, 108
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About Crash-And-Squeeze"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,58,90,50,14
+    ICON            IDI_MAIN_ICON,IDC_STATIC,72,5,21,20
+    CTEXT           "Crash-And-Squeeze Demo Application\n\nCrash-And-Squeeze is a fast deformation simulation library\n\n(c) 2015 Ivan Novikov",IDC_STATIC,8,30,150,55
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_CONTROLS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 341
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 241
+    END
+
+    IDD_ABOUT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 158
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 101
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_CONTROLS_MENU MENU
+BEGIN
+    POPUP "File"
+    BEGIN
+        MENUITEM "Open...",                     ID_FILE_OPEN
+        MENUITEM "Save current shape...",       ID_FILE_SAVECURRENTSHAPE
+        MENUITEM "Quit",                        ID_FILE_QUIT
+    END
+    POPUP "Simulation"
+    BEGIN
+        MENUITEM "Play",                        ID_SIMULATION_PLAY
+        MENUITEM "Pause",                       ID_SIMULATION_PAUSE
+        MENUITEM "Step",                        ID_SIMULATION_STEP
+        MENUITEM "Restart",                     ID_SIMULATION_RESTART
+    END
+    POPUP "Parameters"
+    BEGIN
+        MENUITEM "Apply",                       ID_PARAMETERS_APPLY
+        MENUITEM "Reset to defaults",           ID_PARAMETERS_RESETTODEFAULTS
+        MENUITEM "Load from file...",           ID_PARAMETERS_LOADFROM
+        MENUITEM "Save to file...",             ID_PARAMETERS_SAVETOFILE
+    END
+    POPUP "Help"
+    BEGIN
+        MENUITEM "About",                       ID_HELP_ABOUT
+    END
+END
+
 #endif    // Russian (Russia) resources
 /////////////////////////////////////////////////////////////////////////////
 

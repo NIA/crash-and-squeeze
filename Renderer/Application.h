@@ -27,6 +27,7 @@ private:
     bool show_help;
 
     Window window;
+    ControlsWindow controls_window;
     Renderer renderer;
     Camera camera;
 

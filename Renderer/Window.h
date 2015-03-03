@@ -3,6 +3,18 @@
 #include "main.h"
 #include "IInputHandler.h"
 
+#include <atlbase.h>
+#include <atlapp.h>
+extern CAppModule _Module;
+
+#include <atlwin.h>
+
+#include <atlframe.h>
+#include <atlctrls.h>
+#include <atldlgs.h>
+
+#include "resource.h"
+
 class Window
 {
 private:
@@ -17,7 +29,6 @@ private:
         short prev_x;
         short prev_y;
     } mouse;
-
 
     void unregister_class();
 public:
@@ -39,4 +50,35 @@ public:
     inline operator HWND() { return this->hwnd; }
     inline operator HWND() const { return this->hwnd; }
     ~Window();
+};
+
+class ControlsWindow : public ATL::CDialogImpl<ControlsWindow>, public CUpdateUI<ControlsWindow>
+{
+private:
+    CWindow main_window;
+public:
+    enum { IDD = IDD_CONTROLS };
+
+    ControlsWindow() : main_window(nullptr) {}
+
+    void create(Window & main_window);
+    void show();
+
+    BEGIN_UPDATE_UI_MAP(CMainDlg)
+        // To be filled in future
+    END_UPDATE_UI_MAP()
+
+    BEGIN_MSG_MAP(CMainDlg)
+        MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
+        MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
+        COMMAND_ID_HANDLER(ID_HELP_ABOUT, OnHelpAbout)
+        COMMAND_ID_HANDLER(IDOK, OnApply)
+        COMMAND_ID_HANDLER(IDCANCEL, OnHide)
+    END_MSG_MAP()
+
+    LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+    LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+    LRESULT OnHelpAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+    LRESULT OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+    LRESULT OnHide(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 };
