@@ -1,24 +1,20 @@
 #include "Stopwatch.h"
 
+using namespace std::chrono;
+
 Stopwatch::Stopwatch()
 {
-    LARGE_INTEGER large_int;
-    QueryPerformanceFrequency(&large_int);
-    
-    frequency = static_cast<double>(large_int.QuadPart);
-    if(0 == frequency)
-        throw PerformanceFrequencyError();
 }
 
 void Stopwatch::start()
 {
-    QueryPerformanceCounter(&start_moment);
+    start_moment = high_resolution_clock::now();
 }
 
 double Stopwatch::stop()
 {
-    LARGE_INTEGER stop_moment;
-    QueryPerformanceCounter(&stop_moment);
+    Moment stop_moment = high_resolution_clock::now();
+    duration<double> time_span = duration_cast<duration<double>>(stop_moment - start_moment);
     
-    return static_cast<double>(stop_moment.QuadPart - start_moment.QuadPart)/frequency;
+    return time_span.count();
 }
