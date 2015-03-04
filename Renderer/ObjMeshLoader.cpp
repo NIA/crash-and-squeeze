@@ -1,14 +1,27 @@
 #include "ObjMeshLoader.h"
 #include <string>
 #include <cstring> // for memcmp
+#include "fast_atof.h"
 
 // undefinde max macro from windows.h so that numeric_limits::max can be used
 #undef max
+
+using std::ifstream;
+using std::vector;
+using std::string;
+using Assimp::fast_atof;
 
 // TODO: use TCHAR/wchar_t instead of char
 ObjMeshLoader::ObjMeshLoader(const char * filename, float4 color)
     : filename(filename), color(color), loaded(false)
 {
+}
+
+inline float3 parse_float3(const string &x, const string &y, const string &z)
+{
+    return float3(fast_atof(x.c_str()),
+                  fast_atof(y.c_str()),
+                  fast_atof(z.c_str()));
 }
 
 void ObjMeshLoader::load()
@@ -18,15 +31,15 @@ void ObjMeshLoader::load()
 
     // Loader code inspired by SO answer http://stackoverflow.com/a/21954790/693538
 
-    std::ifstream in(filename);
+    ifstream in(filename);
     if ( ! in )
         throw MeshError(filename, "Failed to open mesh file ");
     
-    std::vector<float3> positions;
-    std::vector<float3> normals;
+    vector<float3> positions;
+    vector<float3> normals;
     // std::vector<float2> texcoords; // TODO: support texture coordinates
 
-    std::string cmd;
+    string cmd;
     for(;;)
     {
         in >> cmd;
@@ -35,11 +48,11 @@ void ObjMeshLoader::load()
 
         if ("v" == cmd)
         {
-            float x, y, z;
+            string x, y, z;
             in >> x >> y >> z;
             if ( ! in )
                 throw MeshError(filename, "Failed to read vertex position from mesh file "); // TODO: line number
-            positions.push_back(float3(x, y, z));
+            positions.push_back(parse_float3(x, y, z)*scale);
         }
         /* TODO: support texture coordinates
         else if ("vt" == cmd)
@@ -50,11 +63,11 @@ void ObjMeshLoader::load()
         }*/
         else if ("vn" == cmd)
         {
-            float x, y, z;
+            string x, y, z;
             in >> x >> y >> z;
             if ( ! in )
                 throw MeshError(filename, "Failed to read vertex normal from mesh file "); // TODO: line number
-            normals.push_back(float3(x, y, z));
+            normals.push_back(parse_float3(x, y, z));
         }
         else if ("f" == cmd )
         {
