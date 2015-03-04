@@ -399,6 +399,28 @@ namespace CrashAndSqueeze
             frame->compute_properties();
         }
 
+        // TODO: tests for this setter and getter (they are simple!)
+        void Model::set_simulation_params(const SimulationParams &params)
+        {
+            damping_constant = params.damping_fraction;
+            for (int i = 0; i < clusters.size(); ++i)
+            {
+                clusters[i].set_simulation_params(params);
+            }
+        }
+
+        void Model::get_simulation_params(SimulationParams &params) const
+        {
+            if (clusters.size() < 1)
+            {
+                Logger::error("Cannot get simulation params: no clusters defined", __FILE__, __LINE__);
+                return;
+            }
+            clusters[0].get_simulation_params(params);
+            params.damping_fraction = damping_constant;
+        }
+
+
         void Model::hit(const IRegion &region, const Vector & velocity)
         {
             hit_vertices_indices.clear();

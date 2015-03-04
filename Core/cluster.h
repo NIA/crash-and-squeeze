@@ -2,6 +2,7 @@
 #include "Core/core.h"
 #include "Core/physical_vertex.h"
 #include "Core/graphical_vertex.h"
+#include "Core/simulation_params.h"
 #include "Math/vector.h"
 #include "Math/matrix.h"
 #if CAS_QUADRATIC_EXTENSIONS_ENABLED
@@ -98,7 +99,7 @@ namespace CrashAndSqueeze
 #if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
             // another plasticity paramter: a coefficient determining how fast
             // quadratic part of plasticity_state will be changed on large deformation
-            const Math::Real qx_creep_constant;
+            Math::Real qx_creep_constant;
 #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
 
             // plasticity parameter: a threshold of maximum allowed strain
@@ -200,6 +201,12 @@ namespace CrashAndSqueeze
             void match_shape(Math::Real dt);
 
             // -- getters/setters --
+
+            // Sets current simulation params given by corresponding fields of `params`.
+            void set_simulation_params(const SimulationParams & params);
+            
+            // Gets current simulation params into `params`. Only cluster's params are written, other fields are untouched.
+            void get_simulation_params(SimulationParams /*out*/ & params) const;
 
             int get_physical_vertices_num() const { return physical_vertex_infos.size(); }
             int get_graphical_vertices_num() const { return graphical_vertex_infos.size(); }

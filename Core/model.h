@@ -9,6 +9,7 @@
 #include "Core/regions.h"
 #include "Core/rigid_body.h"
 #include "Core/graphical_vertex.h"
+#include "Core/simulation_params.h"
 #include "Math/floating_point.h"
 #include "Math/Vector.h"
 #include "Math/Matrix.h"
@@ -183,8 +184,15 @@ namespace CrashAndSqueeze
             void add_shape_deformation_reaction(ShapeDeformationReaction & reaction) { shape_deform_reactions.push_back(&reaction); }
             void add_stretch_reaction(StretchReaction &reaction) { stretch_reactions.push_back(&reaction); }
 
-            // -- Run-time emulation interface --
+            // -- Run-time simulation interface --
             
+            // Sets current simulation params given by `params`. Cluster params are set equally for each cluster.
+            void set_simulation_params(const SimulationParams &params);
+
+            // Gets current simulation params into `params`. Clusters params are simply taken from the first cluster as if they were all equal,
+            // so setting them back with `set_simulation_params` may change simulation if they were actually different.
+            void get_simulation_params(SimulationParams /*out*/ &params) const;
+
             // Applies addition of `velocity' to model's velocity. The argument `region'
             // specifies the region being directly hit: at the first step momentum addition
             // is distributed between vertices inside this region.

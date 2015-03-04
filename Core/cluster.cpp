@@ -415,6 +415,33 @@ namespace CrashAndSqueeze
             return true;
         }
 
+        void Cluster::set_simulation_params(const SimulationParams & params)
+        {
+            goal_speed_constant        = params.goal_speed_fraction;
+            linear_elasticity_constant = params.linear_elasticity_fraction;
+
+            yield_constant           = params.yield_threshold;
+            creep_constant           = params.creep_speed;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+            qx_creep_constant        = params.quadratic_creep_speed;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+            max_deformation_constant = params.max_deformation;
+        }
+
+        void Cluster::get_simulation_params(SimulationParams /*out*/ & params) const
+        {
+            params.goal_speed_fraction        = goal_speed_constant;
+            params.linear_elasticity_fraction = linear_elasticity_constant;
+            
+
+            params.yield_threshold       = yield_constant;
+            params.creep_speed           = creep_constant;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+            params.quadratic_creep_speed = qx_creep_constant;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+            params.max_deformation       = max_deformation_constant;
+        }
+
         const PhysicalVertex & Cluster::get_physical_vertex(int index) const
         {
             return *physical_vertex_infos[index].vertex;
