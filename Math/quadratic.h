@@ -155,7 +155,7 @@ namespace CrashAndSqueeze
             void left_mult_by(/*in*/  const TriMatrix  & m3,
                               /*out*/ TriMatrix & res) const;
 
-            // Inverts matrix (in place). Reports error if it is singular
+            // Inverts matrix (in place). Returns false if determinant == 0 and does not report error
             bool invert();
         };
 

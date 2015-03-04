@@ -151,7 +151,6 @@ namespace CrashAndSqueeze
             double det = gsl_linalg_LU_det(m, signum);
             if (equal(0, det))
             {
-                Logger::error("inverting singular NineMatrix (determinant == 0)", __FILE__, __LINE__);
                 return false;
             }
             // Invert the matrix `m`, result into `inverse`

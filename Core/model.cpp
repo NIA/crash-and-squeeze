@@ -315,12 +315,19 @@ namespace CrashAndSqueeze
                 graphical_vertices[i].normalize_weights();
             }
 
-            // -- For each cluster: precompute --
+            // -- For each cluster: precompute (and compute center of mass of a whole) --
+            center_of_mass = Vector::ZERO;
+            float total_mass = 0;
             for(int i = 0; i < clusters.size(); ++i)
             {
                 clusters[i].compute_initial_characteristics();
                 clusters[i].log_properties(i);
+
+                center_of_mass += clusters[i].get_center_of_mass()*clusters[i].get_total_mass();
+                total_mass += clusters[i].get_total_mass();
             }
+            if (total_mass > 0)
+                center_of_mass /= total_mass;
 
             return true;
         }

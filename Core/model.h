@@ -64,6 +64,8 @@ namespace CrashAndSqueeze
             Math::Vector max_pos;
             // dimensions of a cluster
             Math::Vector cluster_sizes;
+            // all-model center of mass
+            Math::Vector center_of_mass;
             
             // a constant, determining how much deformation velocities are damped:
             // 0 - no damping of vibrations, 1 - maximum damping, rigid body
@@ -255,6 +257,8 @@ namespace CrashAndSqueeze
             
             const PhysicalVertex & get_vertex(int index) const { return vertices[index]; }
             const Cluster & get_cluster(int index) const { return clusters[index]; }
+
+            const Math::Vector & get_center_of_mass() { return center_of_mass; }
             
             // -- Implement IModel --
 

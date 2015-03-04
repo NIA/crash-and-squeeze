@@ -266,7 +266,12 @@ namespace CrashAndSqueeze
                 symmetric_term += Matrix( v.get_mass()*equilibrium_pos, equilibrium_pos );
 #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             }
+            // Try to invert matrix, if not possible => mark cluster as not valid
             valid = symmetric_term.invert();
+
+            if (!valid)
+                Logger::warning("in Cluster::compute_symmetric_term: symmetric term is not invertible, cluster marked as invalid", __FILE__, __LINE__);
+
         }
 
         void Cluster::compute_transformations()
@@ -292,6 +297,17 @@ namespace CrashAndSqueeze
             // check that symmetric_term has been precomputed...
             if( ! check_initial_characteristics() )
                 return;
+            // ...and that cluster is valid...
+            if ( ! valid )
+            {
+                // if invalid, the best we can assume is no deformation - identity matrix
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                optimal_transformation = TriMatrix(Matrix::IDENTITY, Matrix::ZERO, Matrix::ZERO);
+#else
+                optimal_transformation = Matrix::IDENTITY;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+                return;
+            }
             // ...and compute a brand new assymetric_term
             compute_asymmetric_term();
 
