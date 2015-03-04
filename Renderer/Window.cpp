@@ -184,8 +184,8 @@ LRESULT ControlsWindow::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
     HICON icon_small = WTL::AtlLoadIconImage(IDI_MAIN_ICON, LR_DEFAULTCOLOR, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON));
     SetIcon(icon_small, FALSE);
 
-    // TODO: fix resizing
-    // DlgResize_Init();
+    // TODO: find a way to allow WS_CLIPCHILDREN without whitening group boxes to reduce flicker (maybe use http://www.codeproject.com/Articles/5364/CDialogResize-based-class-with-no-groupbox-flicker ?)
+    DlgResize_Init(true, true, 0 /*do not force WS_CLIPCHILDREN to avoid groubox whitening*/ );
     UIAddChildWindowContainer(m_hWnd);
 
     return TRUE;

@@ -75,17 +75,18 @@ public:
 
     void create(Window & main_window);
     void show();
-    BEGIN_UPDATE_UI_MAP(CMainDlg)
+    BEGIN_UPDATE_UI_MAP(ControlsWindow)
         // To be filled in future
     END_UPDATE_UI_MAP()
 
-    BEGIN_MSG_MAP(CMainDlg)
+    BEGIN_MSG_MAP(ControlsWindow)
         MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
         MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
         COMMAND_ID_HANDLER(ID_HELP_ABOUT, OnHelpAbout)
         COMMAND_ID_HANDLER(IDOK, OnApply)
         COMMAND_ID_HANDLER(IDCANCEL, OnHide)
         COMMAND_ID_HANDLER(ID_FILE_QUIT, OnQuit)
+        CHAIN_MSG_MAP(CDialogResize<ControlsWindow>)
     END_MSG_MAP()
 
     // Use for-loops to shorten this map?
