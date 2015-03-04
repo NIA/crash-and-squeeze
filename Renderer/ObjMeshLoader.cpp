@@ -1,6 +1,7 @@
 #include "ObjMeshLoader.h"
 #include <string>
-#include <cstring> // for memcmp
+#include <cstring> // for memcmp, strtok
+#include <cstdlib> // for atoi
 #include "fast_atof.h"
 
 // undefinde max macro from windows.h so that numeric_limits::max can be used
@@ -17,11 +18,23 @@ ObjMeshLoader::ObjMeshLoader(const char * filename, float4 color)
 {
 }
 
+namespace
+{
+
+const char * FACE_DELIMITER = "/";
+
+inline bool is_empty(const char * str)
+{
+    return str[0] == 0;
+}
+
 inline float3 parse_float3(const string &x, const string &y, const string &z)
 {
     return float3(fast_atof(x.c_str()),
                   fast_atof(y.c_str()),
                   fast_atof(z.c_str()));
+}
+
 }
 
 void ObjMeshLoader::load()
@@ -72,41 +85,44 @@ void ObjMeshLoader::load()
         else if ("f" == cmd )
         {
             Index pos_index, tex_index, nrm_index;
+            string face_str;
+            char * ind_str;
             Vertex vertex;
             vertex.color = color;
             for (int iFace = 0; iFace < VERTICES_PER_TRIANGLE; ++iFace)
             {
-                in >> pos_index;
+                in >> face_str;
                 if ( ! in )
-                    throw MeshError(filename, "Failed to read face position index from mesh file "); // TODO: line number
+                    throw MeshError(filename, "Failed to read face indices from mesh file "); // TODO: line number
+                
+                // Read position index. It must not be empty.
+                // NB: modifying internal string buffer is not safe, but we are brave (strtok should not go out of initial string length)
+                char *next_token = nullptr; // `context` argument of strtok_s
+                ind_str = strtok_s(&face_str[0], FACE_DELIMITER, &next_token);
+                pos_index = atoi(ind_str);
                 if (pos_index < 1 || pos_index > positions.size())
                     throw MeshError(filename, "Incorrect face position index in mesh file "); // TODO: line number
                 vertex.pos = positions[pos_index - 1]; // subtract 1 because OBJ uses 1-based arrays
 
-                if ('/' == in.peek())
+                // Try to read (optional) texture coordinate index.
+                ind_str = strtok_s(nullptr, FACE_DELIMITER, &next_token);
+                if ( ! is_empty(ind_str) )
                 {
-                    in.ignore(); // skip '/'
+                    // TODO: support texture coordinates
+                    /* tex_index = atoi(ind_str));
+                    if (tex_index < 1 || tex_index > texcoords.size())
+                        throw MeshError(filename, "Incorrect face texcoord position index in mesh file "); // TODO: line number
+                    vertex.texcoord = texcoords[tex_index - 1]; */ // TODO: support texture coordinates
+                }
 
-                    if ('/' != in.peek()) // optional texture coordinate
-                    {
-                        in >> tex_index;
-                        if ( ! in )
-                            throw MeshError(filename, "Failed to read face texcoord index from mesh file "); // TODO: line number
-                        /* if (tex_index < 1 || tex_index > texcoords.size())
-                            throw MeshError(filename, "Incorrect face texcoord position index in mesh file "); // TODO: line number
-                        vertex.texcoord = texcoords[tex_index - 1]; */ // TODO: support texture coordinates
-                    }
-
-                    if ('/' == in.peek())
-                    {
-                        in.ignore(); // skip '/'
-                        in >> nrm_index;
-                        if ( ! in )
-                            throw MeshError(filename, "Failed to read face normal index from mesh file "); // TODO: line number
-                        if (nrm_index < 1 || nrm_index > normals.size())
-                            throw MeshError(filename, "Incorrect face normal index in mesh file "); // TODO: line number
-                        vertex.set_normal(normals[nrm_index - 1]);
-                    }
+                // Try to read (optional) normal index
+                ind_str = strtok_s(nullptr, FACE_DELIMITER, &next_token);
+                if ( ! is_empty(ind_str) )
+                {
+                    nrm_index = atoi(ind_str);
+                    if (nrm_index < 1 || nrm_index > normals.size())
+                        throw MeshError(filename, "Incorrect face normal index in mesh file "); // TODO: line number
+                    vertex.set_normal(normals[nrm_index - 1]);
                 }
 
                 indices.push_back(find_or_add_vertex(vertex, pos_index));
