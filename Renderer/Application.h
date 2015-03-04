@@ -87,6 +87,7 @@ public:
     void process_mouse_drag(short x, short y, short dx, short dy, bool shift, bool ctrl) override;
     void process_mouse_wheel(short x, short y, short dw, bool shift, bool ctrl) override;
 
+    static const int DEFAULT_CLUSTERS_BY_AXES[::CrashAndSqueeze::Math::VECTOR_SIZE];
 
     ~Application();
 

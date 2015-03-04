@@ -11,6 +11,7 @@ using CrashAndSqueeze::Core::IndexArray;
 using CrashAndSqueeze::Parallel::TaskQueue;
 using CrashAndSqueeze::Parallel::AbstractTask;
 
+const int Application::DEFAULT_CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 3, 4};
 namespace
 {
     const float       CAMERA_ROTATE_SPEED = 3.14f/Window::DEFAULT_WINDOW_SIZE; // when mouse moved to dx pixels, camera angle is changed to dx*CAMERA_ROTATE_SPEED
@@ -26,8 +27,7 @@ namespace
     const Vector      ROTATION_AXES[ROTATION_AXES_COUNT] = {Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)};
 
     const float       VERTEX_MASS = 1;
-    const int         CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 3, 4};
-    const int         TOTAL_CLUSTERS_COUNT = CLUSTERS_BY_AXES[0]*CLUSTERS_BY_AXES[1]*CLUSTERS_BY_AXES[2];
+    const int         TOTAL_CLUSTERS_COUNT = Application::DEFAULT_CLUSTERS_BY_AXES[0]*Application::DEFAULT_CLUSTERS_BY_AXES[1]*Application::DEFAULT_CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.2;
 
     const TCHAR *     SHOW_MODES_CAPTIONS[Application::_SHOW_MODES_COUNT] = 
@@ -115,7 +115,7 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
                               high_model.get_vertices_count(),
                               VERTEX_INFO,
                               
-                              CLUSTERS_BY_AXES,
+                              DEFAULT_CLUSTERS_BY_AXES,
                               CLUSTER_PADDING_COEFF,
 
                               &prim_factory,
@@ -138,7 +138,7 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
         char description[BUFFER_SIZE];
         sprintf_s(description, BUFFER_SIZE, "%i low-vertices (mapped on %i hi-vertices) in %i=%ix%ix%i clusters on %i threads",
                                             low_model->get_vertices_count(), high_model.get_vertices_count(),
-                                            TOTAL_CLUSTERS_COUNT, CLUSTERS_BY_AXES[0], CLUSTERS_BY_AXES[1], CLUSTERS_BY_AXES[2],
+                                            TOTAL_CLUSTERS_COUNT, DEFAULT_CLUSTERS_BY_AXES[0], DEFAULT_CLUSTERS_BY_AXES[1], DEFAULT_CLUSTERS_BY_AXES[2],
                                             THREADS_COUNT);
         model_entity.performance_reporter = new PerformanceReporter(logger, description);
     }

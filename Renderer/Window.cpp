@@ -2,6 +2,9 @@
 #include <Windowsx.h> // for GET_[XY]_LPARAM
 #include <map>
 #include "resource.h"
+#include "Application.h" // for DEFAULT_CLUSTERS_BY_AXES
+
+using ::CrashAndSqueeze::Math::VECTOR_SIZE;
 
 namespace
 {
@@ -17,7 +20,6 @@ namespace
     void set_window_by_hwnd(HWND hwnd, Window * window) { hwnd_to_window[hwnd] = window; }
     Window * get_window_by_hwnd(HWND hwnd) { if (hwnd_to_window.count(hwnd) > 0) return hwnd_to_window[hwnd]; else return nullptr; }
     void remove_window_by_hwnd(HWND hwnd) { hwnd_to_window.erase(hwnd); }
-
 }
 
 Window::Window(int width, int height) :
@@ -141,6 +143,54 @@ Window::~Window()
 // Enable visual styles
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
+ControlsWindow::ControlsWindow() : main_window(nullptr)
+{
+    params.set_defaults();
+    for (int i = 0; i < VECTOR_SIZE; ++i)
+        clusters_by_axes[i] = Application::DEFAULT_CLUSTERS_BY_AXES[i];
+
+    info = 
+        _T("Crash-And-Squeeze version 0.9\r\n")
+        _T("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n")
+        _T("Simulation: ON\r\n")
+        _T("Show: Graphical vertices\r\n\r\n")
+        _T("Performance: 119 FPS (8.39 ms/frame)\r\n")
+        _T("Model:\r\n")
+        _T("~~~~~~\r\n")
+        _T("19802 low-vertices\r\n")
+        _T("19802 high-vertices\r\n")
+        _T("24=2x3x4 clusters\r\n\r\n")
+        _T("Keyboard controls:\r\n")
+        _T("~~~~~~~~~~~~~~~~~~\r\n")
+        _T("Enter: hit the model,\r\n")
+        _T("I/J/K/L: move hit area (yellow sphere),\r\n")
+        _T("Arrows: rotate camera,\r\n")
+        _T("+/-, PgUp/PgDn: zoom in/out,\r\n")
+        _T("F1: display/hide this help,\r\n")
+        _T("Esc: exit.\r\n\r\n")
+        _T("Advanced:\r\n")
+        _T("~~~~~~~~~\r\n")
+        _T("Tab: switch between current, initial\r\n")
+        _T("        and equilibrium state,\r\n")
+        _T("Space: pause/continue emulation,\r\n")
+        _T("S: emulate one step (when paused),\r\n")
+        _T("F: toggle forces on/off,\r\n")
+        _T("W: toggle wireframe on/off,\r\n");
+}
+LRESULT ControlsWindow::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+{
+    HICON icon = WTL::AtlLoadIconImage(IDI_MAIN_ICON, LR_DEFAULTCOLOR, ::GetSystemMetrics(SM_CXICON), ::GetSystemMetrics(SM_CYICON));
+    SetIcon(icon, TRUE);
+    HICON icon_small = WTL::AtlLoadIconImage(IDI_MAIN_ICON, LR_DEFAULTCOLOR, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON));
+    SetIcon(icon_small, FALSE);
+
+    // TODO: fix resizing
+    // DlgResize_Init();
+    UIAddChildWindowContainer(m_hWnd);
+
+    return TRUE;
+}
+
 void ControlsWindow::create(Window & main_window)
 {
     this->main_window = main_window;
@@ -149,25 +199,16 @@ void ControlsWindow::create(Window & main_window)
 
 void ControlsWindow::show()
 {
+    // load initial values
+    DoDataExchange(DDX_LOAD);
+
     // show window...
     ShowWindow(SW_SHOW);
-    // ... and position it next to main_window
 
+    // ... and position it next to main_window
     RECT mw_rect;
     main_window.GetWindowRect(&mw_rect);
     SetWindowPos(main_window, mw_rect.right, mw_rect.top, -1, -1, SWP_NOSIZE /*ignore -1 size*/);
-}
-
-LRESULT ControlsWindow::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
-{
-    HICON icon = AtlLoadIconImage(IDI_MAIN_ICON, LR_DEFAULTCOLOR, ::GetSystemMetrics(SM_CXICON), ::GetSystemMetrics(SM_CYICON));
-    SetIcon(icon, TRUE);
-    HICON icon_small = AtlLoadIconImage(IDI_MAIN_ICON, LR_DEFAULTCOLOR, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON));
-    SetIcon(icon_small, FALSE);
-
-    UIAddChildWindowContainer(m_hWnd);
-
-    return TRUE;
 }
 
 LRESULT ControlsWindow::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
@@ -176,7 +217,7 @@ LRESULT ControlsWindow::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPa
     return 0;
 }
 
-class AboutDlg : public CDialogImpl<AboutDlg>
+class AboutDlg : public ATL::CDialogImpl<AboutDlg>
 {
 public:
     enum { IDD = IDD_ABOUT };
@@ -216,5 +257,11 @@ LRESULT ControlsWindow::OnApply(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndC
 LRESULT ControlsWindow::OnHide(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
     ShowWindow(SW_HIDE);
+    return 0;
+}
+
+LRESULT ControlsWindow::OnQuit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+    ::DestroyWindow(main_window);
     return 0;
 }
