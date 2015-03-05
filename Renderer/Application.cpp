@@ -69,7 +69,10 @@ Application::Application(Logger &logger) :
 {
     set_show_mode(SHOW_GRAPHICAL_VERTICES);
     // TODO: is it good? Seems like it can affect performance (see MSDN for SetThreadAffinityMask)
-    SetThreadAffinityMask(GetCurrentThread(), 0x0000000); // restrict main thread to 1st processor so that QueryPerformanceCounter works correctly
+    if(NULL == SetThreadAffinityMask(GetCurrentThread(), 0x0000001)) // restrict main thread to 1st processor so that QueryPerformanceCounter works correctly
+    {
+        throw AffinityError();
+    }
 }
 
 

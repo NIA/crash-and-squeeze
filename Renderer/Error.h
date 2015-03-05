@@ -176,6 +176,11 @@ public:
         set_log_entry(log_entry_start, filename);
     }
 };
+class AffinityError : public RuntimeError
+{
+public:
+    AffinityError() : RuntimeError( _T("Failed to set thread affinity mask") ) {}
+};
 class NotYetImplementedError : public RuntimeError
 {
 public:
