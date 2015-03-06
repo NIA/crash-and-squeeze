@@ -188,12 +188,13 @@ namespace CrashAndSqueeze
 
             // -- Run-time simulation interface --
             
-            // Sets current simulation params given by `params`. Cluster params are set equally for each cluster.
-            void set_simulation_params(const SimulationParams &params);
+            // Default value for `set_simulation_params`, meaning "set same params for all clusters"
+            static const int ALL_CLUSTERS = -1;
+            // Sets current simulation params given by `params` for given cluster (or for all, if ALL_CLUSTERS is given, which is by default).
+            void set_simulation_params(const SimulationParams &params, int cluster_index = ALL_CLUSTERS);
 
-            // Gets current simulation params into `params`. Clusters params are simply taken from the first cluster as if they were all equal,
-            // so setting them back with `set_simulation_params` may change simulation if they were actually different.
-            void get_simulation_params(SimulationParams /*out*/ &params) const;
+            // Gets current simulation params of given cluster into `params` (of first cluster by default).
+            void get_simulation_params(SimulationParams /*out*/ &params, int cluster_index = 0) const;
 
             // Applies addition of `velocity' to model's velocity. The argument `region'
             // specifies the region being directly hit: at the first step momentum addition

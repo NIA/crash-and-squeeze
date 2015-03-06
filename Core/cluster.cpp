@@ -271,7 +271,7 @@ namespace CrashAndSqueeze
 
             if (!valid)
                 Logger::warning("in Cluster::compute_symmetric_term: symmetric term is not invertible, cluster marked as invalid", __FILE__, __LINE__);
-
+            // TODO: try to fix invalid clusters (e.g., remove them and add vertices to the nearest other cluster)
         }
 
         void Cluster::compute_transformations()

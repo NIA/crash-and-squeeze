@@ -317,7 +317,7 @@ namespace CrashAndSqueeze
 
             // -- For each cluster: precompute (and compute center of mass of a whole) --
             center_of_mass = Vector::ZERO;
-            float total_mass = 0;
+            Real total_mass = 0;
             for(int i = 0; i < clusters.size(); ++i)
             {
                 clusters[i].compute_initial_characteristics();
@@ -407,23 +407,35 @@ namespace CrashAndSqueeze
         }
 
         // TODO: tests for this setter and getter (they are simple!)
-        void Model::set_simulation_params(const SimulationParams &params)
+        void Model::set_simulation_params(const SimulationParams &params, int cluster_index /*= ALL_CLUSTERS*/)
         {
             damping_constant = params.damping_fraction;
-            for (int i = 0; i < clusters.size(); ++i)
+            if (ALL_CLUSTERS == cluster_index)
             {
-                clusters[i].set_simulation_params(params);
+                for (int i = 0; i < clusters.size(); ++i)
+                {
+                    clusters[i].set_simulation_params(params);
+                }
+            }
+            else
+            {
+                clusters[cluster_index].set_simulation_params(params);
             }
         }
 
-        void Model::get_simulation_params(SimulationParams &params) const
+        void Model::get_simulation_params(SimulationParams /*out*/ &params, int cluster_index /*= ALL_CLUSTERS*/) const
         {
-            if (clusters.size() < 1)
+            if (ALL_CLUSTERS == cluster_index)
             {
-                Logger::error("Cannot get simulation params: no clusters defined", __FILE__, __LINE__);
-                return;
+                if (clusters.size() < 1)
+                {
+                    Logger::error("Cannot get simulation params: no clusters defined", __FILE__, __LINE__);
+                    return;
+                }
+                cluster_index = 0;
             }
-            clusters[0].get_simulation_params(params);
+
+            clusters[cluster_index].get_simulation_params(params);
             params.damping_fraction = damping_constant;
         }
 
