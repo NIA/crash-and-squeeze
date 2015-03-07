@@ -7,6 +7,8 @@ namespace CrashAndSqueeze
 
     namespace Parallel
     {
+        SingleThreadFactory SingleThreadFactory::instance;
+
         void SingleThreadLock::lock()
         {
             if(is_locked)

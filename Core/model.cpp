@@ -95,11 +95,11 @@ namespace CrashAndSqueeze
 
                       const int clusters_by_axes[Math::VECTOR_SIZE],
                       Math::Real cluster_padding_coeff,
-
-                      IPrimFactory * prim_factory,
                       
-                      const MassFloat *masses,
-                      const MassFloat constant_mass)
+                      const MassFloat constant_mass /* = 1 */,
+                      const MassFloat *masses /* = NULL */,
+
+                      IPrimFactory * prim_factory /* = &Parallel::SingleThreadFactory::instance */)
             : vertices(physical_vetrices_num),
               initial_positions(physical_vetrices_num),
               hit_vertices_indices(physical_vetrices_num),
@@ -474,6 +474,21 @@ namespace CrashAndSqueeze
             for(int i = 0; i < hit_reactions.size(); ++i)
             {
                 hit_reactions[i]->invoke_if_needed(hit_vertices_indices, velocity);
+            }
+        }
+
+        void Model::displace(const DisplacementsArray & displacements)
+        {
+            if (0 == displacements.size())
+                return;
+
+            // TODO: develop this method
+            // - probably it should apply displacements more accurately? (averaging if multiple displacements for one vertex?)
+            // - think about physical nature of such displacement - doesn't it violate conservation of energy/momentum/...?
+            // - maybe it should look more like Model::hit? Do we need a new kind of reaction for this?
+            for (int i = 0; i < vertices.size(); ++i)
+            {
+                vertices[i].apply_displacements(displacements);
             }
         }
 

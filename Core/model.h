@@ -16,6 +16,7 @@
 #include "Collections/array.h"
 #include "Parallel/abstract_task.h"
 #include "Parallel/task_queue.h"
+#include "Parallel/single_thread_prim.h"
 
 namespace CrashAndSqueeze
 {
@@ -169,11 +170,11 @@ namespace CrashAndSqueeze
 
                   const int clusters_by_axes[Math::VECTOR_SIZE],
                   Math::Real cluster_padding_coeff,
-
-                  Parallel::IPrimFactory * prim_factory,
                   
-                  const MassFloat *masses,
-                  const MassFloat constant_mass = 0);
+                  const MassFloat constant_mass = 1,
+                  const MassFloat *masses = 0,
+
+                  Parallel::IPrimFactory * prim_factory = &Parallel::SingleThreadFactory::instance);
 
             // -- Initial configuration --
             
@@ -204,16 +205,19 @@ namespace CrashAndSqueeze
             // Should then use a lock to avoid race condition between this and last task? (unlikely, because it
             // will probably finish before, but possible)
             void hit(const IRegion &region, const Math::Vector & velocity);
+
+            // Applies displacements 
+            void displace(const DisplacementsArray & displacements);
             
             // Prepares tasks for next step. If there are some tasks from previous step left,
             // this function will wait for them to complete. Returns false on failure.
             //
             // Computation of next step will be in local coordinates of body (coordinate system is
             // bound to body frame if there is any, otherwise - to the center of mass). After that
-            // the change of global motion is returned via `linear_velocity_change' and `angular_velocity_change'
+            // the change of global motion is returned via VelocitiesChangedCallback
             void prepare_tasks(const ForcesArray & forces, Math::Real dt, VelocitiesChangedCallback * vcb);
 
-            // In order to compute next step, a queue of tasks must be prepaired first
+            // In order to compute next step, a queue of tasks must be prepared first
             // with Model::prepare_tasks, and then Model::complete_next_task should be called multiple
             // times until it returns false (meaning no tasks for this step left)
             //
@@ -231,10 +235,10 @@ namespace CrashAndSqueeze
             // Returns true if computation was successful, false otherwise
             bool wait_for_step();
 
-            // Abort computation in onther threads by emtying task queue and releasing waiting threads
+            // Abort computation in other threads by emptying task queue and releasing waiting threads
             void abort();
 
-            // detect happened evetns and invoke reactions, if needed
+            // detect happened events and invoke reactions, if needed
             void react_to_events();
 
             // get cluster parameters for computation on GPU

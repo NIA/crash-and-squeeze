@@ -48,7 +48,7 @@ namespace CrashAndSqueeze
             // -- accessors to velocity_addition --
 
             // gets an addition from a single cluster, divides it by including_clusters_num,
-            // and adds corrected value to velocity_addition, thus averaging addiitons.
+            // and adds corrected value to velocity_addition, thus averaging additions.
             // addition_index is index in velocity_additions array: each cluster writes into its own
             // place to avoid race condition
             bool add_to_average_velocity_addition(const Math::Vector &addition, int addition_index);
@@ -71,6 +71,7 @@ namespace CrashAndSqueeze
 
             // -- methods --
 
+            void apply_displacements(const DisplacementsArray & displacements);
             // step integration
             bool integrate_velocity(const ForcesArray & forces, Math::Real dt);
             void integrate_position(Math::Real dt);

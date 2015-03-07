@@ -80,6 +80,7 @@ namespace CrashAndSqueeze
             void set_vector(const Vector &v);
 
             TriVector operator*(const Real &scalar) const;
+            bool operator==(const TriVector &another) const;
 
             // Allow assignment TriVector = Vector
             TriVector & operator=(const Vector &v) { set_vector(v); return *this; }
@@ -108,6 +109,7 @@ namespace CrashAndSqueeze
 
             TriMatrix & operator+=(const TriMatrix & another);
             TriMatrix & operator*=(const Real & scalar);
+            bool operator==(const TriMatrix &another) const;
             
             // Multiplication of TriMatrix and TriVector: yields Vector.
             Vector operator*(const TriVector & v) const;
@@ -148,6 +150,7 @@ namespace CrashAndSqueeze
             }
 
             NineMatrix & operator+=(const NineMatrix &another);
+            bool operator==(const NineMatrix &another) const;
 
             // Multiplication of TriMatrix and NineMatrix: yields TriMatrix
             // Implemented as a function (instead of operator*) because

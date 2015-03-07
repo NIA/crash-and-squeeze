@@ -33,8 +33,8 @@ TEST(PhysicalVertexTest, InterfaceForCluster)
     PhysicalVertex vertex(pos, mass, velocity);
     const PhysicalVertex &v = vertex;
     
-    vertex.include_to_one_more_cluster(0);
-    vertex.include_to_one_more_cluster(1);
+    vertex.include_to_one_more_cluster(0, 1);
+    vertex.include_to_one_more_cluster(1, 1);
     EXPECT_EQ( 2, v.get_including_clusters_num() );
     
     // addition is divided by 2 here because vertex belons to 2 clusters

@@ -42,6 +42,18 @@ namespace CrashAndSqueeze
             return true;
         }
 
+        void PhysicalVertex::apply_displacements(const DisplacementsArray & displacements)
+        {
+            for (int j = 0; j < displacements.size(); ++j)
+            {
+                const IDisplacement * displacement = displacements[j];
+                if (displacement->is_applied_to(pos))
+                {
+                    pos += displacement->get_value_at(pos);
+                }
+            }
+        }
+
         bool PhysicalVertex::integrate_velocity(const ForcesArray & forces, Real dt)
         {
             Vector acceleration = Vector::ZERO;

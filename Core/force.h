@@ -41,6 +41,18 @@ namespace CrashAndSqueeze
 
         typedef ::CrashAndSqueeze::Collections::Array<Force *> ForcesArray;
 
+        // An abstract displacement
+        class IDisplacement
+        {
+        public:
+            virtual bool is_applied_to(const Math::Vector &point) const = 0;
+            virtual Math::Vector get_value_at(const Math::Vector &point) const = 0;
+        };
+
+        typedef ::CrashAndSqueeze::Collections::Array<IDisplacement *> DisplacementsArray;
+
+        // - - - - - Some concrete implementations - - - -
+
         // A simplest force applied everywhere
         class EverywhereForce : public Force
         {
@@ -125,7 +137,7 @@ namespace CrashAndSqueeze
 
         // A force, pushing outside half-space, defined by plane_point and plane_normal.
         // A value is obtained by Hooke's law from position and spring_constant
-        // "Outside" means positive half of an axis colinear to plane_normal.
+        // "Outside" means positive half of an axis collinear to plane_normal.
         class HalfSpaceSpringForce : public Force
         {
         private:

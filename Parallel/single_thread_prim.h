@@ -69,6 +69,8 @@ namespace CrashAndSqueeze
             
             virtual IEventSet * create_event_set(int size, bool initially_set) { return new SingleThreadEventSet(size, initially_set); }
             virtual void destroy_event_set(IEventSet * event_set) { delete event_set; }
+
+            static SingleThreadFactory instance;
         };
     }
 }

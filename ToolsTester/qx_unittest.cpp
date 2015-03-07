@@ -235,7 +235,7 @@ TEST(QxTest, NineMatrixBadInvert) {
         {0,0,0,0,0,0,0,0,1}
     };
     NineMatrix m(m_values);
-    set_tester_err_callback();
-    EXPECT_THROW( m.invert(), ToolsTesterException );
-    unset_tester_err_callback();
+    const NineMatrix old_m = m;
+    EXPECT_FALSE( m.invert() );
+    EXPECT_TRUE( old_m == m ); // matrix should be left untouched if it cannot be inverted
 }

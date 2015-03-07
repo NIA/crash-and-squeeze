@@ -32,6 +32,13 @@ namespace CrashAndSqueeze
             return TriVector(vectors[0]*scalar, vectors[1]*scalar, vectors[2]*scalar);
         }
 
+        bool TriVector::operator==(const TriVector &another) const
+        {
+            return vectors[0] == another.vectors[0] &&
+                   vectors[1] == another.vectors[1] &&
+                   vectors[2] == another.vectors[2];
+        }
+
         TriMatrix::TriMatrix(const Vector &left_vector, const TriVector &right_vector)
             // construct trimatrix as outer product of vector and trivector (do this for each part)
             : matrices(Matrix(left_vector, right_vector.vectors[0]),
@@ -55,6 +62,13 @@ namespace CrashAndSqueeze
                 matrices[i] *= scalar;
             }
             return *this;
+        }
+
+        bool TriMatrix::operator==(const TriMatrix &another) const
+        {
+            return matrices[0] == another.matrices[0] &&
+                   matrices[1] == another.matrices[1] &&
+                   matrices[2] == another.matrices[2];
         }
 
         Vector TriMatrix::operator*(const TriVector & v) const
@@ -114,6 +128,13 @@ namespace CrashAndSqueeze
                 columns[j] += another.columns[j];
             }
             return *this;
+        }
+
+        bool NineMatrix::operator==(const NineMatrix &another) const
+        {
+            return columns[0] == another.columns[0] &&
+                   columns[1] == another.columns[1] &&
+                   columns[2] == another.columns[2];
         }
 
         void NineMatrix::left_mult_by(/*in*/  const TriMatrix  & m3,

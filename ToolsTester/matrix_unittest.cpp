@@ -325,6 +325,21 @@ TEST_F(MatrixTest, BadInverted)
     unset_tester_err_callback();
 }
 
+TEST_F(MatrixTest, Invert)
+{
+    const Matrix old_m2 = m2;
+    EXPECT_TRUE( m2.invert() );
+    EXPECT_EQ( I, old_m2*m2 );
+    EXPECT_EQ( I, m2*old_m2 );
+}
+
+TEST_F(MatrixTest, BadInvert)
+{
+    const Matrix old_m1 = m1;
+    EXPECT_FALSE( m1.invert() );
+    EXPECT_EQ( old_m1, m1 ); // matrix should be left untouched if it cannot be inverted
+}
+
 TEST_F(MatrixTest, InvertedIdentity)
 {
     EXPECT_EQ( I, I.inverted() );
