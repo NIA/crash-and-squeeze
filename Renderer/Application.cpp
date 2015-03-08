@@ -121,10 +121,10 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
                               DEFAULT_CLUSTERS_BY_AXES,
                               CLUSTER_PADDING_COEFF,
 
-                              &prim_factory,
-
+                              VERTEX_MASS,
                               NULL,
-                              VERTEX_MASS);
+
+                              &prim_factory);
         
         high_model.unlock_vertex_buffer();
         low_model->unlock_vertex_buffer();
