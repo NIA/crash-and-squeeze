@@ -1,5 +1,6 @@
 #include "ObjMeshLoader.h"
 #include <string>
+#include <fstream> // for ifstream
 #include <cstring> // for memcmp, strtok
 #include <cstdlib> // for atoi
 #include "fast_atof.h"

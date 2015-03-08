@@ -1,4 +1,5 @@
 #include "logger.h"
+#include <ctime>
 
 Logger::Logger(const char * log_filename, bool messages_enabled)
 : next_message_index(0), messages_enabled(messages_enabled)

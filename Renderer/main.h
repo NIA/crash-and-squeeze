@@ -3,11 +3,7 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 #undef ERROR // because WinGDI.h defines this and it's awful!
-#include <cstdlib>
-#include <ctime>
-#include <crtdbg.h>
 #include "Error.h"
-#include <fstream>
 #include "Math/vector.h"
 
 // usage: #pragma WARNING(FIXME: Code removed because...) - taken from http://goodliffe.blogspot.ru/2009/07/c-how-to-say-warning-to-visual-studio-c.html

@@ -1,6 +1,7 @@
 #pragma once
 #include "main.h"
 #include "parallel.h"
+#include <fstream>
 
 class Logger
 {
