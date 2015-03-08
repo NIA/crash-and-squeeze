@@ -308,7 +308,7 @@ namespace
             low_model = low_model_;
             PhysicalModel * phys_mod = app.add_model(*high_model, true, low_model);
             if(NULL == phys_mod)
-                throw NullPointerError(_T("(Demo) Failed to add physical model!"));
+                throw NullPointerError(RT_ERR_ARGS("(Demo) Failed to add physical model!"));
             if(PAINT_MODEL) {
                 paint_model(*high_model);
                 paint_model(*low_model);
@@ -698,12 +698,12 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
     }
     catch(RuntimeError &e)
     {
-        // NOTE: now resources are released automaticaly through Demo's virtual destructor!
+        // NOTE: now resources are released automatically through Demo's virtual destructor!
 
-        logger.log("ERROR!! [Renderer]", e.get_log_entry());
+        logger.log("ERROR!! [Renderer]", e.get_log_entry().c_str());
         logger.dump_messages();
         const TCHAR *MESSAGE_BOX_TITLE = _T("Renderer error!");
-        my_message_box(e.get_message(), MESSAGE_BOX_TITLE, MB_OK | MB_ICONERROR, true);
+        my_message_box(e.get_message().c_str(), MESSAGE_BOX_TITLE, MB_OK | MB_ICONERROR, true);
         return -1;
     }
     return 0;

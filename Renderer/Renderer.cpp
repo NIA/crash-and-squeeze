@@ -156,7 +156,7 @@ void Renderer::init_device(Window &window)
     if (FAILED( D3D11CreateDevice(adapter_to_use,
                                   driver_type,
                                   nullptr, // no software module
-                                  device_flags,       // no flags // TODO: set debug flag on debug build?
+                                  device_flags,
                                   feature_levels,
                                   feature_levels_count,
                                   D3D11_SDK_VERSION,
@@ -356,7 +356,7 @@ void Renderer::set_alpha_test()
 
 void Renderer::toggle_alpha_test()
 {
-    throw NotYetImplementedError(_T("Alpha test not yet implemented"));
+    throw NotYetImplementedError(RT_ERR_ARGS("Alpha test not yet implemented"));
     alpha_test_enabled = !alpha_test_enabled;
     set_alpha_test();
 }
@@ -418,7 +418,7 @@ void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &
             int clusters_num = physical_model->get_clusters_num();
 #ifndef NDEBUG
             if(clusters_num > MAX_CLUSTERS_NUM)
-                throw OutOfRangeError(_T("clusters number of model is > MAX_CLUSTERS_NUM"));
+                throw OutOfRangeError(RT_ERR_ARGS("clusters number of model is > MAX_CLUSTERS_NUM"));
 #endif //ifndef NDEBUG
             // for each cluster...
             for(int i = 0; i < clusters_num; ++i)

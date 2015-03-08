@@ -47,13 +47,14 @@ void ObjMeshLoader::load()
 
     ifstream in(filename);
     if ( ! in )
-        throw MeshError(filename, "Failed to open mesh file ");
+        throw MeshError(filename, "Failed to open mesh file");
     
     vector<float3> positions;
     vector<float3> normals;
     // std::vector<float2> texcoords; // TODO: support texture coordinates
 
     string cmd;
+    unsigned line_no = 1;
     for(;;)
     {
         in >> cmd;
@@ -65,7 +66,7 @@ void ObjMeshLoader::load()
             string x, y, z;
             in >> x >> y >> z;
             if ( ! in )
-                throw MeshError(filename, "Failed to read vertex position from mesh file "); // TODO: line number
+                throw MeshError(filename, "Failed to read vertex position from mesh file", line_no);
             positions.push_back(parse_float3(x, y, z)*scale);
         }
         /* TODO: support texture coordinates
@@ -80,12 +81,12 @@ void ObjMeshLoader::load()
             string x, y, z;
             in >> x >> y >> z;
             if ( ! in )
-                throw MeshError(filename, "Failed to read vertex normal from mesh file "); // TODO: line number
+                throw MeshError(filename, "Failed to read vertex normal from mesh file", line_no);
             normals.push_back(parse_float3(x, y, z));
         }
         else if ("f" == cmd )
         {
-            Index pos_index, tex_index, nrm_index;
+            Index pos_index, /*tex_index,*/ nrm_index;
             string face_str;
             char * ind_str;
             Vertex vertex;
@@ -94,7 +95,7 @@ void ObjMeshLoader::load()
             {
                 in >> face_str;
                 if ( ! in )
-                    throw MeshError(filename, "Failed to read face indices from mesh file "); // TODO: line number
+                    throw MeshError(filename, "Failed to read face indices from mesh file", line_no);
                 
                 // Read position index. It must not be empty.
                 // NB: modifying internal string buffer is not safe, but we are brave (strtok should not go out of initial string length)
@@ -102,7 +103,7 @@ void ObjMeshLoader::load()
                 ind_str = strtok_s(&face_str[0], FACE_DELIMITER, &next_token);
                 pos_index = atoi(ind_str);
                 if (pos_index < 1 || pos_index > positions.size())
-                    throw MeshError(filename, "Incorrect face position index in mesh file "); // TODO: line number
+                    throw MeshError(filename, "Incorrect face position index in mesh file", line_no);
                 vertex.pos = positions[pos_index - 1]; // subtract 1 because OBJ uses 1-based arrays
 
                 // Try to read (optional) texture coordinate index.
@@ -112,7 +113,7 @@ void ObjMeshLoader::load()
                     // TODO: support texture coordinates
                     /* tex_index = atoi(ind_str));
                     if (tex_index < 1 || tex_index > texcoords.size())
-                        throw MeshError(filename, "Incorrect face texcoord position index in mesh file "); // TODO: line number
+                        throw MeshError(filename, "Incorrect face texcoord position index in mesh file", line_no);
                     vertex.texcoord = texcoords[tex_index - 1]; */ // TODO: support texture coordinates
                 }
 
@@ -122,7 +123,7 @@ void ObjMeshLoader::load()
                 {
                     nrm_index = atoi(ind_str);
                     if (nrm_index < 1 || nrm_index > normals.size())
-                        throw MeshError(filename, "Incorrect face normal index in mesh file "); // TODO: line number
+                        throw MeshError(filename, "Incorrect face normal index in mesh file", line_no);
                     vertex.set_normal(normals[nrm_index - 1]);
                 }
 
@@ -135,6 +136,7 @@ void ObjMeshLoader::load()
         }
         // In any case, skip everything that is left until the end of line
         in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        ++line_no;
     }
     loaded = true;
     vertex_cache.clear();
