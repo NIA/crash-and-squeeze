@@ -157,11 +157,11 @@ public:
 class MeshError : public RuntimeError
 {
 public:
-    MeshError(const char * filename, const std::string & log_entry_start = "Failed to load mesh from file", unsigned line_no = 0)
-        : RuntimeError( std::tstring(_T("Error while loading mesh from file")) )
+    MeshError(const TCHAR * filename, const std::string & log_entry_start = "Failed to load mesh from file", unsigned line_no = 0)
+        : RuntimeError( std::tstring(_T("Error while loading mesh from file")) + filename )
     {
         if (line_no != 0)
-            set_log_entry(log_entry_start + " " + filename + " (line " + std::to_string(line_no) + ")");
+            set_log_entry(log_entry_start + " (line " + std::to_string(line_no) + ")");
         else
             set_log_entry(log_entry_start);
     }

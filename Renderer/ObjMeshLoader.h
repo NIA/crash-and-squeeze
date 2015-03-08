@@ -7,7 +7,7 @@
 class ObjMeshLoader
 {
 private:
-    const char * filename;
+    const TCHAR * filename;
     float4 color;
     float scale;
     bool loaded;
@@ -23,12 +23,12 @@ private:
 public:
     // Creates mesh loader for file `filename`
     // Each vertex is painted with `color` and its position is multiplied by `scale`
-    ObjMeshLoader(const char * filename, float4 color, float scale = 1);
+    ObjMeshLoader(const TCHAR * filename, float4 color, float scale = 1);
 
     // Loads model from file `filename`. NB: only one mesh part is supported!
     void load();
 
-    const char * get_filename() const { return filename; }
+    const TCHAR * get_filename() const { return filename; }
     const std::vector<Vertex> & get_vertices() const;
     const std::vector<Index>  & get_indices() const;
 };

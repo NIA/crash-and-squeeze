@@ -13,8 +13,7 @@ using std::vector;
 using std::string;
 using Assimp::fast_atof;
 
-// TODO: use TCHAR/wchar_t instead of char
-ObjMeshLoader::ObjMeshLoader(const char * filename, float4 color, float scale)
+ObjMeshLoader::ObjMeshLoader(const TCHAR * filename, float4 color, float scale)
     : filename(filename), color(color), loaded(false), scale(scale)
 {
 }

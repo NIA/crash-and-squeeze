@@ -8,6 +8,9 @@
 #include "ObjMeshLoader.h"
 #include "Stopwatch.h"
 #include <ctime>
+#if defined UNICODE || defined _UNICODE
+#include <codecvt>
+#endif // defined UNICODE || defined _UNICODE
 #include "logger.h" // application logger
 
 #include "Logging/logger.h" // crash-and-squeeze logger
@@ -33,6 +36,9 @@ using DirectX::XMStoreFloat4;
 using DirectX::XMStoreFloat4;
 using DirectX::XMVectorLerp;
 
+using std::string;
+using std::tstring;
+
 namespace
 {
     bool DISABLE_MESSAGE_BOXES = true;
@@ -45,7 +51,9 @@ namespace
     const char *LIGHTING_SHADER_FILENAME = "lighting.psh";
     const char *SIMPLE_PIXEL_SHADER_FILENAME = "simple.psh";
     
-    const char *MESH_FILENAME = "ford.obj";
+    const TCHAR *DEFAULT_MESH_FILENAME = _T("heart.obj");
+    const float4 MESH_COLOR(0.9f, 0.3f, 0.3f, 1);
+    const float MESH_SCALE = 0.06f;
 
     const float4 CYLINDER_COLOR (0.4f, 0.6f, 1.0f, 1);
     const float4 OBSTACLE_COLOR (0.4f, 0.4f, 0.4f, 1);
@@ -322,9 +330,9 @@ namespace
             return phys_mod;
         }
 
-        void set_impact(Vector hit_position, Vector hit_rotation_center, Vector hit_velocity)
+        void set_impact(Vector hit_position, double hit_radius, Vector hit_rotation_center, Vector hit_velocity)
         {
-            hit_region = new SphericalRegion( hit_position, 0.25 );
+            hit_region = new SphericalRegion( hit_position, hit_radius );
 
             // ------------------ V i s u a l i z a t i o n -----------------------
             Vertex * sphere_vertices = new Vertex[SPHERE_VERTICES];
@@ -412,6 +420,8 @@ namespace
                 delete reactions[i];
         }
 
+        static const TCHAR * cmdline_option;
+
     private:
         const float cylinder_radius;
         const float cylinder_height;
@@ -480,7 +490,7 @@ namespace
             PhysicalModel * phys_mod = add_physical_model(high_cylinder_model, low_cylinder_model);
 
             // - Set impact -
-            set_impact(Vector(0, 0.64, 0), Vector(0, 0, 0), Vector(0,-70,0.0));
+            set_impact(Vector(0, 0.64, 0), 0.25, Vector(0, 0, 0), Vector(0,-70,0.0));
 
             // - Add frame --
             IndexArray frame;
@@ -535,11 +545,27 @@ namespace
             phys_mod->add_region_reaction(*outside_reaction);
         }
     };
+    const TCHAR * CylinderDemo::cmdline_option = _T("/cylinder");
 
-    class CarDemo : public Demo
+#if defined UNICODE || defined _UNICODE
+    inline string tstring_to_string(const tstring &wstr)
     {
+        // based on http://stackoverflow.com/a/18374698/693538
+        typedef std::codecvt_utf8<wchar_t> convert_type;
+        std::wstring_convert<convert_type, wchar_t> converter;
+        return converter.to_bytes(wstr);
+    }
+#else // defined UNICODE || defined _UNICODE
+    inline const string & tstring_to_string(const tstring &str) { return str; }
+#endif // defined UNICODE || defined _UNICODE
+
+    class MeshDemo : public Demo
+    {
+    private:
+        const tstring mesh_filename;
     public:
-        CarDemo(Application & _app) : Demo(_app, 0, 0, 0, 0)
+        MeshDemo(Application & app_, const tstring & mesh_filename_ = DEFAULT_MESH_FILENAME)
+            : Demo(app_, 0, 0, 0, 0), mesh_filename(mesh_filename_)
         {}
     protected:
         virtual void prepare()
@@ -547,7 +573,7 @@ namespace
             // == PREPARE CAR DEMO ==
 
             // - Load model from obj
-            ObjMeshLoader loader(MESH_FILENAME, CYLINDER_COLOR);
+            ObjMeshLoader loader(mesh_filename.c_str(), MESH_COLOR, MESH_SCALE);
             Stopwatch stopwatch;
             stopwatch.start();
             loader.load();
@@ -556,11 +582,11 @@ namespace
             static char buf[BUF_SIZE];
             sprintf_s(buf, BUF_SIZE,
                 "loading mesh from %s: %7.2f ms",
-                loader.get_filename(), time*1000);
+                tstring_to_string(mesh_filename).c_str(), time*1000);
             app.get_logger().log("        [Importer]", buf);
 
             // - Create models -
-            Model * car = new Model(
+            Model * mesh = new Model(
                 app.get_renderer(),
                 D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
                 deform_shader,
@@ -569,16 +595,16 @@ namespace
                 loader.get_indices().data(),
                 loader.get_indices().size()
             );
-            car->add_shader(lighting_shader); // add lighting
-            Vertex * car_vertices = car->lock_vertex_buffer(LOCK_READ);
-            PointModel * low_car = new PointModel(app.get_renderer(), simple_shader, car_vertices, car->get_vertices_count(), 10);
-            car->unlock_vertex_buffer();
-            low_car->add_shader(simple_pixel_shader);
+            mesh->add_shader(lighting_shader); // add lighting
+            Vertex * car_vertices = mesh->lock_vertex_buffer(LOCK_READ);
+            PointModel * low_mesh = new PointModel(app.get_renderer(), simple_shader, car_vertices, mesh->get_vertices_count(), 10);
+            mesh->unlock_vertex_buffer();
+            low_mesh->add_shader(simple_pixel_shader);
             set_camera_position(6.1f, 1.1f, -1.16858f);
-            add_physical_model(car, low_car);
+            PhysicalModel *phys_mod = add_physical_model(mesh, low_mesh);
 
             // - Set impact -
-            set_impact(Vector(0,2.2,-0.9), Vector(0, 1.15, 0), Vector(0,-110,0.0));
+            set_impact(Vector(0,2.2,-0.9), 0.45, phys_mod->get_center_of_mass(), Vector(0,-510,0.0));
         }
     };
 
@@ -588,6 +614,8 @@ namespace
         OvalDemo(Application & _app)
             : Demo(_app, OVAL_VERTICES, OVAL_INDICES, OVAL_VERTICES, OVAL_INDICES)
         {}
+
+        static const TCHAR * cmdline_option;
 
     protected:
         virtual void prepare()
@@ -658,13 +686,17 @@ namespace
             }
 
             // - Set impact -
-            set_impact(Vector(0,1.5,0), Vector(0, 0, 0), Vector(0,-110,0.0));
+            set_impact(Vector(0,1.5,0), 0.25, Vector(0, 0, 0), Vector(0,-110,0.0));
         }
     };
+    const TCHAR * OvalDemo::cmdline_option = _T("/oval");
 #pragma warning( pop )
 }
 
-INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
+// Renderer can be launched as `Renderer.exe file.obj` to load mesh from file.obj.
+// Instead of file.obj one can pass /oval or /cylinder options to launch corresponding demo.
+// If no argument is given, /oval is used by default.
+INT WINAPI _tWinMain( HINSTANCE, HINSTANCE, LPTSTR, INT )
 {
     Logger logger("renderer.log", true);
     logger.newline();
@@ -688,11 +720,26 @@ INT WINAPI wWinMain( HINSTANCE, HINSTANCE, LPWSTR, INT )
         Application app(logger);
         app.set_updating_vertices_on_gpu(UPDATE_ON_GPU);
 
-        OvalDemo demo(app);
-        // or - CylinderDemo demo(app, 0.5, 1);
-        // or - CarDemo demo(app);
+        // parse command line arguments
+        tstring mesh_filename = OvalDemo::cmdline_option; // by default use oval demo
+        if (__argc > 1)
+            mesh_filename = __targv[1];
 
-        demo.run();
+        if (mesh_filename == OvalDemo::cmdline_option)
+        {
+            OvalDemo demo(app);
+            demo.run();
+        }
+        else if (mesh_filename == CylinderDemo::cmdline_option)
+        {
+            CylinderDemo demo(app, 0.5, 1);
+            demo.run();
+        }
+        else
+        {
+            MeshDemo demo(app, mesh_filename);
+            demo.run();
+        }
         
         logger.log("        [Renderer]", "application shutdown");
     }
