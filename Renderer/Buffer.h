@@ -16,11 +16,11 @@ enum BufferLockType
     LOCK_READ_WRITE,
 };
 
-// DO NOT USE this class directly, use Buffer<T> instead
+// DO NOT USE this class directly, use AbstractBuffer<T> and its derived classes instead
 class BufferImpl;
 
 template <class T>
-class Buffer
+class AbstractBuffer
 {
 private:
     BufferImpl * impl;
@@ -34,9 +34,9 @@ public:
      *  buffer_data - initial data to fill buffer, can be nullptr.
      *  items_count - the size of initial data, ignored if buffer_data == nullptr
      *  dynamic - is the buffer going to be updated
-     *  staging_backed - is an additional buffer with D3D11_USAGE_STAGING created to enable LOCK_READ_WRITE and LOCK_READ lock types (see Buffer::LockType enum)
+     *  staging_backed - is an additional buffer with D3D11_USAGE_STAGING created to enable LOCK_READ_WRITE and LOCK_READ lock types (see BufferLockType enum)
      */
-    Buffer(IRenderer * renderer, unsigned bind_flag, const T *buffer_data, unsigned items_count, bool dynamic = true, bool staging_backed = true);
+    AbstractBuffer(IRenderer * renderer, unsigned bind_flag, const T *buffer_data, unsigned items_count, bool dynamic = true, bool staging_backed = true);
     unsigned get_items_count() const;
 
     // this method must be implemented in a subclass
@@ -45,12 +45,12 @@ public:
     T * lock(BufferLockType lock_type) const;
     void unlock() const;
     
-    virtual ~Buffer() { delete impl; }
+    virtual ~AbstractBuffer() { delete impl; }
 private:
-    DISABLE_COPY_T(Buffer, T);
+    DISABLE_COPY_T(AbstractBuffer, T);
 };
 
-class VertexBuffer : public Buffer<Vertex>
+class VertexBuffer : public AbstractBuffer<Vertex>
 {
 public:
     /*
@@ -59,10 +59,10 @@ public:
      *  vertices - initial data to fill buffer, can be nullptr.
      *  vertices_count - count of vertices in `vertices`, ignored if vertices == nullptr
      *  dynamic - is the buffer going to be updated
-     *  staging_backed - is an additional buffer with D3D11_USAGE_STAGING created to enable LOCK_READ_WRITE and LOCK_READ lock types (see Buffer::LockType enum)
+     *  staging_backed - is an additional buffer with D3D11_USAGE_STAGING created to enable LOCK_READ_WRITE and LOCK_READ lock types (see BufferLockType enum)
      */
     VertexBuffer(IRenderer * renderer, const Vertex * vertices, unsigned vertices_count, bool dynamic = true, bool staging_backed = true):
-        Buffer(renderer, D3D11_BIND_VERTEX_BUFFER, vertices, vertices_count, dynamic, staging_backed)
+        AbstractBuffer(renderer, D3D11_BIND_VERTEX_BUFFER, vertices, vertices_count, dynamic, staging_backed)
     {}
 
     virtual void set() const override;
@@ -70,7 +70,7 @@ private:
     DISABLE_COPY(VertexBuffer);
 };
 
-class IndexBuffer : public Buffer<Index>
+class IndexBuffer : public AbstractBuffer<Index>
 {
 public:
     /*
@@ -79,10 +79,10 @@ public:
      *  indices - initial data to fill buffer, can be nullptr.
      *  indices_count - count of indices in `indices`, ignored if indices == nullptr
      *  dynamic - is the buffer going to be updated
-     *  staging_backed - is an additional buffer with D3D11_USAGE_STAGING created to enable LOCK_READ_WRITE and LOCK_READ lock types (see Buffer::LockType enum)
+     *  staging_backed - is an additional buffer with D3D11_USAGE_STAGING created to enable LOCK_READ_WRITE and LOCK_READ lock types (see BufferLockType enum)
      */
     IndexBuffer(IRenderer * renderer, const Index * indices, unsigned indices_count, bool dynamic = true, bool staging_backed = true) :
-        Buffer(renderer, D3D11_BIND_INDEX_BUFFER, indices, indices_count, dynamic, staging_backed)
+        AbstractBuffer(renderer, D3D11_BIND_INDEX_BUFFER, indices, indices_count, dynamic, staging_backed)
     {}
 
     virtual void set() const override;
@@ -98,7 +98,7 @@ enum ConstantBufferSetFlags
 };
 
 template <class BufferStruct>
-class ConstantBuffer : public Buffer<BufferStruct>
+class ConstantBuffer : public AbstractBuffer<BufferStruct>
 {
 private:
     unsigned start_slot;
@@ -109,11 +109,11 @@ public:
      *  renderer - the parent renderer
      *  initial_data - initial data to fill buffer, can be nullptr.
      *  dynamic - is the buffer going to be updated
-     *  staging_backed - is an additional buffer with D3D11_USAGE_STAGING created to enable LOCK_READ_WRITE and LOCK_READ lock types (see Buffer::LockType enum)
+     *  staging_backed - is an additional buffer with D3D11_USAGE_STAGING created to enable LOCK_READ_WRITE and LOCK_READ lock types (see BufferLockType enum)
      *                   NB: by default staging_backed is false (as opposed to VertexBuffer/IndexBuffer) because constant buffer is usually updated with LOCK_OVERWRITE
      */
     ConstantBuffer(IRenderer * renderer, const BufferStruct *initial_data, unsigned set_flags, unsigned start_slot, bool dynamic = true, bool staging_backed = false) :
-        Buffer(renderer, D3D11_BIND_CONSTANT_BUFFER, initial_data, 1, dynamic, staging_backed),
+        AbstractBuffer(renderer, D3D11_BIND_CONSTANT_BUFFER, initial_data, 1, dynamic, staging_backed),
         set_flags(set_flags), start_slot(start_slot)
     {}
 
@@ -169,17 +169,17 @@ private:
 };
 
 template<class T>
-Buffer<T>::Buffer(IRenderer * renderer, unsigned bind_flag, const T *buffer_data, unsigned items_count, bool dynamic = true, bool staging_backed = true)
+AbstractBuffer<T>::AbstractBuffer(IRenderer * renderer, unsigned bind_flag, const T *buffer_data, unsigned items_count, bool dynamic = true, bool staging_backed = true)
     : impl(nullptr)
 {
     impl = new BufferImpl(renderer, bind_flag, buffer_data, items_count, sizeof(T), dynamic, staging_backed);
 }
 
 template<class _> // template parameter is not used in this method
-unsigned Buffer<_>::get_items_count() const { return impl->get_items_count(); }
+unsigned AbstractBuffer<_>::get_items_count() const { return impl->get_items_count(); }
 
 template<class T>
-T * Buffer<T>::lock(BufferLockType lock_type) const { return reinterpret_cast<T*>(impl->lock(lock_type)); }
+T * AbstractBuffer<T>::lock(BufferLockType lock_type) const { return reinterpret_cast<T*>(impl->lock(lock_type)); }
 
 template<class _> // template parameter is not used in this method
-void Buffer<_>::unlock() const { impl->unlock(); }
+void AbstractBuffer<_>::unlock() const { impl->unlock(); }

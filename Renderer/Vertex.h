@@ -17,9 +17,8 @@ inline float4 random_color()
     return float4( rand_col_comp(), rand_col_comp(), rand_col_comp(), 1.0f );
 }
 
-class Vertex
+struct Vertex
 {
-public:
     float3 pos;            // The position for the vertex
     float3 normal;         // The outer normal of model
     float4 color;          // The vertex color // TODO: use more compact DirectX::PackedVector::XMCOLOR instead??
