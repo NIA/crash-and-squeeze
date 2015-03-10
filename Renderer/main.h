@@ -54,6 +54,8 @@ typedef DirectX::XMFLOAT3   float3;
 typedef DirectX::XMFLOAT4   float4;
 typedef DirectX::XMFLOAT4X4 float4x4;
 
+// TODO: move the following vector operations to another header (and maybe above typedefs too)
+
 // performs a+=b by converting a to XMVECTOR (and back)
 inline float3 & operator+=(float3 & a /*in/out*/, const DirectX::XMVECTOR & b)
 {
@@ -111,6 +113,15 @@ inline float3 math_vector_to_float3(const CrashAndSqueeze::Math::Vector &v)
                   static_cast<float>(v[1]),
                   static_cast<float>(v[2]));
 }
+
+inline float4 math_vector_to_float4(const CrashAndSqueeze::Math::Vector &v)
+{
+    return float4(static_cast<float>(v[0]),
+                  static_cast<float>(v[1]),
+                  static_cast<float>(v[2]),
+                  0);
+}
+
 
 inline CrashAndSqueeze::Math::Vector float3_to_math_vector(const float3 &v)
 {

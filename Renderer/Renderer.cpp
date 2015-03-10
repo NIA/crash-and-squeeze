@@ -424,7 +424,7 @@ void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &
             for(int i = 0; i < clusters_num; ++i)
             {
                 // ...set initial center of mass...
-                model_consts->clus_cm[i] = math_vector_to_float3(physical_model->get_cluster_initial_center(i));
+                model_consts->clus_cm[i] = math_vector_to_float4(physical_model->get_cluster_initial_center(i));
 
                 // ...and transformation matrices for positions...
                 float4x4 cluster_matrix;

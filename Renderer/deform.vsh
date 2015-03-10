@@ -17,7 +17,8 @@ struct VS_OUTPUT
     float3  psNormal : TEXCOORD1; // normal for pixel shader
 };
 
-static int MAX_CLUSTERS_NUM = 50; // TODO: get this value from C++ code through shader defines
+// TODO: get this value from C++ code through shader defines
+#define MAX_CLUSTERS_NUM 50
 cbuffer WorldConstants : register(b0)
 {
     float4x4 world;  // aka post_transform
@@ -30,13 +31,13 @@ cbuffer ModelConstants : register(b1)
     float4x4 pos_and_rot; // aka model matrix
     float4x4 clus_mx[MAX_CLUSTERS_NUM+1];     // clusters' position tranformation (deform+c.m. shift) matrices PLUS one zero matrix in the end
     float4x4 clus_nrm_mx[MAX_CLUSTERS_NUM+1]; // clusters' normal   tranformation matrices PLUS one zero matrix in the end
-    float3   clus_cm[MAX_CLUSTERS_NUM+1];     // clusters' initial c.m. (centers of mass)
+    float4   clus_cm[MAX_CLUSTERS_NUM+1];     // clusters' initial c.m. (centers of mass)
 };
 
 void sum_iter(float4 pos, float3 normal, inout float3 sum_pos, inout float3 sum_normal, int ci)
 {
     float4 offset = pos - clus_cm[ci];
-    sum_pos += mul(offset, clus_mx[ci]);
+    sum_pos += (float3)mul(offset, clus_mx[ci]);
     sum_normal += mul(normal, (float3x3)clus_nrm_mx[ci]);
 }
 
@@ -71,10 +72,10 @@ VS_OUTPUT main(const VS_INPUT src)
     // transform pos & normal due to shift and rotation
     pos = mul(pos, pos_and_rot);
     pos = mul(pos, world);
-    normal = mul(normal, (float3x3)pos_and_rot) );
+    normal = mul(normal, (float3x3)pos_and_rot );
     normal = normalize( mul(normal, (float3x3)world) );
     
-    // apply projection into view space and lighting
+    // apply projection into view space and pass pos and normal to pixel shader
     VS_OUTPUT res;
     res.pos   = mul(pos, view);
     res.psPos = pos;
