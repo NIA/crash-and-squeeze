@@ -76,6 +76,14 @@ inline float3 operator+(const float3 &a, const float3 &b)
     return res;
 }
 
+// performs a - b by converting a and b to XMVECTOR (and back)
+inline float3 operator-(const float3 &a, const float3 &b)
+{
+    float3 res;
+    DirectX::XMStoreFloat3(&res, DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&a), DirectX::XMLoadFloat3(&b)));
+    return res;
+}
+
 // performs v * a by converting v and a to XMVECTOR (and back)
 inline float3 operator*(const float3 &v, const float a)
 {
@@ -88,7 +96,6 @@ inline bool operator==(const float3 & v1, const float3 & v2)
 {
     return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z;
 }
-
 
 // a helper for filling index buffers
 inline void add_triangle( Index i1, Index i2, Index i3, Index *indices, Index &current_index, Index offset = 0 )

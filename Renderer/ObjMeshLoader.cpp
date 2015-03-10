@@ -14,7 +14,7 @@ using std::string;
 using Assimp::fast_atof;
 
 ObjMeshLoader::ObjMeshLoader(const TCHAR * filename, float4 color, float scale)
-    : filename(filename), color(color), loaded(false), scale(scale)
+    : filename(filename), color(color), loaded(false), scale_(scale)
 {
 }
 
@@ -66,7 +66,7 @@ void ObjMeshLoader::load()
             in >> x >> y >> z;
             if ( ! in )
                 throw MeshError(filename, "Failed to read vertex position from mesh file", line_no);
-            positions.push_back(parse_float3(x, y, z)*scale);
+            positions.push_back(parse_float3(x, y, z)*scale_);
         }
         /* TODO: support texture coordinates
         else if ("vt" == cmd)
@@ -158,8 +158,7 @@ Index ObjMeshLoader::find_or_add_vertex(const Vertex &v, Index hash)
         // Indices of vertices with same hash will be in the list `entry`
         const CacheEntry & entry = vertex_cache[hash];
         // So go throw this indices until we find the same vertex
-        for (CacheEntry::const_iterator it = entry.begin(), end = entry.end(); it != end; ++it) {
-            const Index index = *it;
+        for (const Index & index : entry) {
             const Vertex & old_vertex = vertices[index];
             if (same_vertex(old_vertex, v))
                 return index;
@@ -180,16 +179,61 @@ Index ObjMeshLoader::find_or_add_vertex(const Vertex &v, Index hash)
     return index;
 }
 
-const std::vector<Vertex> & ObjMeshLoader::get_vertices() const
+void ObjMeshLoader::check_loaded() const
 {
     if ( ! loaded )
         throw MeshError(filename, "Trying to work with mesh, but not loaded mesh file ");
+}
+
+void ObjMeshLoader::scale(float scale)
+{
+    check_loaded();
+    for (Vertex & v: vertices)
+        v.pos = v.pos * scale;
+}
+
+float3 ObjMeshLoader::get_dimensions() const
+{
+    check_loaded();
+    float3 min_pos, max_pos;
+    bool first_vertex = true;
+
+    // find min and max pos
+    for (const Vertex & v: vertices)
+    {
+        if (first_vertex)
+        {
+            min_pos = max_pos = v.pos;
+            first_vertex = false;
+        }
+        else
+        {
+            if (v.pos.x < min_pos.x)
+                min_pos.x = v.pos.x;
+            if (v.pos.x > max_pos.x)
+                max_pos.x = v.pos.x;
+            if (v.pos.y < min_pos.y)
+                min_pos.y = v.pos.y;
+            if (v.pos.y > max_pos.y)
+                max_pos.y = v.pos.y;
+            if (v.pos.z < min_pos.z)
+                min_pos.z = v.pos.z;
+            if (v.pos.z > max_pos.z)
+                max_pos.z = v.pos.z;
+        }
+    }
+
+    return max_pos - min_pos;
+}
+
+const std::vector<Vertex> & ObjMeshLoader::get_vertices() const
+{
+    check_loaded();
     return vertices;
 }
 
 const std::vector<Index> & ObjMeshLoader::get_indices() const
 {
-    if ( ! loaded )
-        throw MeshError(filename, "Trying to work with mesh, but not loaded mesh file ");
+    check_loaded();
     return indices;
 }

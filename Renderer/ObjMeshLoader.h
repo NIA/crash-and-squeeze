@@ -9,7 +9,7 @@ class ObjMeshLoader
 private:
     const TCHAR * filename;
     float4 color;
-    float scale;
+    float scale_;
     bool loaded;
 
     std::vector<Vertex> vertices;
@@ -20,6 +20,7 @@ private:
 
     // Returns index of `v` in `vertices` array: if it doesn't exists yet, it is added to the end
     Index find_or_add_vertex(const Vertex &v, Index hash);
+    void check_loaded() const;
 public:
     // Creates mesh loader for file `filename`
     // Each vertex is painted with `color` and its position is multiplied by `scale`
@@ -27,6 +28,12 @@ public:
 
     // Loads model from file `filename`. NB: only one mesh part is supported!
     void load();
+
+    // In addition to `scale` parameter of constructor, mesh can be scaled after loading
+    void scale(float scale);
+
+    // Gets max sizes of mesh along each axis
+    float3 get_dimensions() const;
 
     const TCHAR * get_filename() const { return filename; }
     const std::vector<Vertex> & get_vertices() const;
