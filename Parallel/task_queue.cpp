@@ -18,7 +18,7 @@ namespace CrashAndSqueeze
         {
             if( is_full())
             {
-                Logger::error("in TaskQueue::push: queue is full", __FILE__, __LINE__);
+                Logger::error("in TaskQueue::push: queue is full: it should be cleared after each step", __FILE__, __LINE__);
                 return;
             }
 
@@ -71,7 +71,8 @@ namespace CrashAndSqueeze
         void TaskQueue::clear()
         {
             pop_lock->lock();
-            first = last + 1;
+            first = 0;
+            last = -1;
             pop_lock->unlock();
         }
 

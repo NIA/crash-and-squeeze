@@ -428,20 +428,13 @@ void Application::run()
                         Vector linear_velocity_change, angular_velocity_chage;
 
                         stopwatch.start();
-                        if(false == physical_model->wait_for_step())
-                        {
-                            throw PhysicsError();
-                        }
-
-                        logger.add_message("Step **finished**");
-
                         if(impact_happened && NULL != impact_region)
                         {
                             physical_model->hit(*impact_region, impact_velocity);
                             impact_happened = false;
                         }
-                        physical_model->prepare_tasks(*forces, dt, NULL);
                         logger.add_message("Tasks --READY--");
+                        physical_model->compute_next_step_async(*forces, dt, NULL);
 
                         physical_model->react_to_events();
 
@@ -449,9 +442,19 @@ void Application::run()
                         {
                             throw PhysicsError();
                         }
+                        logger.add_message("Clusters ~~finished~~");
+
+                        // TODO: as an optimization, when updating on GPU, we can wait only for cluster tasks (wait_for_clusters)
+                        // and continue to rendering (because only cluster matrices are needed to start rendering when updating on GPU).
+                        // In this case, wait_for_step is moved to the beginning of the loop (right after stopwatch.start) - see rev. 22f44cfa98f0d545f0a52b34383ad848cc50bcd4, for example.
+                        // However, this optimization is not enabled now for easier and more precise measurement of step computation, rendering and updating times separately.
+                        if(false == physical_model->wait_for_step())
+                        {
+                            throw PhysicsError();
+                        }
 
                         double time = stopwatch.stop();
-                        logger.add_message("Clusters ~~finished~~");
+                        logger.add_message("Step **finished**");
 
                         if( NULL != performance_reporter )
                         {
@@ -484,12 +487,23 @@ void Application::run()
                             Vertex *vertices = model->lock_vertex_buffer(LOCK_READ_WRITE);
                             int vertices_count = model->get_vertices_count();
 
+                            // make sure that step is finished
+                            physical_model->wait_for_step();
+
                             switch(show_mode)
                             {
                             case SHOW_GRAPHICAL_VERTICES:
                                 stopwatch.start();
-                                physical_model->update_vertices(vertices, vertices_count, VERTEX_INFO);
+                                logger.add_message("Update tasks --READY--");
+                                physical_model->update_vertices_async(vertices, VERTEX_INFO, 0, vertices_count);
+                                
+                                if(false == physical_model->wait_for_update())
+                                {
+                                    throw PhysicsError();
+                                }
+
                                 update_performance_reporter.add_measurement(stopwatch.stop());
+                                logger.add_message("Update **finished**");
                                 break;
                             case SHOW_CURRENT_POSITIONS:
                                 physical_model->update_current_positions(vertices, vertices_count, VERTEX_INFO);
@@ -569,5 +583,6 @@ void Application::delete_model_stuff()
 
 Application::~Application()
 {
+    stop_threads();
     delete_model_stuff();
 }

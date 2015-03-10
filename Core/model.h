@@ -120,11 +120,33 @@ namespace CrashAndSqueeze
             public:
                 FinalTask(Model *model) : model(model) {}
             } final_task;
+
+            class UpdateTask : public Parallel::AbstractTask
+            {
+            private:
+                Model *model;
+                void *out_vertices;
+                const VertexInfo * vertex_info;
+                int start_vertex;
+                int vertices_num;
+
+                Parallel::IEventSet * event_set;
+                int event_index;
+            protected:
+                // implement AbstractTask
+                virtual void execute();
+            public:
+                UpdateTask();
+                void setup_event(Parallel::IEventSet * event_set, int event_index);
+                void setup_args(Model *model, /*out*/ void *out_vertices, const VertexInfo &vertex_info, int start_vertex, int vertices_num);
+            } *update_tasks;
+            int update_tasks_num;
             
             Parallel::IPrimFactory * prim_factory;
+            Parallel::IEvent * tasks_ready;
             Parallel::IEventSet * cluster_tasks_completed;
             Parallel::IEvent * step_completed;
-            Parallel::IEvent * tasks_ready;
+            Parallel::IEventSet * update_tasks_completed;
 
             Parallel::TaskQueue * task_queue;
 
@@ -151,6 +173,9 @@ namespace CrashAndSqueeze
 
             typedef Math::Vector (Model::*PositionFunc)(int index) const;
             void update_any_positions(PositionFunc pos_func, /*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
+
+            // Handles ALL_VERTICES and updates start_vertex and vertex_num if needed. Also checks all values to be correct.
+            bool process_update_vertices_args(const VertexInfo &vertex_info, /*in/out*/ int & start_vertex, /*in/out*/ int & vertices_num) const;
 
         public:
             // Takes a pointer source_vertices to vetrices_num vertices of arbitrary
@@ -209,22 +234,32 @@ namespace CrashAndSqueeze
             // Applies displacements 
             void displace(const DisplacementsArray & displacements);
             
+            // Non-blocking computation of next step of algorithm.
+            // 
             // Prepares tasks for next step. If there are some tasks from previous step left,
-            // this function will wait for them to complete. Returns false on failure.
+            // this function will wait for them to complete.
+            // 
+            // This method returns immediately: actual computation will be done by calling Model::complete_next_task
+            // (probably in another thread) until all tasks are completed. Use Model::wait_for_step to wait until computation is complete.
             //
             // Computation of next step will be in local coordinates of body (coordinate system is
             // bound to body frame if there is any, otherwise - to the center of mass). After that
             // the change of global motion is returned via VelocitiesChangedCallback
-            void prepare_tasks(const ForcesArray & forces, Math::Real dt, VelocitiesChangedCallback * vcb);
+            void compute_next_step_async(const ForcesArray & forces, Math::Real dt, VelocitiesChangedCallback * vcb);
 
-            // In order to compute next step, a queue of tasks must be prepared first
-            // with Model::prepare_tasks, and then Model::complete_next_task should be called multiple
-            // times until it returns false (meaning no tasks for this step left)
+            // Blocking computation of next step of algorithm (best suitable for single-threaded application)
+            // Computes next step like Model::compute_next_step_async, but doesn't return until the step is computed.
+            // See Model::compute_next_step_async for explanation of method arguments.
+            void compute_next_step(const ForcesArray & forces, Math::Real dt, VelocitiesChangedCallback * vcb);
+
+            // In order to compute next step or update vertices using parallel computation, a queue of tasks
+            // must be prepared first with Model::compute_next_step_async or Model::update_vertices_async,
+            // and then Model::complete_next_task should be called multiple times until it returns false (meaning no tasks left)
             //
             // This function is thread-safe and can be called from different threads simultaneously.
             bool complete_next_task();
 
-            // wait until the tasks for next step are ready
+            // wait until the new tasks for next step or for updating vertices are ready
             void wait_for_tasks() { tasks_ready->wait(); }
 
             // Wait until all cluster computation tasks are complete.
@@ -247,9 +282,28 @@ namespace CrashAndSqueeze
             const Math::Vector & get_cluster_initial_center(int cluster_index) const;
             const Math::Vector & get_cluster_center(int cluster_index) const;
 
-            // TODO: remove or implement proper non-gpu computation
-            void update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
+            static const int ALL_VERTICES = -1;
+
+            // Non-blocking updating of vertices. Prepares tasks for updating requested vertices in parts.
+            //
+            // This method returns immediately: actual computation will be done by calling Model::complete_next_task
+            // (probably in another thread) until all tasks are completed. Each tasks will call Model::update_vertices with appropriate arguments.
+            // 
+            // Updated values are written into `out_vertices` according to its layout defined by `vertex_info`.
+            // This function will update vertices from `start_vertex` to `vertices_num`. These two arguments
+            // can be omitted: then all vertices will be updated.
+            void update_vertices_async(/*out*/ void *out_vertices, const VertexInfo &vertex_info, int start_vertex = 0, int vertices_num = ALL_VERTICES);
             
+            // Blocking updating of vertices (best suitable for single-threaded application).
+            // Updates vertices like Model::update_vertices_async, but doesn't return until updating is computed.
+            // See Model::update_vertices_async for explanation of method arguments.
+            // TODO: implement proper non-GPU updating of vectors when quadratic extensions are enabled (only positions by now)
+            void update_vertices(/*out*/ void *out_vertices, const VertexInfo &vertex_info, int start_vertex = 0, int vertices_num = ALL_VERTICES);
+ 
+            // wait until all tasks for updating vertices are completed
+            // Returns true if computation was successful, false otherwise
+            bool wait_for_update();
+
             // These methods are needed only for test demo
             void update_current_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);
             void update_equilibrium_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info);

@@ -25,6 +25,8 @@ namespace CrashAndSqueeze
             const Vector MAX_COORDINATE_VECTOR(MAX_COORDINATE, MAX_COORDINATE, MAX_COORDINATE);
             const int INITIAL_ALLOCATED_CALLBACK_INFOS = 10;
 
+            const int DEFAULT_UPDATE_TASKS_NUM = 4;
+
             // -- helpers --
             template<class T>
             inline void make_fixed_size(Collections::Array<T> &arr, int size)
@@ -72,6 +74,8 @@ namespace CrashAndSqueeze
         
         void Model::ClusterTask::execute()
         {
+            if (NULL == cluster)
+                Logger::error("In Model::ClusterTask::execute(): task not set up, call setup() first", __FILE__, __LINE__);
             cluster->match_shape(*dt);
             event_set->set(event_index);
         }
@@ -79,6 +83,41 @@ namespace CrashAndSqueeze
         void Model::FinalTask::execute()
         {
             model->integrate_particle_system();
+        }
+
+        Model::UpdateTask::UpdateTask()
+            : model(NULL), out_vertices(NULL), vertex_info(NULL), start_vertex(0), vertices_num(0), event_set(NULL), event_index(0) {}
+
+        void Model::UpdateTask::setup_event(Parallel::IEventSet * event_set, int event_index)
+        {
+            this->event_set = event_set;
+            this->event_index = event_index;
+        }
+
+        void Model::UpdateTask::setup_args(Model *model, void *out_vertices, const VertexInfo &vertex_info, int start_vertex, int vertices_num)
+        {
+            this->model = model;
+            this->out_vertices = out_vertices;
+            this->vertex_info = &vertex_info;
+            this->start_vertex = start_vertex;
+            this->vertices_num = vertices_num;
+        }
+
+        void Model::UpdateTask::execute()
+        {
+            if (NULL == model)
+            {
+                Logger::error("In Model::UpdateTask::execute(): task args not set up, call setup_args() first", __FILE__, __LINE__);
+                return;
+            }
+            if (NULL == event_set)
+            {
+                Logger::error("In Model::UpdateTask::execute(): task event_set not set up, call setup_event() first", __FILE__, __LINE__);
+                return;
+            }
+            
+            model->update_vertices(out_vertices, *vertex_info, start_vertex, vertices_num);
+            event_set->set(event_index);
         }
 
         // a constant, determining how much deformation velocities are damped:
@@ -128,9 +167,12 @@ namespace CrashAndSqueeze
 #pragma warning( disable : 4355 )
               final_task(this),
 #pragma warning( pop )
+              update_tasks(NULL),
+              update_tasks_num(0),
               task_queue(NULL),
               step_completed(NULL),
               tasks_ready(NULL),
+              update_tasks_completed(NULL),
               success(true)
         {
             // -- Finish initialization of arrays --
@@ -376,16 +418,23 @@ namespace CrashAndSqueeze
         {
             int clusters_num = clusters.size();
             cluster_tasks = new ClusterTask[clusters_num];
-            task_queue = new TaskQueue(clusters_num + 1, prim_factory);
+            task_queue = new TaskQueue(clusters_num + 1 + DEFAULT_UPDATE_TASKS_NUM, prim_factory);
             cluster_tasks_completed = prim_factory->create_event_set(clusters_num, true);
             step_completed = prim_factory->create_event(true);
             tasks_ready = prim_factory->create_event(false);
             for(int i = 0; i < clusters_num; ++i)
             {
                 cluster_tasks[i].setup(clusters[i], dt, cluster_tasks_completed, i);
-                task_queue->push(&cluster_tasks[i]);
             }
-            task_queue->push(&final_task);
+            // NB: now tasks are not pushed to queue here: they are pushed either in Model::compute_next_step_async or in Model::update_vertices_async
+
+            update_tasks_num = DEFAULT_UPDATE_TASKS_NUM;
+            update_tasks = new UpdateTask[update_tasks_num];
+            update_tasks_completed = prim_factory->create_event_set(update_tasks_num, true);
+            for (int i = 0; i < update_tasks_num; ++i)
+            {
+                update_tasks[i].setup_event(update_tasks_completed, i);
+            }
         }
 
         Vector Model::get_vertex_initial_pos(int index) const
@@ -492,7 +541,7 @@ namespace CrashAndSqueeze
             }
         }
 
-        void Model::prepare_tasks(const ForcesArray & forces, Math::Real dt, VelocitiesChangedCallback * vcb)
+        void Model::compute_next_step_async(const ForcesArray & forces, Math::Real dt, VelocitiesChangedCallback * vcb)
         {
             // wait for previous step to complete
             step_completed->wait();
@@ -506,14 +555,29 @@ namespace CrashAndSqueeze
             this->forces = &forces;
             this->velocities_changed_callback = vcb;
             
-            // reset queue
-            if(task_queue->is_empty())
+            // add new tasks to queue
+            task_queue->clear();
+            for(int i = 0; i < clusters.size(); ++i)
             {
-                task_queue->reset();
+                task_queue->push(&cluster_tasks[i]);
             }
+            task_queue->push(&final_task);
             
+            // Success is true until some error happens and it is set to false
+            success = true; // TODO: use safer mechanism for storing this state
+
             // start new step
             tasks_ready->set();
+        }
+
+        void Model::compute_next_step(const ForcesArray & forces, Math::Real dt, VelocitiesChangedCallback * vcb)
+        {
+            // TODO: think about how to implement compute_next_step without touching tasks (without compute_next_step_async)
+
+            // Prepare tasks
+            compute_next_step_async(forces, dt, vcb);
+            // And complete them until there are some
+            while( false != complete_next_task() ) {}
         }
 
         bool Model::complete_next_task()
@@ -544,7 +608,9 @@ namespace CrashAndSqueeze
 
         void Model::abort()
         {
+            Logger::warning("in Model::abort: step computation aborted", __FILE__, __LINE__);
             success = false;
+            // TODO: this should not only clear queues and set events, but also abort currently executing task
             task_queue->clear();
             cluster_tasks_completed->set();
             step_completed->set();
@@ -731,26 +797,87 @@ namespace CrashAndSqueeze
             }
         }
 
-        void Model::update_vertices(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)
+        bool Model::process_update_vertices_args(const VertexInfo &vertex_info, /*in/out*/ int & start_vertex, /*in/out*/ int & vertices_num) const
         {
-            if(vertices_num != graphical_vertices.size())
+            if(vertices_num == ALL_VERTICES)
             {
-                Logger::warning("in Model::update_vertices: requested to update wrong number of graphical vertices, probably wrong vertices given?", __FILE__, __LINE__);
-                vertices_num = minimum(vertices_num, graphical_vertices.size());
+                start_vertex = 0;
+                vertices_num = graphical_vertices.size();
+            }
+
+            if(start_vertex < 0 || start_vertex >= graphical_vertices.size())
+            {
+                Logger::error("in Model::update_vertices: incorrect start vertex index", __FILE__, __LINE__);
+                return false;
+            }
+            if(vertices_num > graphical_vertices.size() - start_vertex)
+            {
+                Logger::warning("in Model::update_vertices: requested to update too many graphical vertices, probably wrong vertices given?", __FILE__, __LINE__);
+                vertices_num = graphical_vertices.size() - start_vertex;
             }
             if(vertex_info.get_points_num() > graphical_vertices[0].get_points_num())
             {
                 Logger::error("in Model::update_vertices: vertex_info incompatible with that was used for initialization: too many points per vertex requested", __FILE__, __LINE__);
-                return;
+                return false;
             }
             if(vertex_info.get_vectors_num() > graphical_vertices[0].get_vectors_num())
             {
                 Logger::error("in Model::update_vertices: vertex_info incompatible with that was used for initialization: too many vectors per vertex requested", __FILE__, __LINE__);
+                return false;
+            }
+            return true;
+        }
+
+        void Model::update_vertices_async(/*out*/ void *out_vertices, const VertexInfo &vertex_info, int start_vertex /*= 0*/, int vertices_num /*= ALL_VERTICES*/)
+        {
+            // check correctness of arguments and modify `start_vertex` and `vertices_num` if needed
+            if (false == process_update_vertices_args(vertex_info, start_vertex, vertices_num))
                 return;
+            // TODO: check if update is already started! And either wait for it or report error
+            // TODO: what if user calls this method more than one time per frame? Task queue will be full and it will fail
+
+            // reset event set
+            update_tasks_completed->unset();
+
+            int part_size = vertices_num / update_tasks_num;
+            int last_part_size = vertices_num - part_size*(update_tasks_num - 1); // last part may be bigger if vertices_num is not divisible by update_tasks_num
+
+            // add new tasks to queue
+            for(int i = 0; i < update_tasks_num; ++i)
+            {
+                UpdateTask * task = &update_tasks[i];
+
+                // Setup arguments
+                int my_start_vertex = start_vertex + i*part_size;
+                int my_vertices_num = (i < update_tasks_num - 1) ? part_size : last_part_size;
+                task->setup_args(this, out_vertices, vertex_info, my_start_vertex, my_vertices_num);
+                
+                task_queue->push(task);
             }
 
-            void *out_vertex = out_vertices;
-            for(int i = 0; i < vertices_num; ++i)
+            // Success is true until some error happens and it is set to false
+            success = true;
+
+            // start updating
+            tasks_ready->set();
+        }
+
+        bool Model::wait_for_update()
+        {
+            update_tasks_completed->wait();
+            return success;
+        }
+
+        void Model::update_vertices(/*out*/ void *out_vertices, const VertexInfo &vertex_info, int start_vertex /*= 0*/, int vertices_num /*= ALL_VERTICES*/)
+        {
+            // check correctness of arguments and modify `start_vertex` and `vertices_num` if needed
+            if (false == process_update_vertices_args(vertex_info, start_vertex, vertices_num))
+                return;
+
+            int last_vertex = start_vertex + vertices_num - 1;
+
+            void *out_vertex = add_to_pointer(out_vertices, start_vertex*vertex_info.get_vertex_size());;
+            for(int i = start_vertex; i <= last_vertex; ++i)
             {
                 const GraphicalVertex & vertex = graphical_vertices[i];
                 int clusters_num = vertex.get_including_clusters_num();

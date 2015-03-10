@@ -32,6 +32,7 @@ namespace CrashAndSqueeze
             AbstractTask * pop();
 
             // this function is called from the main thread to add the task to the queue
+            // NB: this function is not reentrant! It is assumed that pushing tasks happens only from one thread (but poping can be done from many threads).
             void push(AbstractTask *task);
 
             // this function is called from the main thread to mark all complete

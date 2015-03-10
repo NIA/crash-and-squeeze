@@ -51,7 +51,7 @@ private:
     static const int MAX_TEXT_SIZE = 2048;
     TCHAR text_buffer[MAX_TEXT_SIZE];
 
-    static const int THREADS_COUNT = 2;
+    static const int THREADS_COUNT = 4;
     WorkerThread threads[THREADS_COUNT];
 
     void set_show_mode(int new_show_mode);
