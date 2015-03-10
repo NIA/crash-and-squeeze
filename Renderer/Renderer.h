@@ -71,14 +71,19 @@ private:
 
     // Currently some little value N, but can be made greater while the following is true:
     // (2*N+1 matrices)*(4 vectors in matrix) + (N vectors) <= 4096 (maximum number of items in constant buffer)
+    // ^--- for CAS_QUADRATIC_EXTENSIONS_ENABLED substitute 4*N for 2*N
     // TODO: pass this value to shader via defines
     static const unsigned MAX_CLUSTERS_NUM = 50;
     __declspec( align(16) ) // constant buffer data size should be a multiple of 16
     struct ModelConstants
     {
         float4x4 pos_and_rot; // aka model matrix
-        float4x4 clus_mx[MAX_CLUSTERS_NUM+1];     // clusters' position tranformation (deform+c.m. shift) matrices PLUS one zero matrix in the end
-        float4x4 clus_nrm_mx[MAX_CLUSTERS_NUM+1]; // clusters' normal   tranformation matrices PLUS one zero matrix in the end
+        float4x4 clus_mx[MAX_CLUSTERS_NUM+1];     // clusters' position transformation (deform+c.m. shift) matrices PLUS one zero matrix in the end
+        float4x4 clus_nrm_mx[MAX_CLUSTERS_NUM+1]; // clusters' normal   transformation matrices PLUS one zero matrix in the end
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+        float4x4 clus_mx_quad[MAX_CLUSTERS_NUM+1];// clusters' _quadratic_ position transformation _quad_ matrices PLUS one zero matrix in the end
+        float4x4 clus_mx_mix[MAX_CLUSTERS_NUM+1]; // clusters' _quadratic_ position transformation _mix_ matrices PLUS one zero matrix in the end
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
         float4   clus_cm[MAX_CLUSTERS_NUM+1];     // clusters' initial c.m. (centers of mass)
     };
     ConstantBuffer<ModelConstants> *model_constants;

@@ -44,10 +44,11 @@ namespace
     bool DISABLE_MESSAGE_BOXES = true;
     bool PAINT_MODEL = false;
     bool SHOW_NORMALS = false;
-    bool UPDATE_ON_GPU = false; // TODO: when update on GPU, create models as immutable (dynamic = false)
+    bool UPDATE_ON_GPU = true; // TODO: when update on GPU, create models as immutable (dynamic = false)
 
     const char *SIMPLE_SHADER_FILENAME = "simple.vsh";
-    const char *DEFORM_SHADER_FILENAME = UPDATE_ON_GPU ? "deform.vsh" : "simple.vsh";
+                                                         // TODO: can we handle this with one shader file?
+    const char *DEFORM_SHADER_FILENAME = UPDATE_ON_GPU ? (CAS_QUADRATIC_EXTENSIONS_ENABLED ? "deform_qx.vsh" : "deform.vsh") : "simple.vsh";
     const char *LIGHTING_SHADER_FILENAME = "lighting.psh";
     const char *SIMPLE_PIXEL_SHADER_FILENAME = "simple.psh";
     

@@ -169,6 +169,9 @@
     <None Include="simple.psh">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="deform_qx.vsh">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="modelling.ico">

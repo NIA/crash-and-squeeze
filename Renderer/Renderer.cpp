@@ -427,17 +427,25 @@ void Renderer::render(const ModelEntities &model_entities, PerformanceReporter &
                 model_consts->clus_cm[i] = math_vector_to_float4(physical_model->get_cluster_initial_center(i));
 
                 // ...and transformation matrices for positions...
-                float4x4 cluster_matrix;
-                build_d3d_matrix(cluster_matrix, physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i));
-                model_consts->clus_mx[i] = cluster_matrix;
+                build_d3d_matrix(model_consts->clus_mx[i], physical_model->get_cluster_transformation(i), physical_model->get_cluster_center(i));
 
-                // ...and normals
-                build_d3d_matrix(cluster_matrix, physical_model->get_cluster_normal_transformation(i), Vector::ZERO);
-                model_consts->clus_nrm_mx[i] = cluster_matrix;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                // ...and quadratic transformation matrices for positions...
+                build_d3d_matrix(model_consts->clus_mx_quad[i], physical_model->get_cluster_transformation_quad(i), Vector::ZERO);
+                build_d3d_matrix(model_consts->clus_mx_mix[i],  physical_model->get_cluster_transformation_mix(i),  Vector::ZERO);
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+
+                // ...and for normals
+                build_d3d_matrix(model_consts->clus_nrm_mx[i], physical_model->get_cluster_normal_transformation(i), Vector::ZERO);
             }
+            // TODO: do we need to set this zero matrix if we already did ZeroMemory(model_consts)?
             // Last zero matrix:
             model_consts->clus_mx[clusters_num]     = ZEROS;
             model_consts->clus_nrm_mx[clusters_num] = ZEROS;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            model_consts->clus_mx_quad[clusters_num]= ZEROS;
+            model_consts->clus_nrm_mx[clusters_num] = ZEROS;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
         }
 
         model_constants->unlock();

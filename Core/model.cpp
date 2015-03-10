@@ -417,7 +417,7 @@ namespace CrashAndSqueeze
         {
             int clusters_num = clusters.size();
             cluster_tasks = new ClusterTask[clusters_num];
-            task_queue = new TaskQueue(clusters_num + 1 + DEFAULT_UPDATE_TASKS_NUM, prim_factory);
+            task_queue = new TaskQueue(clusters_num + 1 + /*!!!!*/20*DEFAULT_UPDATE_TASKS_NUM, prim_factory);
             cluster_tasks_completed = prim_factory->create_event_set(clusters_num, true);
             step_completed = prim_factory->create_event(true);
             for(int i = 0; i < clusters_num; ++i)
@@ -722,6 +722,17 @@ namespace CrashAndSqueeze
             return clusters[cluster_index].get_graphical_pos_transform();
 #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
         }
+
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+        const Matrix & Model::get_cluster_transformation_quad(int cluster_index) const
+        {
+            return clusters[cluster_index].get_graphical_pos_transform().to_quad_matrix();
+        }
+        const Math::Matrix & Model::get_cluster_transformation_mix(int cluster_index) const
+        {
+            return clusters[cluster_index].get_graphical_pos_transform().to_mix_matrix();
+        }
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 
         const Matrix & Model::get_cluster_normal_transformation(int cluster_index) const
         {

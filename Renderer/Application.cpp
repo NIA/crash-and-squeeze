@@ -518,9 +518,12 @@ void Application::run()
 
                             model->unlock_vertex_buffer();
                             #if CAS_QUADRATIC_EXTENSIONS_ENABLED
-                            stopwatch.start();
-                            model->generate_normals();
-                            gen_normals_performance_reporter.add_measurement(stopwatch.stop());
+                            if (SHOW_GRAPHICAL_VERTICES == show_mode)
+                            {
+                                stopwatch.start();
+                                model->generate_normals();
+                                gen_normals_performance_reporter.add_measurement(stopwatch.stop());
+                            }
                             #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
                             model->notify_subscriber();
                         }

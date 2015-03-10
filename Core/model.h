@@ -275,8 +275,16 @@ namespace CrashAndSqueeze
             // detect happened events and invoke reactions, if needed
             void react_to_events();
 
-            // get cluster parameters for computation on GPU
+            // getters of cluster parameters for computation on GPU:
+
+            // get cluster transformation matrix (current deformation * plasticity state)
             const Math::Matrix & get_cluster_transformation(int cluster_index) const;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            // get second (quad) part of quadratic cluster transformation TriMatrix
+            const Math::Matrix & get_cluster_transformation_quad(int cluster_index) const;
+            // get third (mixed) part of quadratic cluster transformation TriMatrix
+            const Math::Matrix & get_cluster_transformation_mix(int cluster_index) const;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             const Math::Matrix & get_cluster_normal_transformation(int cluster_index) const;
             const Math::Vector & get_cluster_initial_center(int cluster_index) const;
             const Math::Vector & get_cluster_center(int cluster_index) const;
