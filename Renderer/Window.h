@@ -14,7 +14,8 @@ extern WTL::CAppModule _Module;
 #include <atlframe.h>// for CUpdateUI
 #include <atlmisc.h> // for CString
 #define _WTL_USE_CSTRING
-#include <atlddx.h>  // for CWinDataExchange, DDX_*
+#include <atlctrls.h> // for CComboBox, DDX_COMBO_INDEX (and other controls)
+#include <atlddx.h>   // for CWinDataExchange, DDX_*
 
 #include "Core/simulation_params.h"
 
@@ -65,9 +66,9 @@ private:
     // DDX variables:
     ::CrashAndSqueeze::Core::SimulationParams params;
     int clusters_by_axes[::CrashAndSqueeze::Math::VECTOR_SIZE];
+    int show_mode;
     
     WTL::CString info;
-
 public:
     enum { IDD = IDD_CONTROLS };
 
@@ -103,6 +104,7 @@ public:
         DDX_INT(IDC_ED_CLUSTERS_X,    clusters_by_axes[0])
         DDX_INT(IDC_ED_CLUSTERS_Y,    clusters_by_axes[1])
         DDX_INT(IDC_ED_CLUSTERS_Z,    clusters_by_axes[2])
+        DDX_COMBO_INDEX(IDC_SHOW_MODE,show_mode);
         DDX_TEXT(IDC_INFO, info);
     END_DDX_MAP()
 

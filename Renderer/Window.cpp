@@ -145,9 +145,11 @@ Window::~Window()
 
 ControlsWindow::ControlsWindow() : main_window(nullptr)
 {
+    // TODO: getting this params from application in a normal way
     params.set_defaults();
     for (int i = 0; i < VECTOR_SIZE; ++i)
         clusters_by_axes[i] = Application::DEFAULT_CLUSTERS_BY_AXES[i];
+    show_mode = 0;
 
     info = 
         _T("Crash-And-Squeeze version 0.9\r\n")
@@ -166,7 +168,6 @@ ControlsWindow::ControlsWindow() : main_window(nullptr)
         _T("I/J/K/L: move hit area (yellow sphere),\r\n")
         _T("Arrows: rotate camera,\r\n")
         _T("+/-, PgUp/PgDn: zoom in/out,\r\n")
-        _T("F1: display/hide this help,\r\n")
         _T("Esc: exit.\r\n\r\n")
         _T("Advanced:\r\n")
         _T("~~~~~~~~~\r\n")
@@ -187,6 +188,11 @@ LRESULT ControlsWindow::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
     // TODO: find a way to allow WS_CLIPCHILDREN without whitening group boxes to reduce flicker (maybe use http://www.codeproject.com/Articles/5364/CDialogResize-based-class-with-no-groupbox-flicker ?)
     DlgResize_Init(true, true, 0 /*do not force WS_CLIPCHILDREN to avoid groubox whitening*/ );
     UIAddChildWindowContainer(m_hWnd);
+
+    // Populate "Show mode" combo box
+    WTL::CComboBox show_mode_cb = GetDlgItem(IDC_SHOW_MODE);
+    for (int i = 0; i < Application::_SHOW_MODES_COUNT; ++i)
+        show_mode_cb.AddString(Application::SHOW_MODES_CAPTIONS[i]);
 
     return TRUE;
 }

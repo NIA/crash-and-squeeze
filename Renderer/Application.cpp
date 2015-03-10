@@ -12,6 +12,14 @@ using CrashAndSqueeze::Parallel::TaskQueue;
 using CrashAndSqueeze::Parallel::AbstractTask;
 
 const int Application::DEFAULT_CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 3, 4};
+const TCHAR * Application::SHOW_MODES_CAPTIONS[Application::_SHOW_MODES_COUNT] = 
+{
+    _T("Graphical vertices"),
+    _T("Current positions"),
+    _T("Equilibrium positions"),
+    _T("Initial positions"),
+};
+
 namespace
 {
     const float       CAMERA_ROTATE_SPEED = 3.14f/Window::DEFAULT_WINDOW_SIZE; // when mouse moved to dx pixels, camera angle is changed to dx*CAMERA_ROTATE_SPEED
@@ -29,14 +37,6 @@ namespace
     const float       VERTEX_MASS = 1;
     const int         TOTAL_CLUSTERS_COUNT = Application::DEFAULT_CLUSTERS_BY_AXES[0]*Application::DEFAULT_CLUSTERS_BY_AXES[1]*Application::DEFAULT_CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.2;
-
-    const TCHAR *     SHOW_MODES_CAPTIONS[Application::_SHOW_MODES_COUNT] = 
-                      {
-                          _T("Show: Graphical"),
-                          _T("Show: Current"),
-                          _T("Show: Equilibrium"),
-                          _T("Show: Initial"),
-                      };
 
     const TCHAR *     HELP_TEXT = _T("Welcome to Crash-And-Squeeze Demo!\n\n")
                                   _T("Keys:\n\n")

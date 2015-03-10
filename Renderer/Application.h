@@ -99,6 +99,7 @@ public:
         SHOW_INITIAL_POSITIONS,
         _SHOW_MODES_COUNT
     };
+    static const TCHAR * Application::SHOW_MODES_CAPTIONS[Application::_SHOW_MODES_COUNT];
 
 private:
     // No copying!

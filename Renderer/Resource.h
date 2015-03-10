@@ -39,11 +39,15 @@
 #define IDC_SPIN_QX_CREEP               1022
 #define IDC_SPIN_MAX_DEFORM             1023
 #define IDC_CHECK1                      1024
+#define IDC_QUAD_DEFORM                 1024
 #define IDC_CHECK4                      1025
+#define IDC_GPU_UPDATE                  1025
 #define IDC_DEFAULTS                    1026
 #define IDC_HELP_GOAL_SPEED             1027
 #define IDC_CHECK2                      1028
+#define IDC_QUAD_PLAST                  1028
 #define IDC_CHECK3                      1029
+#define IDC_TRANSF_TOTAL                1029
 #define IDC_HELP_DAMPING                1030
 #define IDC_HELP_LINEAR_ELAST           1031
 #define IDC_HELP_YIELD                  1032
@@ -53,7 +57,11 @@
 #define IDC_SPIN_CLUSTERS_X             1036
 #define IDC_SPIN_CLUSTERS_X2            1037
 #define IDC_SPIN_CLUSTERS_Y             1037
+#define IDC_SHOW_MODE                   1038
 #define IDC_SPIN_CLUSTERS_Z             1039
+#define IDC_WIREFRAME                   1040
+#define IDC_NORMALS                     1041
+#define IDC_CLUSTER_PAINT               1042
 #define ID_FILE_QUIT                    40001
 #define ID_FILE_OPEN                    40002
 #define ID_FILE_SAVECURRENTSHAPE        40003
@@ -71,9 +79,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        108
+#define _APS_NEXT_RESOURCE_VALUE        109
 #define _APS_NEXT_COMMAND_VALUE         40014
-#define _APS_NEXT_CONTROL_VALUE         1036
+#define _APS_NEXT_CONTROL_VALUE         1039
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
