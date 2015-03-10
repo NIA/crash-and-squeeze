@@ -82,9 +82,13 @@ namespace
     const Index SPHERE_INDICES = sphere_indices_count(SPHERE_EDGES_PER_DIAMETER);
     const float4 HIT_REGION_COLOR (1, 1, 0, 0.5f);
 
-    const Index OVAL_EDGES_PER_DIAMETER = 100;
-    const Index OVAL_VERTICES = sphere_vertices_count(OVAL_EDGES_PER_DIAMETER);
-    const DWORD OVAL_INDICES = sphere_indices_count(OVAL_EDGES_PER_DIAMETER);
+    const Index LOW_OVAL_EDGES_PER_DIAMETER = 70;
+    const Index LOW_OVAL_VERTICES = sphere_vertices_count(LOW_OVAL_EDGES_PER_DIAMETER);
+    const DWORD LOW_OVAL_INDICES = sphere_indices_count(LOW_OVAL_EDGES_PER_DIAMETER);
+
+    const Index HIGH_OVAL_EDGES_PER_DIAMETER = 220;
+    const Index HIGH_OVAL_VERTICES = sphere_vertices_count(HIGH_OVAL_EDGES_PER_DIAMETER);
+    const DWORD HIGH_OVAL_INDICES = sphere_indices_count(HIGH_OVAL_EDGES_PER_DIAMETER);
 
     inline void my_message_box(const TCHAR *message, const TCHAR *caption, UINT type, bool force = false)
     {
@@ -612,10 +616,17 @@ namespace
     {
     public:
         OvalDemo(Application & _app)
-            : Demo(_app, OVAL_VERTICES, OVAL_INDICES, OVAL_VERTICES, OVAL_INDICES)
+            : Demo(_app, LOW_OVAL_VERTICES, LOW_OVAL_INDICES, HIGH_OVAL_VERTICES, HIGH_OVAL_INDICES)
         {}
 
         static const TCHAR * cmdline_option;
+
+    private:
+        static void make_oval(Vertex * vertices, Index vertices_count)
+        {
+            squeeze_sphere(0.75f, 1, vertices, vertices_count);
+            squeeze_sphere(0.5f, 0,  vertices, vertices_count);
+        }
 
     protected:
         virtual void prepare()
@@ -625,19 +636,19 @@ namespace
 
             // - Create models -
             const float oval_radius = 2;
-            sphere(oval_radius, float3(0, 0, 0), OVAL_COLOR, OVAL_EDGES_PER_DIAMETER, low_model_vertices, low_model_indices);
+            sphere(oval_radius, float3(0, 0, 0), OVAL_COLOR, LOW_OVAL_EDGES_PER_DIAMETER, low_model_vertices, low_model_indices);
+            sphere(oval_radius, float3(0, 0, 0), OVAL_COLOR, HIGH_OVAL_EDGES_PER_DIAMETER, high_model_vertices, high_model_indices);
             // Make oval
-            squeeze_sphere(0.75f, 1, low_model_vertices, OVAL_VERTICES);
-            squeeze_sphere(0.5f, 0, low_model_vertices, OVAL_VERTICES);
-            // TODO: different vertices for low- and high-model (see //! below)
+            make_oval(low_model_vertices,  LOW_OVAL_VERTICES);
+            make_oval(high_model_vertices, HIGH_OVAL_VERTICES);
             Model * high_oval_model = new Model(
                 app.get_renderer(),
                 D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
                 deform_shader,
-                low_model_vertices,  //!
-                OVAL_VERTICES,       //!
-                low_model_indices,   //!
-                OVAL_INDICES         //!
+                high_model_vertices,
+                HIGH_OVAL_VERTICES,
+                high_model_indices,
+                HIGH_OVAL_INDICES
             );
             high_oval_model->add_shader(lighting_shader); // add lighting
             Model * low_oval_model = new Model(
@@ -645,9 +656,9 @@ namespace
                 D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
                 simple_shader,
                 low_model_vertices,
-                OVAL_VERTICES,
+                LOW_OVAL_VERTICES,
                 low_model_indices,
-                OVAL_INDICES);
+                LOW_OVAL_INDICES);
             set_camera_position(3.1f, 0.9f, -0.854f);
             low_oval_model->add_shader(simple_pixel_shader);
             
@@ -708,8 +719,8 @@ INT WINAPI _tWinMain( HINSTANCE, HINSTANCE, LPTSTR, INT )
     PhysWarningAction phys_warn_action(logger);
     PhysErrorAction phys_err_action(logger);
     
-    //phys_logger.set_action(PhysicsLogger::LOG, &phys_log_action);
     phys_logger.ignore(PhysicsLogger::LOG);
+    // phys_logger.set_action(PhysicsLogger::LOG, &phys_log_action);
     phys_logger.set_action(PhysicsLogger::WARNING, &phys_warn_action);
     phys_logger.set_action(PhysicsLogger::ERROR, &phys_err_action);
 
