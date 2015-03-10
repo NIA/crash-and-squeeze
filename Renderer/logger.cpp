@@ -70,3 +70,10 @@ void Logger::dump_messages()
         log_file.flush();
     }
 }
+
+void Logger::clear_messages()
+{
+    lock.lock();
+    next_message_index = 0;
+    lock.unlock();
+}

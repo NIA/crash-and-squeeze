@@ -24,6 +24,7 @@ public:
     // literal, so there would be a guarantee that it is not freed before dumping.
     void add_message(const char* message);
     void dump_messages();
+    void clear_messages();
 
     ~Logger()
     {

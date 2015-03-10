@@ -143,7 +143,6 @@ namespace CrashAndSqueeze
             int update_tasks_num;
             
             Parallel::IPrimFactory * prim_factory;
-            Parallel::IEvent * tasks_ready;
             Parallel::IEventSet * cluster_tasks_completed;
             Parallel::IEvent * step_completed;
             Parallel::IEventSet * update_tasks_completed;
@@ -260,7 +259,7 @@ namespace CrashAndSqueeze
             bool complete_next_task();
 
             // wait until the new tasks for next step or for updating vertices are ready
-            void wait_for_tasks() { tasks_ready->wait(); }
+            void wait_for_tasks() { task_queue->wait_for_tasks(); }
 
             // Wait until all cluster computation tasks are complete.
             // Returns true if computation was successful, false otherwise

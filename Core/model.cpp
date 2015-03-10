@@ -171,7 +171,6 @@ namespace CrashAndSqueeze
               update_tasks_num(0),
               task_queue(NULL),
               step_completed(NULL),
-              tasks_ready(NULL),
               update_tasks_completed(NULL),
               success(true)
         {
@@ -421,7 +420,6 @@ namespace CrashAndSqueeze
             task_queue = new TaskQueue(clusters_num + 1 + DEFAULT_UPDATE_TASKS_NUM, prim_factory);
             cluster_tasks_completed = prim_factory->create_event_set(clusters_num, true);
             step_completed = prim_factory->create_event(true);
-            tasks_ready = prim_factory->create_event(false);
             for(int i = 0; i < clusters_num; ++i)
             {
                 cluster_tasks[i].setup(clusters[i], dt, cluster_tasks_completed, i);
@@ -555,19 +553,16 @@ namespace CrashAndSqueeze
             this->forces = &forces;
             this->velocities_changed_callback = vcb;
             
+            // Success is true until some error happens and it is set to false
+            success = true; // TODO: use safer mechanism for storing this state
+            
             // add new tasks to queue
             task_queue->clear();
             for(int i = 0; i < clusters.size(); ++i)
             {
-                task_queue->push(&cluster_tasks[i]);
+                task_queue->push(&cluster_tasks[i], false); // add task, but not fire event
             }
-            task_queue->push(&final_task);
-            
-            // Success is true until some error happens and it is set to false
-            success = true; // TODO: use safer mechanism for storing this state
-
-            // start new step
-            tasks_ready->set();
+            task_queue->push(&final_task, true); // add last task and fire event
         }
 
         void Model::compute_next_step(const ForcesArray & forces, Math::Real dt, VelocitiesChangedCallback * vcb)
@@ -618,8 +613,6 @@ namespace CrashAndSqueeze
 
         void Model::integrate_particle_system()
         {
-            // this is last task, so unset event to make threads wait till new step
-            tasks_ready->unset();
             cluster_tasks_completed->wait();
 
             // TODO: place it somewhere more logical
@@ -842,6 +835,9 @@ namespace CrashAndSqueeze
             int part_size = vertices_num / update_tasks_num;
             int last_part_size = vertices_num - part_size*(update_tasks_num - 1); // last part may be bigger if vertices_num is not divisible by update_tasks_num
 
+            // Success is true until some error happens and it is set to false
+            success = true;
+
             // add new tasks to queue
             for(int i = 0; i < update_tasks_num; ++i)
             {
@@ -852,14 +848,9 @@ namespace CrashAndSqueeze
                 int my_vertices_num = (i < update_tasks_num - 1) ? part_size : last_part_size;
                 task->setup_args(this, out_vertices, vertex_info, my_start_vertex, my_vertices_num);
                 
-                task_queue->push(task);
+                bool fire_event = (i == update_tasks_num - 1); // fire event only after adding last task
+                task_queue->push(task, fire_event);
             }
-
-            // Success is true until some error happens and it is set to false
-            success = true;
-
-            // start updating
-            tasks_ready->set();
         }
 
         bool Model::wait_for_update()
@@ -961,7 +952,6 @@ namespace CrashAndSqueeze
             delete[] cluster_tasks;
             prim_factory->destroy_event_set(cluster_tasks_completed);
             prim_factory->destroy_event(step_completed);
-            prim_factory->destroy_event(tasks_ready);
             delete task_queue;
         }
     }

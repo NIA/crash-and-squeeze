@@ -12,9 +12,10 @@ namespace CrashAndSqueeze
         {
             tasks = new AbstractTask*[size];
             pop_lock = prim_factory->create_lock();
+            has_tasks_event = prim_factory->create_event(false);
         }
 
-        void TaskQueue::push(AbstractTask * task)
+        void TaskQueue::push(AbstractTask * task, bool set_event /*= true*/)
         {
             if( is_full())
             {
@@ -26,6 +27,11 @@ namespace CrashAndSqueeze
             tasks[last+1] = task;
             pop_lock->lock();
             ++last;
+
+            if (set_event)
+            {
+                has_tasks_event->set();
+            }
             pop_lock->unlock();
         }
 
@@ -37,6 +43,12 @@ namespace CrashAndSqueeze
             if( ! is_empty() )
             {
                 task = tasks[first++];
+
+                if (is_empty())
+                {
+                    // if it was the las task
+                    has_tasks_event->unset();
+                }
             }
             pop_lock->unlock();
 
@@ -64,6 +76,7 @@ namespace CrashAndSqueeze
                     tasks[i]->reset();
                 }
             }
+            has_tasks_event->set();
 
             pop_lock->unlock();
         }
@@ -73,13 +86,21 @@ namespace CrashAndSqueeze
             pop_lock->lock();
             first = 0;
             last = -1;
+            has_tasks_event->unset();
             pop_lock->unlock();
+        }
+
+        void TaskQueue::wait_for_tasks()
+        {
+            has_tasks_event->wait();
         }
 
         TaskQueue::~TaskQueue()
         {
+            has_tasks_event->unset();
             delete[] tasks;
             prim_factory->destroy_lock(pop_lock);
+            prim_factory->destroy_event(has_tasks_event);
         }
     }
 }
