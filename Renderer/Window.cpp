@@ -223,6 +223,8 @@ public:
     LRESULT OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
     LRESULT OnHide(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
     LRESULT OnQuit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
+    ~ControlsWindowImpl();
 };
 
 ControlsWindow::ControlsWindow()
@@ -317,6 +319,8 @@ void ControlsWindowImpl::show()
     RECT mw_rect;
     main_window.GetWindowRect(&mw_rect);
     SetWindowPos(main_window, mw_rect.right, mw_rect.top, -1, -1, SWP_NOSIZE /*ignore -1 size*/);
+
+    main_window.SetFocus();
 }
 
 LRESULT ControlsWindowImpl::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
@@ -370,6 +374,13 @@ LRESULT ControlsWindowImpl::OnHide(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hW
 
 LRESULT ControlsWindowImpl::OnQuit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+    DestroyWindow();
     ::DestroyWindow(main_window);
     return 0;
+}
+
+ControlsWindowImpl::~ControlsWindowImpl()
+{
+    if (IsWindow())
+        DestroyWindow();
 }
