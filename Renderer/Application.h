@@ -9,20 +9,20 @@
 #include "worker_thread.h"
 #include "Renderer.h"
 #include "IInputHandler.h"
+#include "settings.h"
 
-class Application : public IInputHandler
+class Application : public IInputHandler, public ISettingsHandler
 {
 private:
     Logger &logger;
 
     bool emulation_enabled;
     bool emultate_one_step;
-
-    // default is true
-    bool is_updating_vertices_on_gpu;
-
     bool vertices_update_needed;
-    int show_mode;
+
+    SimulationSettings sim_settings;
+    GlobalSettings global_settings;
+    RenderSettings render_settigns;
 
     bool show_help;
 
@@ -77,7 +77,7 @@ public:
                     const ::CrashAndSqueeze::Math::Vector &velocity,
                     const ::CrashAndSqueeze::Math::Vector &rotation_center,
                     Model &model);
-    void set_updating_vertices_on_gpu(bool value) { is_updating_vertices_on_gpu = value; }
+    void set_updating_vertices_on_gpu(bool value) { global_settings.update_vertices_on_gpu = value; }
     void set_camera_position(float rho, float theta, float phi) { camera.set_position(rho, theta, phi); }
 
     void run();
@@ -87,22 +87,12 @@ public:
     void process_mouse_drag(short x, short y, short dx, short dy, bool shift, bool ctrl) override;
     void process_mouse_wheel(short x, short y, short dw, bool shift, bool ctrl) override;
 
-    static const int DEFAULT_CLUSTERS_BY_AXES[::CrashAndSqueeze::Math::VECTOR_SIZE];
+    // Implement ISettingsHandler:
+    virtual void set_settings(const SimulationSettings &sim, const GlobalSettings &global, const RenderSettings &render) override;
+    virtual void get_settings(SimulationSettings &sim, GlobalSettings &global, RenderSettings &render) const override;
 
     ~Application();
 
-    enum ShowMode
-    {
-        SHOW_GRAPHICAL_VERTICES,
-        SHOW_CURRENT_POSITIONS,
-        SHOW_EQUILIBRIUM_POSITIONS,
-        SHOW_INITIAL_POSITIONS,
-        _SHOW_MODES_COUNT
-    };
-    static const TCHAR * Application::SHOW_MODES_CAPTIONS[Application::_SHOW_MODES_COUNT];
-
 private:
-    // No copying!
-    Application(const Application&);
-    Application &operator=(const Application&);
+    DISABLE_COPY(Application)
 };

@@ -2,6 +2,7 @@
 #include <windows.h>
 #include "main.h"
 #include "IInputHandler.h"
+#include "settings.h"
 
 class Window
 {
@@ -49,7 +50,7 @@ private:
 public:
     ControlsWindow();
 
-    void create(Window & main_window);
+    void create(Window & main_window, ISettingsHandler * settings_handler);
     void show();
 
     ~ControlsWindow();

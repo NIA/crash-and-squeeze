@@ -109,6 +109,7 @@
     <ClCompile Include="performance_reporter.cpp" />
     <ClCompile Include="plane.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="settings.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="sphere.cpp" />
     <ClCompile Include="Stopwatch.cpp" />
@@ -127,6 +128,7 @@
     <ClInclude Include="fast_atof.h" />
     <ClInclude Include="IInputHandler.h" />
     <ClInclude Include="IRenderer.h" />
+    <ClInclude Include="settings.h" />
     <ClInclude Include="logger.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="matrices.h" />

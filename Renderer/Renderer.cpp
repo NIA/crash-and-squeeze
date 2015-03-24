@@ -18,7 +18,7 @@ const unsigned COLOR_COMPONENTS  = VECTORS_IN_MATRIX;
 
 namespace
 {
-    const bool        INITIAL_WIREFRAME_STATE = true;
+    const bool        INITIAL_WIREFRAME_STATE = false;
     const float       BACKGROUND_COLOR[COLOR_COMPONENTS] = { 1, 1, 1, 1 };
     const float       CLEAR_DEPTH = 1;
     const float4      TEXT_COLOR( 1, 1, 0, 1 );
@@ -265,7 +265,7 @@ void Renderer::init_device(Window &window)
     rs_desc.FillMode = D3D11_FILL_WIREFRAME;
     check_state( device->CreateRasterizerState(&rs_desc, &rs_wireframe_on) );
 
-    toggle_wireframe();
+    set_wireframe(INITIAL_WIREFRAME_STATE);
     set_alpha_test();
 }
 
@@ -311,7 +311,7 @@ ID3D11DeviceContext * Renderer::get_context() const
     return context;
 }
 
-void Renderer::draw_text(const TCHAR * text, RECT rect, float4 color, bool align_right /*= false*/)
+void Renderer::draw_text(const TCHAR * /*text*/, RECT /*rect*/, float4 /*color*/, bool /*align_right*/ /*= false*/)
 {
 #pragma WARNING(DX11 porting unfinished: font)
     // TODO: probably use GDI+ ?
@@ -319,26 +319,13 @@ void Renderer::draw_text(const TCHAR * text, RECT rect, float4 color, bool align
 
 void Renderer::toggle_wireframe()
 {
-    if( wireframe )
-    {
-        unset_wireframe();
-    }
-    else
-    {
-        set_wireframe();
-    }
+    set_wireframe( ! wireframe );
 }
 
-void Renderer::set_wireframe()
+void Renderer::set_wireframe(bool enabled)
 {
-    wireframe = true;
-    context->RSSetState(rs_wireframe_on);
-}
-
-void Renderer::unset_wireframe()
-{
-    wireframe = false;
-    context->RSSetState(rs_wireframe_off);
+    wireframe = enabled;
+    context->RSSetState(enabled ? rs_wireframe_on : rs_wireframe_off);
 }
 
 void Renderer::set_alpha_test()
@@ -356,7 +343,6 @@ void Renderer::set_alpha_test()
 
 void Renderer::toggle_alpha_test()
 {
-    throw NotYetImplementedError(RT_ERR_ARGS("Alpha test not yet implemented"));
     alpha_test_enabled = !alpha_test_enabled;
     set_alpha_test();
 }

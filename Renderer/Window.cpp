@@ -2,7 +2,6 @@
 #include <Windowsx.h> // for GET_[XY]_LPARAM
 #include <map>
 #include "resource.h"
-#include "Application.h" // for DEFAULT_CLUSTERS_BY_AXES
 #include "Core/simulation_params.h"
 
 // WTL:
@@ -164,19 +163,21 @@ class ControlsWindowImpl : public ATL::CDialogImpl<ControlsWindowImpl>,
 {
 private:
     ATL::CWindow main_window;
-    // DDX variables:
-    ::CrashAndSqueeze::Core::SimulationParams params;
-    int clusters_by_axes[::CrashAndSqueeze::Math::VECTOR_SIZE];
-    int show_mode;
+    ISettingsHandler * settings_handler;
 
+    // DDX variables:
+    SimulationSettings sim_settings;
+    GlobalSettings  global_settings;
+    RenderSettings  render_settings;
     WTL::CString info;
 public:
     enum { IDD = IDD_CONTROLS };
 
     ControlsWindowImpl();
 
-    void create(Window & main_window);
+    void create(Window & main_window, ISettingsHandler * settings_handler);
     void show();
+    void set_settings_handler(ISettingsHandler * handler);
     BEGIN_UPDATE_UI_MAP(ControlsWindowImpl)
         // To be filled in future
     END_UPDATE_UI_MAP()
@@ -185,27 +186,41 @@ public:
         MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
         MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
         COMMAND_ID_HANDLER(ID_HELP_ABOUT, OnHelpAbout)
-        COMMAND_ID_HANDLER(IDOK, OnApply)
-        COMMAND_ID_HANDLER(IDCANCEL, OnHide)
-        COMMAND_ID_HANDLER(ID_FILE_QUIT, OnQuit)
+        COMMAND_ID_HANDLER(IDOK,          OnApply)
+        COMMAND_ID_HANDLER(IDC_CANCEL,      OnCancel) // IDC_CANCEL (Cancel button) means "Cancel all changes since last Apply"
+        COMMAND_ID_HANDLER(IDC_DEFAULTS,  OnDefaults)
+        COMMAND_ID_HANDLER(IDCANCEL,       OnHide)    // IDCCANCEL (Hide button or [x]) means "Hide window"
+        COMMAND_ID_HANDLER(ID_FILE_QUIT,  OnQuit)
         CHAIN_MSG_MAP(CDialogResize<ControlsWindowImpl>)
     END_MSG_MAP()
 
+    static const UINT IDC_ED_CLUSTERS[GlobalSettings::AXES_COUNT];
+
     // Use for-loops to shorten this map?
     BEGIN_DDX_MAP(ControlsWindowImpl)
-        DDX_FLOAT(IDC_ED_DAMPING,     params.damping_fraction)
-        DDX_FLOAT(IDC_ED_GOAL_SPEED,  params.goal_speed_fraction)
-        DDX_FLOAT(IDC_ED_LINEAR_ELAST,params.linear_elasticity_fraction)
-        DDX_FLOAT(IDC_ED_YIELD,       params.yield_threshold)
-        DDX_FLOAT(IDC_ED_CREEP,       params.creep_speed)
+        // SimulationSettings
+        DDX_FLOAT(IDC_ED_DAMPING,       sim_settings.damping_fraction)
+        DDX_FLOAT(IDC_ED_GOAL_SPEED,    sim_settings.goal_speed_fraction)
+        DDX_FLOAT(IDC_ED_LINEAR_ELAST,  sim_settings.linear_elasticity_fraction)
+        DDX_FLOAT(IDC_ED_YIELD,         sim_settings.yield_threshold)
+        DDX_FLOAT(IDC_ED_CREEP,         sim_settings.creep_speed)
 #if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
-        DDX_FLOAT(IDC_ED_QX_CREEP,    params.quadratic_creep_speed)
+        DDX_FLOAT(IDC_ED_QX_CREEP,      sim_settings.quadratic_creep_speed)
 #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
-        DDX_FLOAT(IDC_ED_MAX_DEFORM,  params.max_deformation)
-        DDX_INT(IDC_ED_CLUSTERS_X,    clusters_by_axes[0])
-        DDX_INT(IDC_ED_CLUSTERS_Y,    clusters_by_axes[1])
-        DDX_INT(IDC_ED_CLUSTERS_Z,    clusters_by_axes[2])
-        DDX_COMBO_INDEX(IDC_SHOW_MODE,show_mode);
+        DDX_FLOAT(IDC_ED_MAX_DEFORM,    sim_settings.max_deformation)
+        // GlobalSettings
+        for (int i = 0; i < GlobalSettings::AXES_COUNT; ++i)
+            DDX_INT(IDC_ED_CLUSTERS[i], global_settings.clusters_by_axes[i]);
+        DDX_CHECK(IDC_GPU_UPDATE,       global_settings.update_vertices_on_gpu);
+        DDX_CHECK(IDC_QUAD_DEFORM,      global_settings.quadratic_deformation);
+        DDX_CHECK(IDC_QUAD_PLAST,       global_settings.quadratic_plasticity);
+        DDX_CHECK(IDC_TRANSF_TOTAL,     global_settings.gfx_transform_total);
+        // RenderSettings
+        DDX_COMBO_INDEX(IDC_SHOW_MODE,  render_settings.show_mode);
+        DDX_CHECK(IDC_WIREFRAME,        render_settings.wireframe);
+        DDX_CHECK(IDC_NORMALS,          render_settings.show_normals);
+        DDX_CHECK(IDC_CLUSTER_PAINT,    render_settings.paint_clusters);
+        // ...other:
         DDX_TEXT(IDC_INFO, info);
     END_DDX_MAP()
 
@@ -220,7 +235,9 @@ public:
     LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
     LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
     LRESULT OnHelpAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-    LRESULT OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+    LRESULT OnApply(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+    LRESULT OnCancel(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+    LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
     LRESULT OnHide(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
     LRESULT OnQuit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
@@ -232,9 +249,9 @@ ControlsWindow::ControlsWindow()
     impl = new ControlsWindowImpl;
 }
 
-void ControlsWindow::create(Window & main_window)
+void ControlsWindow::create(Window & main_window, ISettingsHandler * settings_handler)
 {
-    impl->create(main_window);
+    impl->create(main_window, settings_handler);
 }
 
 void ControlsWindow::show()
@@ -247,14 +264,17 @@ ControlsWindow::~ControlsWindow()
     delete impl;
 }
 
-ControlsWindowImpl::ControlsWindowImpl() : main_window(nullptr)
-{
-    // TODO: getting this params from application in a normal way
-    params.set_defaults();
-    for (int i = 0; i < VECTOR_SIZE; ++i)
-        clusters_by_axes[i] = Application::DEFAULT_CLUSTERS_BY_AXES[i];
-    show_mode = 0;
+const UINT ControlsWindowImpl::IDC_ED_CLUSTERS[GlobalSettings::AXES_COUNT] = {IDC_ED_CLUSTERS_X, IDC_ED_CLUSTERS_Y, IDC_ED_CLUSTERS_Z};
 
+ControlsWindowImpl::ControlsWindowImpl()
+    : main_window(nullptr), settings_handler(nullptr)
+{
+    // Temporarily set defaults for all parameters until settings_handler is set up
+    sim_settings.set_defaults();
+    global_settings.set_defaults();
+    render_settings.set_defaults();
+
+    // TODO: get actual info from Application
     info = 
         _T("Crash-And-Squeeze version 0.9\r\n")
         _T("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n")
@@ -272,6 +292,7 @@ ControlsWindowImpl::ControlsWindowImpl() : main_window(nullptr)
         _T("I/J/K/L: move hit area (yellow sphere),\r\n")
         _T("Arrows: rotate camera,\r\n")
         _T("+/-, PgUp/PgDn: zoom in/out,\r\n")
+        _T("F2: show settings window,\r\n")
         _T("Esc: exit.\r\n\r\n")
         _T("Advanced:\r\n")
         _T("~~~~~~~~~\r\n")
@@ -295,23 +316,26 @@ LRESULT ControlsWindowImpl::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
     // Populate "Show mode" combo box
     WTL::CComboBox show_mode_cb = GetDlgItem(IDC_SHOW_MODE);
-    for (int i = 0; i < Application::_SHOW_MODES_COUNT; ++i)
-        show_mode_cb.AddString(Application::SHOW_MODES_CAPTIONS[i]);
+    for (int i = 0; i < RenderSettings::_SHOW_MODES_COUNT; ++i)
+        show_mode_cb.AddString(RenderSettings::SHOW_MODES_CAPTIONS[i]);
 
     return TRUE;
 }
 
-void ControlsWindowImpl::create(Window & main_window)
+void ControlsWindowImpl::create(Window & main_window, ISettingsHandler * settings_handler)
 {
     this->main_window = main_window;
+    this->settings_handler = settings_handler;
+
     Create(main_window);
+
+    // load initial values
+    this->settings_handler->get_settings(sim_settings, global_settings, render_settings);
+    DoDataExchange(DDX_LOAD);
 }
 
 void ControlsWindowImpl::show()
 {
-    // load initial values
-    DoDataExchange(DDX_LOAD);
-
     // show window...
     ShowWindow(SW_SHOW);
 
@@ -362,7 +386,36 @@ LRESULT ControlsWindowImpl::OnHelpAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND
 
 LRESULT ControlsWindowImpl::OnApply(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
-    // TODO: do data exchange
+    // get settings from dialog...
+    DoDataExchange(DDX_SAVE);
+
+    // ...set them to application
+    settings_handler->set_settings(sim_settings, global_settings, render_settings);
+    return 0;
+}
+
+LRESULT ControlsWindowImpl::OnCancel(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+    // get current settings from application...
+    settings_handler->get_settings(sim_settings, global_settings, render_settings);
+
+    // ...set them to dialog
+    DoDataExchange(DDX_LOAD);
+    return 0;
+}
+
+LRESULT ControlsWindowImpl::OnDefaults(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+    // set defaults for all settings...
+    sim_settings.set_defaults();
+    global_settings.set_defaults();
+    render_settings.set_defaults();
+
+    // ...set them to dialog
+    DoDataExchange(DDX_LOAD);
+
+    // ...and to application
+    settings_handler->set_settings(sim_settings, global_settings, render_settings);
     return 0;
 }
 

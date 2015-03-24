@@ -99,6 +99,18 @@ namespace
         }
     }
 
+    inline void override_app_settings(Application &app, bool paint_model, bool show_normals, bool update_on_gpu)
+    {
+        SimulationSettings sim;
+        GlobalSettings glo;
+        RenderSettings ren;
+        app.get_settings(sim, glo, ren);
+        glo.update_vertices_on_gpu = update_on_gpu;
+        ren.show_normals = show_normals;
+        ren.paint_clusters = paint_model;
+        app.set_settings(sim, glo, ren);
+    }
+
 #pragma warning( push )
 #pragma warning( disable : 4512 )
     class PhysicsLoggerAction : public ::CrashAndSqueeze::Logging::Action
@@ -730,7 +742,7 @@ INT WINAPI _tWinMain( HINSTANCE, HINSTANCE, LPTSTR, INT )
     try
     {
         Application app(logger);
-        app.set_updating_vertices_on_gpu(UPDATE_ON_GPU);
+        override_app_settings(app, PAINT_MODEL, SHOW_NORMALS, UPDATE_ON_GPU);
 
         // parse command line arguments
         tstring mesh_filename = OvalDemo::cmdline_option; // by default use oval demo

@@ -128,8 +128,7 @@ public:
 
     void toggle_alpha_test();
     void toggle_wireframe();
-    void set_wireframe();
-    void unset_wireframe();
+    void set_wireframe(bool enabled);
 
     virtual ~Renderer(void);
 private:

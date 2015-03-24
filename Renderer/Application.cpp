@@ -11,15 +11,6 @@ using CrashAndSqueeze::Core::IndexArray;
 using CrashAndSqueeze::Parallel::TaskQueue;
 using CrashAndSqueeze::Parallel::AbstractTask;
 
-const int Application::DEFAULT_CLUSTERS_BY_AXES[VECTOR_SIZE] = {2, 3, 4};
-const TCHAR * Application::SHOW_MODES_CAPTIONS[Application::_SHOW_MODES_COUNT] = 
-{
-    _T("Graphical vertices"),
-    _T("Current positions"),
-    _T("Equilibrium positions"),
-    _T("Initial positions"),
-};
-
 namespace
 {
     const float       CAMERA_ROTATE_SPEED = 3.14f/Window::DEFAULT_WINDOW_SIZE; // when mouse moved to dx pixels, camera angle is changed to dx*CAMERA_ROTATE_SPEED
@@ -35,7 +26,6 @@ namespace
     const Vector      ROTATION_AXES[ROTATION_AXES_COUNT] = {Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)};
 
     const float       VERTEX_MASS = 1;
-    const int         TOTAL_CLUSTERS_COUNT = Application::DEFAULT_CLUSTERS_BY_AXES[0]*Application::DEFAULT_CLUSTERS_BY_AXES[1]*Application::DEFAULT_CLUSTERS_BY_AXES[2];
     const Real        CLUSTER_PADDING_COEFF = 0.2;
 
     const TCHAR *     HELP_TEXT = _T("Welcome to Crash-And-Squeeze Demo!\n\n")
@@ -65,16 +55,19 @@ Application::Application(Logger &logger) :
     emulation_enabled(true), emultate_one_step(true), forces_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false),
     forces(NULL), logger(logger), show_help(false), impact_model(NULL), prim_factory(false),
-    impact_axis(0), is_updating_vertices_on_gpu(true)
+    impact_axis(0)
 {
-    set_show_mode(SHOW_GRAPHICAL_VERTICES);
+    sim_settings.set_defaults(); // TODO: load from config file
+    global_settings.set_defaults();
+    render_settigns.set_defaults();
+    set_settings(sim_settings, global_settings, render_settigns);
+
     // TODO: is it good? Seems like it can affect performance (see MSDN for SetThreadAffinityMask)
     if(NULL == SetThreadAffinityMask(GetCurrentThread(), 0x0000001)) // restrict main thread to 1st processor so that QueryPerformanceCounter works correctly
     {
         throw AffinityError();
     }
 }
-
 
 const TCHAR* Application::get_text_info()
 {
@@ -85,7 +78,7 @@ const TCHAR* Application::get_text_info()
     else
     {
         const TCHAR * emulation_text = emulation_enabled ? _T("Emulation: ON") : _T("Emulation: OFF");
-        _stprintf_s(text_buffer, _T("%s\n%s\nPress F1 for help"), SHOW_MODES_CAPTIONS[show_mode], emulation_text);
+        _stprintf_s(text_buffer, _T("%s\n%s\nPress F1 for help"), RenderSettings::SHOW_MODES_CAPTIONS[render_settigns.show_mode], emulation_text);
         return text_buffer;
     }
 }
@@ -118,30 +111,32 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
                               high_model.get_vertices_count(),
                               VERTEX_INFO,
                               
-                              DEFAULT_CLUSTERS_BY_AXES,
+                              global_settings.clusters_by_axes,
                               CLUSTER_PADDING_COEFF,
 
                               VERTEX_MASS,
                               NULL,
 
                               &prim_factory);
+        model_entity.physical_model->set_simulation_params(sim_settings);
         
         high_model.unlock_vertex_buffer();
         low_model->unlock_vertex_buffer();
 
         model_entity.low_model = low_model;
 
-        for(int i = 0; i < THREADS_COUNT; ++i)
+        for (auto& thread: threads)
         {
             // TODO: Oops, it will fail for two or more physical models
-            threads[i].start(model_entity.physical_model, &logger);
+            thread.start(model_entity.physical_model, &logger);
         }
 
         static const int BUFFER_SIZE = 128;
         char description[BUFFER_SIZE];
+        static_assert(3 == GlobalSettings::AXES_COUNT, "the following logging code assumes AXES_COUNT==3");
         sprintf_s(description, BUFFER_SIZE, "%i low-vertices (mapped on %i hi-vertices) in %i=%ix%ix%i clusters on %i threads",
                                             low_model->get_vertices_count(), high_model.get_vertices_count(),
-                                            TOTAL_CLUSTERS_COUNT, DEFAULT_CLUSTERS_BY_AXES[0], DEFAULT_CLUSTERS_BY_AXES[1], DEFAULT_CLUSTERS_BY_AXES[2],
+                                            global_settings.get_total_clusters_num(), global_settings.clusters_by_axes[0], global_settings.clusters_by_axes[1], global_settings.clusters_by_axes[2],
                                             THREADS_COUNT);
         model_entity.performance_reporter = new PerformanceReporter(logger, description);
     }
@@ -219,19 +214,22 @@ void Application::move_impact_nearer(const Real & dist, const Vector & rotation_
 
 void Application::rotate_models(float phi)
 {
-    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+    for (auto& model_entity: model_entities)
     {
-        (*iter).high_model->rotate(phi);
+        model_entity.high_model->rotate(phi);
         
-        if(NULL != (*iter).low_model)
-            (*iter).low_model->rotate(phi);
+        if(NULL != model_entity.low_model)
+            model_entity.low_model->rotate(phi);
     }
 }
 
 void Application::set_show_mode(int new_show_mode)
 {
-    show_mode = new_show_mode;
-    vertices_update_needed = true;
+    if (render_settigns.show_mode != new_show_mode)
+    {
+        render_settigns.show_mode = new_show_mode;
+        vertices_update_needed = true;
+    }
 }
 
 void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
@@ -322,7 +320,7 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
         renderer.toggle_wireframe();
         break;
     case VK_TAB:
-        set_show_mode( ( show_mode + (shift ? - 1 : 1) + _SHOW_MODES_COUNT )%_SHOW_MODES_COUNT );
+        set_show_mode( ( render_settigns.show_mode + (shift ? - 1 : 1) + RenderSettings::_SHOW_MODES_COUNT )%RenderSettings::_SHOW_MODES_COUNT );
         break;
     case VK_RETURN:
         impact_happened = true;
@@ -330,6 +328,8 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
     case VK_F1:
         show_help = !show_help;
         break;
+    case VK_F2:
+        controls_window.show();
     }
 }
 
@@ -368,12 +368,33 @@ void Application::process_mouse_wheel(short x, short y, short dw, bool shift, bo
     }
 }
 
+void Application::set_settings(const SimulationSettings &sim, const GlobalSettings &global, const RenderSettings &render)
+{
+    sim_settings = sim;
+    for (auto &model_entity: model_entities)
+    {
+        if(NULL != model_entity.physical_model)
+            model_entity.physical_model->set_simulation_params(sim_settings);
+    }
+    global_settings = global;
+    render_settigns = render;
+    renderer.set_wireframe(render_settigns.wireframe);
+    set_show_mode(render_settigns.show_mode);
+}
+
+void Application::get_settings(SimulationSettings &sim, GlobalSettings &global, RenderSettings &render) const 
+{
+    sim = sim_settings;
+    global = global_settings;
+    render = render_settigns;
+}
+
 void Application::run()
 {
     window.set_input_handler(this);
     window.show();
     window.update();
-    controls_window.create(window);
+    controls_window.create(window, this);
     controls_window.show();
     
     Stopwatch stopwatch;
@@ -418,10 +439,11 @@ void Application::run()
             if(emulation_enabled || emultate_one_step)
             {
                 // for each model entity
-                for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+                // TODO: if > 1 physical models, compute them in parallel
+                for (auto& model_entity: model_entities)
                 {
-                    PhysicalModel       * physical_model       = (*iter).physical_model;
-                    PerformanceReporter * performance_reporter = (*iter).performance_reporter;
+                    PhysicalModel       * physical_model       = model_entity.physical_model;
+                    PerformanceReporter * performance_reporter = model_entity.performance_reporter;
                     
                     if( NULL != physical_model )
                     {
@@ -470,19 +492,19 @@ void Application::run()
             if(vertices_update_needed)
             {
                 // for each model entity
-                for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+                for (auto& model_entity: model_entities)
                 {
-                    PhysicalModel       * physical_model       = (*iter).physical_model;
+                    PhysicalModel * physical_model = model_entity.physical_model;
                     
                     if( NULL != physical_model )
                     {
                         AbstractModel *model;
-                        if(SHOW_GRAPHICAL_VERTICES == show_mode)
-                            model = (*iter).high_model;
+                        if(RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode)
+                            model = model_entity.high_model;
                         else
-                            model = (*iter).low_model;
+                            model = model_entity.low_model;
 
-                        if( ! (is_updating_vertices_on_gpu && SHOW_GRAPHICAL_VERTICES == show_mode) )
+                        if( ! (global_settings.update_vertices_on_gpu && RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode) )
                         {
                             Vertex *vertices = model->lock_vertex_buffer(LOCK_READ_WRITE);
                             int vertices_count = model->get_vertices_count();
@@ -490,9 +512,9 @@ void Application::run()
                             // make sure that step is finished
                             physical_model->wait_for_step();
 
-                            switch(show_mode)
+                            switch(render_settigns.show_mode)
                             {
-                            case SHOW_GRAPHICAL_VERTICES:
+                            case RenderSettings::SHOW_GRAPHICAL_VERTICES:
                                 stopwatch.start();
                                 logger.add_message("Update tasks --READY--");
                                 physical_model->update_vertices_async(vertices, VERTEX_INFO, 0, vertices_count);
@@ -505,20 +527,20 @@ void Application::run()
                                 update_performance_reporter.add_measurement(stopwatch.stop());
                                 logger.add_message("Update **finished**");
                                 break;
-                            case SHOW_CURRENT_POSITIONS:
+                            case RenderSettings::SHOW_CURRENT_POSITIONS:
                                 physical_model->update_current_positions(vertices, vertices_count, VERTEX_INFO);
                                 break;
-                            case SHOW_EQUILIBRIUM_POSITIONS:
+                            case RenderSettings::SHOW_EQUILIBRIUM_POSITIONS:
                                 physical_model->update_equilibrium_positions(vertices, vertices_count, VERTEX_INFO);
                                 break;
-                            case SHOW_INITIAL_POSITIONS:
+                            case RenderSettings::SHOW_INITIAL_POSITIONS:
                                 physical_model->update_initial_positions(vertices, vertices_count, VERTEX_INFO);
                                 break;
                             }
 
                             model->unlock_vertex_buffer();
                             #if CAS_QUADRATIC_EXTENSIONS_ENABLED
-                            if (SHOW_GRAPHICAL_VERTICES == show_mode)
+                            if (RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode)
                             {
                                 stopwatch.start();
                                 model->generate_normals();
@@ -536,7 +558,7 @@ void Application::run()
             // graphics
             renderer.set_text_to_draw(get_text_info());
             stopwatch.start();
-            renderer.render(model_entities, internal_render_performance_reporter, is_updating_vertices_on_gpu, SHOW_GRAPHICAL_VERTICES == show_mode);
+            renderer.render(model_entities, internal_render_performance_reporter, global_settings.update_vertices_on_gpu, RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode);
             render_performance_reporter.add_measurement(stopwatch.stop());
             total_performance_reporter.add_measurement(total_stopwatch.stop());
         }
@@ -544,10 +566,10 @@ void Application::run()
 
     // -- report performance results --
 
-    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+    for (auto& model_entity: model_entities)
     {
-        if( NULL != (*iter).performance_reporter )
-            (*iter).performance_reporter->report_results();
+        if( NULL != model_entity.performance_reporter )
+            model_entity.performance_reporter->report_results();
     }
     update_performance_reporter.report_results();
     gen_normals_performance_reporter.report_results();
@@ -561,26 +583,23 @@ void Application::run()
 
 void Application::stop_threads()
 {
-    for (int i = 0; i < THREADS_COUNT; ++i)
+    for (auto& thread: threads)
     {
-        threads[i].stop();
+        thread.stop();
     }
-    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+    for (auto& model_entity: model_entities)
     {
-        if(NULL != (*iter).physical_model)
-            (*iter).physical_model->wait_for_step();
+        if(NULL != model_entity.physical_model)
+            model_entity.physical_model->wait_for_step();
     }
 }
 
 void Application::delete_model_stuff()
 {
-    for (ModelEntities::iterator iter = model_entities.begin(); iter != model_entities.end(); ++iter )
+    for (auto& model_entity: model_entities)
     {
-        if(NULL != (*iter).physical_model)
-            delete (*iter).physical_model;
-
-        if(NULL != (*iter).performance_reporter)
-            delete (*iter).performance_reporter;
+        delete_pointer(model_entity.physical_model);
+        delete_pointer(model_entity.performance_reporter);
     }
 }
 
