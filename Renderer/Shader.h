@@ -26,6 +26,8 @@ public:
     // sets no current shader (should be implemented in each subclass)
     virtual void unset() = 0;
     virtual ~AbstractShader() {}
+private:
+    DISABLE_COPY(AbstractShader);
 };
 
 class VertexShader : public AbstractShader

@@ -12,9 +12,9 @@ inline float rand_col_comp()
     return static_cast<float>(rand())/RAND_MAX;
 }
 
-inline float4 random_color()
+inline float4 random_color(float alpha = 1.0f)
 {
-    return float4( rand_col_comp(), rand_col_comp(), rand_col_comp(), 1.0f );
+    return float4( rand_col_comp(), rand_col_comp(), rand_col_comp(), alpha );
 }
 
 struct Vertex

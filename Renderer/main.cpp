@@ -11,6 +11,7 @@
 #if defined UNICODE || defined _UNICODE
 #include <codecvt>
 #endif // defined UNICODE || defined _UNICODE
+#include <vector>
 #include "logger.h" // application logger
 
 #include "Logging/logger.h" // crash-and-squeeze logger
@@ -44,6 +45,7 @@ namespace
     bool DISABLE_MESSAGE_BOXES = true;
     bool PAINT_MODEL = false;
     bool SHOW_NORMALS = false;
+    bool SHOW_REACTION_REGIONS = false;
     bool UPDATE_ON_GPU = true; // TODO: when update on GPU, create models as immutable (dynamic = false)
 
     const char *SIMPLE_SHADER_FILENAME = "simple.vsh";
@@ -194,12 +196,21 @@ namespace
         IndexArray & get_graphical_vertices() { return graphical_vertices; }
     };
 
-    class RepaintReaction : public ShapeDeformationReaction
+    // Helper to allow RegionWithVertices initialization before calling base constructor of RepaintReaction (http://stackoverflow.com/a/5898066/693538)
+    struct RegionWithVerticesHelper
+    {
+        RegionWithVertices rgnwv;
+
+        RegionWithVerticesHelper(IRegion &region, PhysicalModel &phy_mod, AbstractModel &gfx_mod)
+            : rgnwv(region, phy_mod, gfx_mod)
+        {}
+    };
+
+    class RepaintReaction : private RegionWithVerticesHelper, public ShapeDeformationReaction
     {
     private:
         Model &model;
         Real max_distance;
-        RegionWithVertices rgnwv;
 
         float4 no_deform_color;
         float4 max_deform_color;
@@ -212,7 +223,7 @@ namespace
                         Real max_distance,
                         float4 no_deform_color = NO_DEFORM_COLOR,
                         float4 max_deform_color = MAX_DEFORM_COLOR)
-            : rgnwv(region, phy_mod, gfx_mod),
+            : RegionWithVerticesHelper(region, phy_mod, gfx_mod),
               ShapeDeformationReaction(rgnwv.get_physical_vertices(), threshold_distance),
               model(gfx_mod), max_distance(max_distance),
               no_deform_color(no_deform_color), max_deform_color(max_deform_color)
@@ -282,6 +293,23 @@ namespace
         }
     };
 
+    Model * box_to_model(IRenderer * renderer, VertexShader & vertex_shader, PixelShader & pixel_shader, const BoxRegion * box)
+    {
+        SimpleCube box_geom(math_vector_to_float3(box->get_min_corner()), math_vector_to_float3(box->get_max_corner()), random_color(0.6f));
+        Model * box_model = new Model(
+            renderer,
+            box_geom.get_topology(),
+            vertex_shader,
+            box_geom.get_vertices(),
+            box_geom.get_vertices_num(),
+            box_geom.get_indices(),
+            box_geom.get_indices_num(),
+            false);
+        box_model->set_draw_ccw(true);
+        box_model->add_shader(pixel_shader);
+        return box_model;
+    }
+
     void paint_model(AbstractModel &model)
     {
         static const int COLORS_COUNT = 5;
@@ -316,21 +344,18 @@ namespace
         PixelShader lighting_shader;
         PixelShader simple_pixel_shader;
 
-        AbstractModel * low_model;
-        AbstractModel * high_model;
         SphericalRegion * hit_region;
-        Model * hit_region_model;
-        NormalsModel * normals_model; // may be null
+        std::vector<AbstractModel *> models;
 
         ForcesArray NO_FORCES;
 
         // Override this to define Demo models, reactions, etc...
         virtual void prepare() = 0;
 
-        PhysicalModel * add_physical_model(AbstractModel * high_model_, AbstractModel *low_model_)
+        PhysicalModel * add_physical_model(AbstractModel * high_model, AbstractModel *low_model)
         {
-            high_model = high_model_;
-            low_model = low_model_;
+            models.push_back(high_model);
+            models.push_back(low_model);
             PhysicalModel * phys_mod = app.add_model(*high_model, true, low_model);
             if(NULL == phys_mod)
                 throw NullPointerError(RT_ERR_ARGS("(Demo) Failed to add physical model!"));
@@ -339,12 +364,19 @@ namespace
                 paint_model(*low_model);
             }
             if(SHOW_NORMALS) {
-                normals_model = new NormalsModel(high_model, simple_shader, 0.1f);
+                NormalsModel* normals_model = new NormalsModel(high_model, simple_shader, 0.1f);
+                models.push_back(normals_model);
                 normals_model->add_shader(simple_pixel_shader);
                 high_model->add_subscriber(normals_model);
                 app.add_model(*normals_model, false);
             }
             return phys_mod;
+        }
+
+        void add_auxiliary_model(AbstractModel * model)
+        {
+            models.push_back(model);
+            app.add_model(*model, false);
         }
 
         void set_impact(Vector hit_position, double hit_radius, Vector hit_rotation_center, Vector hit_velocity)
@@ -358,7 +390,7 @@ namespace
             sphere(static_cast<float>(hit_region->get_radius()), float3(0,0,0), HIT_REGION_COLOR,
                    SPHERE_EDGES_PER_DIAMETER, sphere_vertices, sphere_indices);
 
-            hit_region_model = new Model(
+            Model * hit_region_model = new Model(
                 app.get_renderer(),
                 D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
                 simple_shader,
@@ -368,6 +400,7 @@ namespace
                 SPHERE_INDICES,
                 false,
                 math_vector_to_float3(hit_region->get_center()));
+            models.push_back(hit_region_model);
             hit_region_model->add_shader(simple_pixel_shader);
             hit_region_model->set_draw_ccw(true);
 
@@ -386,7 +419,7 @@ namespace
               deform_shader(_app.get_renderer(), VERTEX_DESC, VERTEX_DESC_NUM, DEFORM_SHADER_FILENAME),
               lighting_shader(_app.get_renderer(), LIGHTING_SHADER_FILENAME),
               simple_pixel_shader(_app.get_renderer(), SIMPLE_PIXEL_SHADER_FILENAME),
-              low_model(NULL), high_model(NULL), hit_region_model(NULL), hit_region(NULL), normals_model(NULL)
+              hit_region(NULL)
         {
             low_model_vertices = new Vertex[low_vertices_count];
             low_model_indices = new Index[low_indices_count];
@@ -412,11 +445,9 @@ namespace
             delete_array(low_model_vertices);
             delete_array(high_model_indices);
             delete_array(high_model_vertices);
-            delete low_model;
-            delete high_model;
-            delete hit_region_model;
+            for (auto model: models)
+                delete model;
             delete hit_region;
-            delete normals_model;
         }
     };
 
@@ -679,16 +710,15 @@ namespace
 
             // - Reactions -
             int x_cells, /*y_cells,*/ z_cells;
-            Vector x_step, y_step, z_step;
+            Vector x_step, /*y_step,*/ z_step;
             Vector box_min, box_max, box_end;
             Array<ShapeDeformationReaction*> reactions;
             Array<IRegion*> regions;
-    
 
             z_cells = 8;
             x_cells = 6;
-            box_min = Vector(-2, -0.6, -0.8);
-            box_max = Vector(-1, 0.6, 0.8);
+            box_min = Vector(-0.6, 0.75, -0.8);
+            box_max = Vector( 0.6, 1.75,  0.8);
             x_step = (box_max[0] - box_min[0])/x_cells*Vector(1,0,0);
             z_step = (box_max[2] - box_min[2])/z_cells*Vector(0,0,1);
             box_end = box_min + x_step + z_step;
@@ -701,11 +731,17 @@ namespace
                                                     box_end + ix*x_step + iz*z_step);
 
                     RepaintReaction * reaction = 
-                        new RepaintReaction(*box, *phys_mod, *high_oval_model, 0.08, 0.2, OVAL_COLOR);
+                        new RepaintReaction(*box, *phys_mod, *high_oval_model, 0.1, 0.3, OVAL_COLOR);
 
                     phys_mod->add_shape_deformation_reaction(*reaction);
                     regions.push_back(box);
                     reactions.push_back(reaction);
+
+                    if (SHOW_REACTION_REGIONS)
+                    {
+                        // visualize the above box
+                        add_auxiliary_model( box_to_model(app.get_renderer(), simple_shader, simple_pixel_shader, box) );
+                    }
                 }
             }
 

@@ -108,3 +108,41 @@ void cubic( float x_size, float y_size, float z_size, const float3 & position, c
                        vertex, index, res_vertices, res_indices);
     }
 }
+
+const Index SimpleCube::INDICES[INDICES_NUM] =
+{
+    0, 1, 2,
+    0, 3, 2,
+
+    6, 7, 4,
+    6, 5, 4,
+
+    0, 4, 7,
+    0, 3, 7,
+
+    6, 5, 1,
+    6, 2, 1,
+
+    6, 7, 3,
+    6, 2, 3,
+
+    0, 5, 4,
+    0, 5, 1,
+};
+
+SimpleCube::SimpleCube(const float3 & min_corner, const float3 & max_corner, const float4 & color)
+{
+    for (int i = 0; i < VERTICES_NUM; ++i)
+    {
+        vertices[i].color = color;
+        vertices[i].normal = float3(1, 0, 0); // NB: SimpleCube is not well suited for lighting
+    }
+    vertices[0].pos = float3(min_corner.x, min_corner.y, min_corner.z);
+    vertices[1].pos = float3(min_corner.x, max_corner.y, min_corner.z);
+    vertices[2].pos = float3(max_corner.x, max_corner.y, min_corner.z);
+    vertices[3].pos = float3(max_corner.x, min_corner.y, min_corner.z);
+    vertices[4].pos = float3(min_corner.x, min_corner.y, max_corner.z);
+    vertices[5].pos = float3(min_corner.x, max_corner.y, max_corner.z);
+    vertices[6].pos = float3(max_corner.x, max_corner.y, max_corner.z);
+    vertices[7].pos = float3(max_corner.x, min_corner.y, max_corner.z);
+}
