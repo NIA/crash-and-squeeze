@@ -40,8 +40,7 @@ namespace CrashAndSqueeze
             Math::Real threshold_distance;
 
         public:
-            ShapeDeformationReaction(const IndexArray &shape_vertex_indices, Math::Real threshold_distance)
-                : shape_vertex_indices(shape_vertex_indices), threshold_distance(threshold_distance) {}
+            ShapeDeformationReaction(const IndexArray &shape_vertex_indices, Math::Real threshold_distance);
             
             void invoke_if_needed(const IModel &model);
             
@@ -52,7 +51,7 @@ namespace CrashAndSqueeze
             Math::Real get_threshold_distance() const { return threshold_distance; }
         
         private:
-            // no assigment operator due to a reference in class fields
+            // no assignment operator due to a reference in class fields
             ShapeDeformationReaction & operator=(const ShapeDeformationReaction &);
         };
 
@@ -72,8 +71,7 @@ namespace CrashAndSqueeze
             bool reaction_on_entering;
 
         public:
-            RegionReaction(const IndexArray & shape_vertex_indices, const IRegion & region, bool reaction_on_entering)
-                : shape_vertex_indices(shape_vertex_indices), region(region), reaction_on_entering(reaction_on_entering) {}
+            RegionReaction(const IndexArray & shape_vertex_indices, const IRegion & region, bool reaction_on_entering);
 
             void invoke_if_needed(const IModel &model);
             
@@ -85,7 +83,7 @@ namespace CrashAndSqueeze
             bool reacts_on_entering() const { return reaction_on_entering; }
         
         private:
-            // no assigment operator due to a reference in class fields
+            // no assignment operator due to a reference in class fields
             RegionReaction & operator=(const RegionReaction &);
         };
 
@@ -103,8 +101,7 @@ namespace CrashAndSqueeze
             Math::Real velocity_threshold;
 
         public:
-            HitReaction(const IndexArray & shape_vertex_indices, Math::Real velocity_threshold)
-                : shape_vertex_indices(shape_vertex_indices), velocity_threshold(velocity_threshold) {}
+            HitReaction(const IndexArray & shape_vertex_indices, Math::Real velocity_threshold);
 
             void invoke_if_needed(const IndexArray & hit_vertex_indices, const Math::Vector &hit_velocity);
             
@@ -115,7 +112,7 @@ namespace CrashAndSqueeze
             Math::Real get_velocity_threshold() const { return velocity_threshold; }
         
         private:
-            // no assigment operator due to a reference in class fields
+            // no assignment operator due to a reference in class fields
             HitReaction & operator=(const HitReaction &);
         };
 

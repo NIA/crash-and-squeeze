@@ -7,6 +7,17 @@ namespace CrashAndSqueeze
 
     namespace Core
     {
+
+        ShapeDeformationReaction::ShapeDeformationReaction(const IndexArray &shape_vertex_indices, Math::Real threshold_distance)
+            : shape_vertex_indices(shape_vertex_indices), threshold_distance(threshold_distance)
+        {
+            if ( 0 == shape_vertex_indices.size() )
+            {
+                Logger::warning("in ShapeDeformationReaction: creating reaction with empty shape, disabling", __FILE__, __LINE__);
+                disable();
+            }
+        }
+
         void ShapeDeformationReaction::invoke_if_needed(const IModel &model)
         {
             if( ! is_enabled() )
@@ -34,6 +45,15 @@ namespace CrashAndSqueeze
             }
         }
 
+        RegionReaction::RegionReaction(const IndexArray & shape_vertex_indices, const IRegion & region, bool reaction_on_entering) : shape_vertex_indices(shape_vertex_indices), region(region), reaction_on_entering(reaction_on_entering)
+        {
+            if ( 0 == shape_vertex_indices.size() )
+            {
+                Logger::warning("in RegionReaction: creating reaction with empty shape, disabling", __FILE__, __LINE__);
+                disable();
+            }
+        }
+
         void RegionReaction::invoke_if_needed(const IModel &model)
         {
             if( ! is_enabled() )
@@ -51,6 +71,15 @@ namespace CrashAndSqueeze
                     invoke(vertex_index);
                     return;
                 }
+            }
+        }
+
+        HitReaction::HitReaction(const IndexArray & shape_vertex_indices, Math::Real velocity_threshold) : shape_vertex_indices(shape_vertex_indices), velocity_threshold(velocity_threshold)
+        {
+            if ( 0 == shape_vertex_indices.size() )
+            {
+                Logger::warning("in HitReaction: creating reaction with empty shape, disabling", __FILE__, __LINE__);
+                disable();
             }
         }
 
