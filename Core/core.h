@@ -12,6 +12,10 @@
 // use equilibrium transformation (R*Sp) instead of total deformation (A)
 // to hide some oscillations (looks more realistic for metal-like objects)
 #define CAS_GRAPHICAL_TRANSFORM_TOTAL    1
+// Set to 0 to disable warnings appearing when the shape indices array
+// passed to a ShapeDeformationReaction or a RegionReaction is empty.
+// But anyway, it is useful to leave these warnings enabled for safety from bugs
+#define CAS_WARN_EMPTY_REACTION_SHAPE    1
 
 namespace CrashAndSqueeze
 {

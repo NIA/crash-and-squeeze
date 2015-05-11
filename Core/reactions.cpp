@@ -11,11 +11,13 @@ namespace CrashAndSqueeze
         ShapeDeformationReaction::ShapeDeformationReaction(const IndexArray &shape_vertex_indices, Math::Real threshold_distance)
             : shape_vertex_indices(shape_vertex_indices), threshold_distance(threshold_distance)
         {
+#if CAS_WARN_EMPTY_REACTION_SHAPE
             if ( 0 == shape_vertex_indices.size() )
             {
                 Logger::warning("in ShapeDeformationReaction: creating reaction with empty shape, disabling", __FILE__, __LINE__);
                 disable();
             }
+#endif // CAS_WARN_EMPTY_REACTION_REGION
         }
 
         void ShapeDeformationReaction::invoke_if_needed(const IModel &model)
@@ -45,13 +47,16 @@ namespace CrashAndSqueeze
             }
         }
 
-        RegionReaction::RegionReaction(const IndexArray & shape_vertex_indices, const IRegion & region, bool reaction_on_entering) : shape_vertex_indices(shape_vertex_indices), region(region), reaction_on_entering(reaction_on_entering)
+        RegionReaction::RegionReaction(const IndexArray & shape_vertex_indices, const IRegion & region, bool reaction_on_entering)
+            : shape_vertex_indices(shape_vertex_indices), region(region), reaction_on_entering(reaction_on_entering)
         {
+#if CAS_WARN_EMPTY_REACTION_SHAPE
             if ( 0 == shape_vertex_indices.size() )
             {
                 Logger::warning("in RegionReaction: creating reaction with empty shape, disabling", __FILE__, __LINE__);
                 disable();
             }
+#endif // CAS_WARN_EMPTY_REACTION_REGION
         }
 
         void RegionReaction::invoke_if_needed(const IModel &model)
