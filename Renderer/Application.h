@@ -77,6 +77,8 @@ public:
                     const ::CrashAndSqueeze::Math::Vector &velocity,
                     const ::CrashAndSqueeze::Math::Vector &rotation_center,
                     Model &model);
+    // set axis (0: Oz, 1: Oy, or 2: Ox) around which impact region will be rotated
+    void set_impact_rot_axis(int axis_id);
     void set_updating_vertices_on_gpu(bool value) { global_settings.update_vertices_on_gpu = value; }
     void set_camera_position(float rho, float theta, float phi) { camera.set_position(rho, theta, phi); }
 

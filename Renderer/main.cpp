@@ -28,6 +28,7 @@ using CrashAndSqueeze::Core::ShapeDeformationReaction;
 using CrashAndSqueeze::Core::HitReaction;
 using CrashAndSqueeze::Core::RegionReaction;
 using CrashAndSqueeze::Math::Vector;
+using CrashAndSqueeze::Math::VECTOR_SIZE;
 using CrashAndSqueeze::Math::Real;
 using CrashAndSqueeze::Core::IndexArray;
 using CrashAndSqueeze::Collections::Array;
@@ -332,7 +333,56 @@ namespace
         model.unlock_vertex_buffer();
     };
 
-    class Demo
+    class BoxReactionsGenerator
+    {
+    private:
+        std::vector<Reaction*> reactions;
+        std::vector<IRegion*> regions;
+    public:
+        class IReactionFactory
+        {
+        public:
+            virtual Reaction * create_reaction(BoxRegion * box) = 0;
+        };
+
+        void generate(Vector box_min, Vector box_max, int (&cells_nums)[VECTOR_SIZE], IReactionFactory * reaction_factory)
+        {
+            Vector cell_steps[VECTOR_SIZE] = {Vector(1,0,0), Vector(0,1,0), Vector(0,0,1) };
+
+            // Initialize cell_steps and box_end
+            Vector box_end = box_min;
+            for (int i = 0; i < VECTOR_SIZE; ++i)
+            {
+                cell_steps[i] *= (box_max[i] - box_min[i])/cells_nums[i];
+                box_end += cell_steps[i]; // it was like box_end = box_min + x_step + y_step + z_step;
+            }
+            for(int ix = 0; ix < cells_nums[0]; ++ix)
+            {
+                for(int iy = 0; iy < cells_nums[1]; ++iy)
+                {
+                    for(int iz = 0; iz < cells_nums[2]; ++iz)
+                    {
+                        Vector offset = ix*cell_steps[0] + iy*cell_steps[1] + iz*cell_steps[2];
+                        BoxRegion * box = new BoxRegion(box_min + offset, box_end + offset);
+
+                        Reaction * reaction = reaction_factory->create_reaction(box);
+                        regions.push_back(box);
+                        reactions.push_back(reaction);
+                    }
+                }
+            }
+
+        }
+        ~BoxReactionsGenerator()
+        {
+            for (auto r: reactions)
+                delete r;
+            for (auto r: regions)
+                delete r;
+        }
+    };
+
+    class Demo : public BoxReactionsGenerator::IReactionFactory
     {
     protected:
         Vertex * low_model_vertices;
@@ -350,6 +400,20 @@ namespace
         std::vector<AbstractModel *> models;
 
         ForcesArray NO_FORCES;
+
+        BoxReactionsGenerator reactions_generator;
+        // Params needed to implement IReactionFactory which is passed to BoxReactionsGenerator
+        struct RepaintReactionParams
+        {
+            Model * model_to_repaint;
+            PhysicalModel * phys_mod;
+            Real threshold_dist;
+            Real max_dist;
+            float4 initial_color;
+
+            RepaintReactionParams() : model_to_repaint(nullptr), phys_mod(nullptr), threshold_dist(DBL_MAX), max_dist(DBL_MAX), initial_color(NO_DEFORM_COLOR) {}
+            bool are_set() { return nullptr != model_to_repaint && nullptr != phys_mod; }
+        } react_params;
 
         // Override this to define Demo models, reactions, etc...
         virtual void prepare() = 0;
@@ -412,6 +476,15 @@ namespace
             delete_array(sphere_indices);
         }
 
+        void set_repaint_reaction_params(Model * model_to_repaint, PhysicalModel * phys_mod, Real threshold_dist = 0.1, Real max_dist = 0.3, float4 initial_color = NO_DEFORM_COLOR)
+        {
+            react_params.model_to_repaint = model_to_repaint;
+            react_params.phys_mod = phys_mod;
+            react_params.threshold_dist = threshold_dist;
+            react_params.max_dist = max_dist;
+            react_params.initial_color = initial_color;
+        }
+
         void set_camera_position(float rho, float theta, float phi) { app.set_camera_position(rho, theta, phi); }
 
     public:
@@ -439,6 +512,23 @@ namespace
             
             // GO!
             app.run();
+        }
+
+        // Implement BoxReactionsGenerator::IReactionFactory
+        virtual Reaction * create_reaction(BoxRegion * box) override
+        {
+            if ( ! react_params.are_set() )
+                throw NullPointerError(RT_ERR_ARGS("(Demo) repaint reaction params was not set: call set_repaint_reaction_params first"));
+            RepaintReaction * reaction =
+                new RepaintReaction(*box, *react_params.phys_mod, *react_params.model_to_repaint, react_params.threshold_dist, react_params.max_dist, react_params.initial_color);
+            react_params.phys_mod->add_shape_deformation_reaction(*reaction);
+
+            if (SHOW_REACTION_REGIONS)
+            {
+                // visualize the above box
+                add_auxiliary_model( box_to_model(app.get_renderer(), simple_shader, simple_pixel_shader, box) );
+            }
+            return reaction;
         }
 
         virtual ~Demo()
@@ -650,11 +740,17 @@ namespace
             PointModel * low_mesh = new PointModel(app.get_renderer(), simple_shader, car_vertices, mesh->get_vertices_count(), 10);
             mesh->unlock_vertex_buffer();
             low_mesh->add_shader(simple_pixel_shader);
-            set_camera_position(6.1f, 1.1f, -1.16858f);
+            set_camera_position(6.1f, 1.2f, -0.1575f);
             PhysicalModel *phys_mod = add_physical_model(mesh, low_mesh);
 
             // - Set impact -
-            set_impact(Vector(0,2.2,-0.9), 0.45, phys_mod->get_center_of_mass(), Vector(0,-510,0.0));
+            set_impact(Vector(0.7,-1.5,2.7), 0.45, phys_mod->get_center_of_mass(), Vector(0,0,-510));
+            app.set_impact_rot_axis(1);
+
+            // - Reactions -
+            int xyz_cells[3] = {6, 6, 1};
+            set_repaint_reaction_params(mesh, phys_mod, 0.1, 0.5, MESH_COLOR);
+            reactions_generator.generate(Vector(-1, -3.5, 1), Vector(2.5, 0.5, 3), xyz_cells, this);
         }
     };
 
@@ -666,6 +762,7 @@ namespace
         {}
 
         static const TCHAR * cmdline_option;
+        static const float4 OVAL_COLOR;
 
     private:
         static void make_oval(Vertex * vertices, Index vertices_count)
@@ -678,7 +775,6 @@ namespace
         virtual void prepare()
         {
             // == PREPARE OVAL DEMO ==
-            const float4 OVAL_COLOR (0.67f, 0.55f, 0.47f, 1);
 
             // - Create models -
             const float oval_radius = 2;
@@ -711,47 +807,16 @@ namespace
             PhysicalModel * phys_mod = add_physical_model(high_oval_model, low_oval_model);
 
             // - Reactions -
-            int x_cells, /*y_cells,*/ z_cells;
-            Vector x_step, /*y_step,*/ z_step;
-            Vector box_min, box_max, box_end;
-            Array<ShapeDeformationReaction*> reactions;
-            Array<IRegion*> regions;
-
-            z_cells = 8;
-            x_cells = 6;
-            box_min = Vector(-0.6, 0.75, -0.8);
-            box_max = Vector( 0.6, 1.75,  0.8);
-            x_step = (box_max[0] - box_min[0])/x_cells*Vector(1,0,0);
-            z_step = (box_max[2] - box_min[2])/z_cells*Vector(0,0,1);
-            box_end = box_min + x_step + z_step;
-            box_end[1] = box_max[1];
-            for(int ix = 0; ix < x_cells; ++ix)
-            {
-                for(int iz = 0; iz < z_cells; ++iz)
-                {
-                    BoxRegion * box = new BoxRegion(box_min + ix*x_step + iz*z_step,
-                                                    box_end + ix*x_step + iz*z_step);
-
-                    RepaintReaction * reaction = 
-                        new RepaintReaction(*box, *phys_mod, *high_oval_model, 0.1, 0.3, OVAL_COLOR);
-
-                    phys_mod->add_shape_deformation_reaction(*reaction);
-                    regions.push_back(box);
-                    reactions.push_back(reaction);
-
-                    if (SHOW_REACTION_REGIONS)
-                    {
-                        // visualize the above box
-                        add_auxiliary_model( box_to_model(app.get_renderer(), simple_shader, simple_pixel_shader, box) );
-                    }
-                }
-            }
+            int xyz_cells[3] = {6, 1, 8};
+            set_repaint_reaction_params(high_oval_model, phys_mod, 0.1, 0.3, OVAL_COLOR);
+            reactions_generator.generate(Vector(-0.6, 0.75, -0.8), Vector( 0.6, 1.75,  0.8), xyz_cells, this);
 
             // - Set impact -
             set_impact(Vector(0,1.5,0), 0.25, Vector(0, 0, 0), Vector(0,-110,0.0));
         }
     };
     const TCHAR * OvalDemo::cmdline_option = _T("/oval");
+    const float4  OvalDemo::OVAL_COLOR (0.67f, 0.55f, 0.47f, 1);
 #pragma warning( pop )
 }
 

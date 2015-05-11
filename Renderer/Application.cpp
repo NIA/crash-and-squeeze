@@ -171,6 +171,12 @@ void Application::set_impact(::CrashAndSqueeze::Core::IRegion & region,
     }
 }
 
+void Application::set_impact_rot_axis(int axis_id)
+{
+    // protection so that impact_axis is inside correct range
+    impact_axis = (axis_id + ROTATION_AXES_COUNT)%ROTATION_AXES_COUNT;
+}
+
 void Application::move_impact(const Vector &vector)
 {
     if(NULL != impact_model)
@@ -283,7 +289,7 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
         move_impact_nearer(HIT_MOVE_STEP, ROTATION_AXES[impact_axis]);
         break;
     case 'H':
-        impact_axis = (impact_axis+1)%ROTATION_AXES_COUNT; // TODO: also rotate impact velocity // TODO: display impact velocity as arrow :)
+        set_impact_rot_axis(impact_axis+1); // TODO: also rotate impact velocity // TODO: display impact velocity as arrow :)
         break;
     case '1':
         set_show_mode(0);
