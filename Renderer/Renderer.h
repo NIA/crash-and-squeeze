@@ -11,6 +11,7 @@
 #include "Buffer.h"
 #include "performance_reporter.h"
 
+// TODO: put all global classes and functions into namespace
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
 class AbstractModel;
 struct ModelEntity

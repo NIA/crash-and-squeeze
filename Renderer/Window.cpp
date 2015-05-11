@@ -196,7 +196,8 @@ public:
 
     static const UINT IDC_ED_CLUSTERS[GlobalSettings::AXES_COUNT];
 
-    // Use for-loops to shorten this map?
+    // TODO: Use for-loops to shorten this map?
+    // TODO: handle spinners
     BEGIN_DDX_MAP(ControlsWindowImpl)
         // SimulationSettings
         DDX_FLOAT(IDC_ED_DAMPING,       sim_settings.damping_fraction)

@@ -40,6 +40,7 @@ using DirectX::XMVectorLerp;
 using std::string;
 using std::tstring;
 
+// TODO: store these options in config file instead of source code
 namespace
 {
     bool DISABLE_MESSAGE_BOXES = true;
@@ -47,9 +48,10 @@ namespace
     bool SHOW_NORMALS = false;
     bool SHOW_REACTION_REGIONS = false;
     bool UPDATE_ON_GPU = true; // TODO: when update on GPU, create models as immutable (dynamic = false)
+                               // TODO: why is lighting less smooth when updating on GPU? Maybe precision of applying deformation and averaging? How to fix?
 
     const char *SIMPLE_SHADER_FILENAME = "simple.vsh";
-                                                         // TODO: can we handle this with one shader file?
+                                                         // TODO: can we handle this with one shader file? And allow switching CPU/GPU in runtime?
     const char *DEFORM_SHADER_FILENAME = UPDATE_ON_GPU ? (CAS_QUADRATIC_EXTENSIONS_ENABLED ? "deform_qx.vsh" : "deform.vsh") : "simple.vsh";
     const char *LIGHTING_SHADER_FILENAME = "lighting.psh";
     const char *SIMPLE_PIXEL_SHADER_FILENAME = "simple.psh";
@@ -755,7 +757,7 @@ namespace
 
 // Renderer can be launched as `Renderer.exe file.obj` to load mesh from file.obj.
 // Instead of file.obj one can pass /oval or /cylinder options to launch corresponding demo.
-// If no argument is given, /oval is used by default.
+// If no argument is given, /oval is assumed by default.
 INT WINAPI _tWinMain( HINSTANCE, HINSTANCE, LPTSTR, INT )
 {
     Logger logger("renderer.log", true);

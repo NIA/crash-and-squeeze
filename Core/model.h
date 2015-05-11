@@ -178,7 +178,7 @@ namespace CrashAndSqueeze
 
         public:
             // Takes a pointer source_vertices to vetrices_num vertices of arbitrary
-            // strucutre, described by vertex_info. Takes a pointer masses to vertices_num
+            // structure, described by vertex_info. Takes a pointer masses to vertices_num
             // values of mass. If masses are equal for all vertices, it can be null
             // and the mass should be given as constant_mass argument.
             // The model must have rigid frame, defined by frame_indices array of indices
@@ -192,7 +192,7 @@ namespace CrashAndSqueeze
                   int graphical_vetrices_num,
                   VertexInfo const &graphical_vertex_info,
 
-                  const int clusters_by_axes[Math::VECTOR_SIZE],
+                  const int clusters_by_axes[Math::VECTOR_SIZE], // TODO: unsafe? Array of any size can be passed without compiler warning/error
                   Math::Real cluster_padding_coeff,
                   
                   const MassFloat constant_mass = 1,

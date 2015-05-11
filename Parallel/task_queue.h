@@ -43,6 +43,7 @@ namespace CrashAndSqueeze
             void reset();
 
             // remove tasks from queue without completing them
+            // TODO: avoid calling this function when all tasks are actually completed just to move `first` and `last` to the start.
             void clear();
 
             // wait until there are some tasks to pop

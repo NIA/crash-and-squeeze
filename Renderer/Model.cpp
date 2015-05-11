@@ -100,6 +100,7 @@ AbstractShader &AbstractModel::get_shader(int index) const
 
 void AbstractModel::add_shader(AbstractShader &shader)
 {
+    // TODO: this may compile same shader multiple times! Fix either this code or Shader::compile to avoid this
     shader.compile();
     shaders.push_back(&shader);
 }
