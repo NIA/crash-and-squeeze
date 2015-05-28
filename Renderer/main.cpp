@@ -47,6 +47,7 @@ namespace
     bool DISABLE_MESSAGE_BOXES = true;
     bool PAINT_MODEL = false;
     bool SHOW_NORMALS = false;
+    bool ENABLE_REACTIONS = false;
     bool SHOW_REACTION_REGIONS = false;
     bool UPDATE_ON_GPU = true; // TODO: when update on GPU, create models as immutable (dynamic = false)
                                // TODO: why is lighting less smooth when updating on GPU? Maybe precision of applying deformation and averaging? How to fix?
@@ -56,10 +57,11 @@ namespace
     const char *DEFORM_SHADER_FILENAME = UPDATE_ON_GPU ? (CAS_QUADRATIC_EXTENSIONS_ENABLED ? "deform_qx.vsh" : "deform.vsh") : "simple.vsh";
     const char *LIGHTING_SHADER_FILENAME = "lighting.psh";
     const char *SIMPLE_PIXEL_SHADER_FILENAME = "simple.psh";
-    
+
     const TCHAR *DEFAULT_MESH_FILENAME = _T("heart.obj");
     const float4 MESH_COLOR(0.9f, 0.3f, 0.3f, 1);
-    const float MESH_SCALE = 0.06f;
+    bool  MESH_AUTOSCALE = true;
+    const float MESH_EXPECTED_DIMENSION = 7.5f; // actually an arbitrary number, but reaction regions and camera/hit position depend on it not obviously...
 
     const float4 CYLINDER_COLOR (0.4f, 0.6f, 1.0f, 1);
     const float4 OBSTACLE_COLOR (0.4f, 0.4f, 0.4f, 1);
@@ -286,7 +288,7 @@ namespace
                                  bool reaction_on_entering,
                                  const TCHAR* message)
             : RegionReaction(shape_vertex_indices, region, reaction_on_entering), message(message) {}
-        
+
         virtual void invoke(int vertex_index)
         {
             UNREFERENCED_PARAMETER(vertex_index);
@@ -347,6 +349,9 @@ namespace
 
         void generate(Vector box_min, Vector box_max, int (&cells_nums)[VECTOR_SIZE], IReactionFactory * reaction_factory)
         {
+            if (!ENABLE_REACTIONS)
+                return;
+
             Vector cell_steps[VECTOR_SIZE] = {Vector(1,0,0), Vector(0,1,0), Vector(0,0,1) };
 
             // Initialize cell_steps and box_end
@@ -509,7 +514,7 @@ namespace
 
             // Custom prepare (should be overriden)
             prepare();
-            
+
             // GO!
             app.run();
         }
@@ -589,7 +594,7 @@ namespace
         CylindricalRegion inside;
         CylindricalRegion outside;
         IndexArray shape;
-    
+
     protected:
         virtual void prepare()
         {
@@ -655,7 +660,7 @@ namespace
                     reactions.push_back(&reaction);
                     // register reaction
                     phys_mod->add_shape_deformation_reaction(reaction);
-                
+
                     ++subshape_index;
                 }
             }
@@ -663,7 +668,7 @@ namespace
             // -- Hit reactions --
 
             hit_point.push_back(390); // oops, hard-coded...
-        
+
             HitReaction * weak_hit_reaction =   new MessageBoxHitReaction(hit_point, 1,   _T("[All OK] Weak hit occured!"));
             HitReaction * strong_hit_reaction = new MessageBoxHitReaction(hit_point, 100, _T("[!BUG!] Strong hit occured!"));
 
@@ -673,7 +678,7 @@ namespace
             reactions.push_back(strong_hit_reaction);
 
             // -- Region reactions --
-            
+
             add_range(shape, 9*LOW_EDGES_PER_BASE, 10*LOW_EDGES_PER_BASE);
 
             RegionReaction * inside_reaction = new MessageBoxRegionReaction(shape, inside, true, _T("[OK] Entered inside!"));
@@ -710,26 +715,42 @@ namespace
     protected:
         virtual void prepare()
         {
-            // == PREPARE CAR DEMO ==
+            // == PREPARE MESH DEMO ==
 
             // - Load model from obj
-            ObjMeshLoader loader(mesh_filename.c_str(), MESH_COLOR, MESH_SCALE);
-            Stopwatch stopwatch;
-            stopwatch.start();
-            loader.load();
-            double time = stopwatch.stop();
-            static const int BUF_SIZE = 128;
-            static char buf[BUF_SIZE];
-            sprintf_s(buf, BUF_SIZE,
-                "loading mesh from %s: %7.2f ms",
-                tstring_to_string(mesh_filename).c_str(), time*1000);
-            app.get_logger().log("        [Importer]", buf);
+            ObjMeshLoader loader(mesh_filename.c_str(), MESH_COLOR);
+            {
+                Stopwatch stopwatch;
+                stopwatch.start();
+
+                // load
+                loader.load();
+
+                if (MESH_AUTOSCALE)
+                {
+                    // scale so that dimensions are approximately MESH_EXPECTED_DIMENSION
+                    float3 dimensions = loader.get_dimensions();
+                    float max_dimension = std::max(std::max(dimensions.x, dimensions.y), dimensions.z);
+                    if ( fabs(max_dimension) < 1e-5 ) // TODO: normal FP comparison
+                        throw OutOfRangeError(RT_ERR_ARGS("Mesh has zero dimension, cannot scale it"));
+                    loader.scale(MESH_EXPECTED_DIMENSION / max_dimension);
+                }
+
+                double time = stopwatch.stop();
+                static const int BUF_SIZE = 128;
+                static char buf[BUF_SIZE];
+                sprintf_s(buf, BUF_SIZE,
+                    "loading mesh from %s: %7.2f ms",
+                    tstring_to_string(mesh_filename).c_str(), time*1000);
+                app.get_logger().log("        [Importer]", buf);
+            }
 
             // - Create models -
             Model * mesh = new Model(
                 app.get_renderer(),
                 D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
                 deform_shader,
+                // TODO: introduce IGeometry interface for easily passing ObjMeshLoader (and similar classes, e.g. SimpleCube) to Model constructor
                 loader.get_vertices().data(),
                 loader.get_vertices().size(),
                 loader.get_indices().data(),
@@ -803,7 +824,7 @@ namespace
                 LOW_OVAL_INDICES);
             set_camera_position(3.1f, 0.9f, -0.854f);
             low_oval_model->add_shader(simple_pixel_shader);
-            
+
             PhysicalModel * phys_mod = add_physical_model(high_oval_model, low_oval_model);
 
             // - Reactions -
@@ -814,6 +835,7 @@ namespace
             // - Set impact -
             set_impact(Vector(0,1.5,0), 0.25, Vector(0, 0, 0), Vector(0,-110,0.0));
         }
+
     };
     const TCHAR * OvalDemo::cmdline_option = _T("/oval");
     const float4  OvalDemo::OVAL_COLOR (0.67f, 0.55f, 0.47f, 1);
@@ -828,20 +850,20 @@ INT WINAPI _tWinMain( HINSTANCE, HINSTANCE, LPTSTR, INT )
     Logger logger("renderer.log", true);
     logger.newline();
     logger.log("        [Renderer]", "application startup");
-    
+
     PhysicsLogger & phys_logger = PhysicsLogger::get_instance();
-    
+
     PhysLogAction phys_log_action(logger);
     PhysWarningAction phys_warn_action(logger);
     PhysErrorAction phys_err_action(logger);
-    
+
     phys_logger.ignore(PhysicsLogger::LOG);
     // phys_logger.set_action(PhysicsLogger::LOG, &phys_log_action);
     phys_logger.set_action(PhysicsLogger::WARNING, &phys_warn_action);
     phys_logger.set_action(PhysicsLogger::ERROR, &phys_err_action);
 
     srand( static_cast<unsigned>( time(NULL) ) );
-    
+
     try
     {
         Application app(logger);
@@ -867,7 +889,7 @@ INT WINAPI _tWinMain( HINSTANCE, HINSTANCE, LPTSTR, INT )
             MeshDemo demo(app, mesh_filename);
             demo.run();
         }
-        
+
         logger.log("        [Renderer]", "application shutdown");
     }
     catch(RuntimeError &e)

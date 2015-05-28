@@ -3,6 +3,8 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 #undef ERROR // because WinGDI.h defines this and it's awful!
+#undef min
+#undef max
 #include "Error.h"
 #include "Math/vector.h"
 
@@ -82,7 +84,7 @@ inline float3 operator+(const float3 &a, const float3 &b)
 inline float3 operator-(const float3 &a, const float3 &b)
 {
     float3 res;
-    DirectX::XMStoreFloat3(&res, DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&a), DirectX::XMLoadFloat3(&b)));
+    DirectX::XMStoreFloat3(&res, DirectX::XMVectorSubtract(DirectX::XMLoadFloat3(&a), DirectX::XMLoadFloat3(&b)));
     return res;
 }
 
