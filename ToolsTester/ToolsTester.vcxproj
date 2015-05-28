@@ -92,6 +92,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="array_unittest.cpp" />
+    <ClCompile Include="diffgeom_unittest.cpp" />
     <ClCompile Include="float_unittest.cpp" />
     <ClCompile Include="logger_unittest.cpp" />
     <ClCompile Include="matrix_unittest.cpp" />

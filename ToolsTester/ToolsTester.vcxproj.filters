@@ -42,6 +42,9 @@
     <ClCompile Include="qx_unittest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="diffgeom_unittest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tools_tester.h">

@@ -55,6 +55,9 @@
     <ClInclude Include="Math\quadratic.h">
       <Filter>Math</Filter>
     </ClInclude>
+    <ClInclude Include="Math\diffgeom.h">
+      <Filter>Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Math\matrix.cpp">

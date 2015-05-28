@@ -87,6 +87,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Math\diffgeom.h" />
     <ClInclude Include="Math\floating_point.h" />
     <ClInclude Include="Math\matrix.h" />
     <ClInclude Include="Math\plane.h" />
