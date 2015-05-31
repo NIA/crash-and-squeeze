@@ -103,6 +103,7 @@
     <ClInclude Include="Parallel\task_queue.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="diffgeom.cpp" />
     <ClCompile Include="Math\matrix.cpp" />
     <ClCompile Include="Math\quadratic.cpp" />
     <ClCompile Include="Math\vector.cpp" />

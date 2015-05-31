@@ -193,6 +193,12 @@ namespace CrashAndSqueeze
         {
             return (A - B).norm();
         }
+
+        inline bool near(const Point &A, const Point &B, Real max_dist = DEFAULT_REAL_PRECISION)
+        {
+            return distance(A, B) < max_dist;
+        }
+
         inline Vector cross_product(const Vector &a, const Vector &b)
         {
             return Vector( a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0] );
