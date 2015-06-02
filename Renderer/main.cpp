@@ -33,6 +33,10 @@ using CrashAndSqueeze::Math::Real;
 using CrashAndSqueeze::Core::IndexArray;
 using CrashAndSqueeze::Collections::Array;
 
+// TODO: move this physics out of main somewhere else?
+#include "Core/discrete_vector_field.h"
+using CrashAndSqueeze::Math::SphericalCoords;
+
 using DirectX::XMVECTOR;
 using DirectX::XMStoreFloat4;
 using DirectX::XMStoreFloat4;
@@ -97,6 +101,11 @@ namespace
     const Index HIGH_OVAL_EDGES_PER_DIAMETER = 220;
     const Index HIGH_OVAL_VERTICES = sphere_vertices_count(HIGH_OVAL_EDGES_PER_DIAMETER);
     const DWORD HIGH_OVAL_INDICES = sphere_indices_count(HIGH_OVAL_EDGES_PER_DIAMETER);
+
+    const Index GLOBE_EDGES_PER_DIAMETER = 50;
+    const Index GLOBE_VERTICES = sphere_vertices_count(GLOBE_EDGES_PER_DIAMETER);
+    const Index GLOBE_INDICES  = sphere_indices_count(GLOBE_EDGES_PER_DIAMETER);
+    const Index GLOBE_CURVE_VERTICES = 20;
 
     inline void my_message_box(const TCHAR *message, const TCHAR *caption, UINT type, bool force = false)
     {
@@ -435,11 +444,7 @@ namespace
                 paint_model(*low_model);
             }
             if(SHOW_NORMALS) {
-                NormalsModel* normals_model = new NormalsModel(high_model, simple_shader, 0.1f);
-                models.push_back(normals_model);
-                normals_model->add_shader(simple_pixel_shader);
-                high_model->add_subscriber(normals_model);
-                app.add_model(*normals_model, false);
+                add_normals_model_for(high_model);
             }
             return phys_mod;
         }
@@ -448,6 +453,14 @@ namespace
         {
             models.push_back(model);
             app.add_model(*model, false);
+        }
+
+        void add_normals_model_for(AbstractModel * parent_model, float normal_length = 0.1f, bool normalize_before_showing = true)
+        {
+            NormalsModel* normals_model = new NormalsModel(parent_model, simple_shader, normal_length, normalize_before_showing);
+            normals_model->add_shader(simple_pixel_shader);
+            parent_model->add_subscriber(normals_model);
+            add_auxiliary_model(normals_model);
         }
 
         void set_impact(Vector hit_position, double hit_radius, Vector hit_rotation_center, Vector hit_velocity)
@@ -839,6 +852,96 @@ namespace
     };
     const TCHAR * OvalDemo::cmdline_option = _T("/oval");
     const float4  OvalDemo::OVAL_COLOR (0.67f, 0.55f, 0.47f, 1);
+
+    class DiffGeomDemo : public Demo
+    {
+    public:
+        DiffGeomDemo(Application & app)
+            : Demo(app, GLOBE_CURVE_VERTICES, GLOBE_CURVE_VERTICES, GLOBE_VERTICES, GLOBE_INDICES)
+        {}
+
+        static const TCHAR * cmdline_option;
+
+    protected:
+        // The curve used to transport vector
+        // Uses spherical coordinates!
+        class EquatorCurve : public CrashAndSqueeze::Math::ICurve
+        {
+        private:
+            Real r;
+            Real theta;
+            Real phi_start;
+            Real delta_phi;
+
+        public:
+            EquatorCurve(Real r, Real theta, Real phi_start, Real phi_end)
+                : r(r), theta(theta), phi_start(phi_start), delta_phi(phi_end - phi_start)
+            {
+            }
+
+            virtual Vector point_at(Real t) const override
+            {
+                return Vector(r, theta, phi_start + t*delta_phi);
+            }
+
+            void make_vertices(Index vertices_num, const float4 &color, /*out*/ Vertex *res_vertices, /*out*/ Index *res_indices)
+            {
+                if (vertices_num < 2)
+                    throw OutOfRangeError(RT_ERR_ARGS("Invalid number of vertices for EquatorCurve"));
+
+                Real dt = (T_END - T_START)/(vertices_num - 1);
+                for (Index i = 0; i < vertices_num; ++i)
+                {
+                    Real t = T_START + i*dt;
+                    res_vertices[i] = Vertex(math_vector_to_float3(point_at(t)), color, float3(0,0,0));
+                    res_indices[i] = i;
+                }
+            }
+
+        };
+        virtual void prepare() override
+        {
+            // A demo with vector transport in spherical coordinates
+            SphericalCoords spherical_coords;
+
+            const float globe_radius = 1;
+            sphere(globe_radius, float3(0,0,0), NO_DEFORM_COLOR, GLOBE_EDGES_PER_DIAMETER, high_model_vertices, high_model_indices);
+
+            Model * globe = new Model(
+                app.get_renderer(),
+                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+                simple_shader,
+                high_model_vertices,
+                GLOBE_VERTICES,
+                high_model_indices,
+                GLOBE_INDICES);
+            globe->add_shader(lighting_shader);
+            add_auxiliary_model(globe);
+
+            // Define curve
+            EquatorCurve curve(globe_radius, SphericalCoords::PI/2, 0, SphericalCoords::PI/2);
+            curve.make_vertices(GLOBE_CURVE_VERTICES, float4(0,0,0,1), low_model_vertices, low_model_indices);
+            
+            // Make parallel transport and update vertices
+            CrashAndSqueeze::Core::DiscreteVectorField field(low_model_vertices, GLOBE_CURVE_VERTICES, VERTEX_INFO, &spherical_coords);
+            field.transport(Vector(0.2, 0.0, 0.0), &curve);
+            field.update_vertices(low_model_vertices, VERTEX_INFO);
+
+            // And show both curve and vectors
+            Model * curve_model = new Model(
+                app.get_renderer(),
+                D3D11_PRIMITIVE_TOPOLOGY_LINELIST,
+                simple_shader,
+                low_model_vertices,
+                GLOBE_CURVE_VERTICES,
+                low_model_indices,
+                GLOBE_CURVE_VERTICES);
+            curve_model->add_shader(simple_pixel_shader);
+            add_auxiliary_model(curve_model);
+            add_normals_model_for(curve_model, 1, false);
+        }
+    };
+    const TCHAR * DiffGeomDemo::cmdline_option = _T("/diffgeom");
 #pragma warning( pop )
 }
 
@@ -870,11 +973,16 @@ INT WINAPI _tWinMain( HINSTANCE, HINSTANCE, LPTSTR, INT )
         override_app_settings(app, PAINT_MODEL, SHOW_NORMALS, UPDATE_ON_GPU);
 
         // parse command line arguments
-        tstring mesh_filename = OvalDemo::cmdline_option; // by default use oval demo
+        tstring mesh_filename = DiffGeomDemo::cmdline_option; // by default use diffgeom demo
         if (__argc > 1)
             mesh_filename = __targv[1];
 
-        if (mesh_filename == OvalDemo::cmdline_option)
+        if (mesh_filename == DiffGeomDemo::cmdline_option)
+        {
+            DiffGeomDemo demo(app);
+            demo.run();
+        }
+        else if (mesh_filename == OvalDemo::cmdline_option)
         {
             OvalDemo demo(app);
             demo.run();

@@ -48,6 +48,9 @@
     <ClCompile Include="simulation_params.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="discrete_vector_field.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="body.h">
@@ -93,6 +96,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="simulation_params.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="discrete_vector_field.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

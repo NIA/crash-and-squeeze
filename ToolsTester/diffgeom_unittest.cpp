@@ -14,6 +14,15 @@ TEST(DiffGeomTest, GijkGetSet)
     EXPECT_EQ(-3,  gijk.get_at(2,1,0));
 }
 
+TEST(DiffGeomTest, SphericToCartesian)
+{
+    SphericalCoords coords;
+    // point
+    EXPECT_EQ(Point(0.5, 0.5, M_SQRT1_2), coords.point_to_cartesian(Point(1, M_PI_4, M_PI_4)));
+    // point on equator with phi=pi/2: e_rho = e_y, e_theta is -e_z, e_phi is -e_x
+    EXPECT_EQ(Vector(-3, 1, -2), coords.vector_to_cartesian(Vector(1, 2, 3), Point(1, M_PI_2, M_PI_2)));
+}
+
 TEST(DiffGeomTest, SphericMetric)
 {
     SphericalCoords::Metric metric;
@@ -66,7 +75,7 @@ TEST(DiffGeomTest, SphericTransport)
         conn.value_at(x, gijk);
         v += gijk.d_parallel_transport(v, dx);
     }
-    EXPECT_PRED3(near, expected, v, 0.0001);
+    EXPECT_PRED3(are_near, expected, v, 0.0001);
 }
 
 TEST(DiffGeomTest, SphericTransport2)
@@ -89,5 +98,5 @@ TEST(DiffGeomTest, SphericTransport2)
         conn.value_at(x, gijk);
         v += gijk.d_parallel_transport(v, dx);
     }
-    EXPECT_PRED3(near, expected, v, 0.0001);
+    EXPECT_PRED3(are_near, expected, v, 0.0001);
 }

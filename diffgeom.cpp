@@ -6,12 +6,15 @@ namespace CrashAndSqueeze
     using Logging::Logger;
     namespace Math
     {
+        const Real ICurve::T_START = 0.0;
+        const Real ICurve::T_END   = 1.0;
+
         ConnectionCoeffs::ConnectionCoeffs(Real all_components)
         {
             set_all(all_components);
         }
 
-        CrashAndSqueeze::Math::Real ConnectionCoeffs::get_at(int i, int j, int k) const
+        Real ConnectionCoeffs::get_at(int i, int j, int k) const
         {
 #ifndef NDEBUG
             if(false == check_index(i) || false == check_index(j) || false == check_index(k))
@@ -37,7 +40,7 @@ namespace CrashAndSqueeze
                 coeff_mxs[k].set_all(value);
         }
 
-        CrashAndSqueeze::Math::Vector ConnectionCoeffs::d_parallel_transport(const Vector &v, const Vector &dx) const
+        Vector ConnectionCoeffs::d_parallel_transport(const Vector &v, const Vector &dx) const
         {
             Vector dv = Vector::ZERO;
             // $d v^k = - \Gamma_{ij}^k v^j dx^i$
@@ -48,7 +51,7 @@ namespace CrashAndSqueeze
             return dv;
         }
 
-        CrashAndSqueeze::Math::Vector ConnectionCoeffs::covariant_addition(const Vector &v, int k) const
+        Vector ConnectionCoeffs::covariant_addition(const Vector &v, int k) const
         {
             Vector res = Vector::ZERO;
             // $\nabla_k v^i = \frac{\partial v^i}{\partial x^k} + \Gamma_{kp}^i v^p$
@@ -82,7 +85,7 @@ namespace CrashAndSqueeze
                 return x*x;
             }
 
-}
+        }
 
         Real d_line_length(const MetricTensor & metric, const Vector &dv)
         {
@@ -98,19 +101,49 @@ namespace CrashAndSqueeze
 
         // -- Implementations: for some specific spaces --
 
-        void Euclidean::Connection::value_at(const Vector & point, ConnectionCoeffs & coeffs) const 
+        void Euclidean::Connection::value_at(const Point & /*point*/, ConnectionCoeffs & coeffs) const 
         {
             coeffs.set_all(0);
         }
         
-        void Euclidean::Metric::value_at(const Vector & point, MetricTensor & metric) const 
+        void Euclidean::Metric::value_at(const Point & /*point*/, MetricTensor & metric) const 
         {
             metric = MetricTensor::IDENTITY;
         }
 
-        void SphericalCoords::Connection::value_at(const Vector & point, ConnectionCoeffs & coeffs) const 
+        const Euclidean::Connection Euclidean::connection;
+        const IConnection * Euclidean::get_connection() const 
         {
-            Real rho = point[0], theta = point[1], phi = point[2];
+            return &connection;
+        }
+
+        
+        bool Euclidean::has_metric() const 
+        {
+            return true;
+        }
+
+        const Euclidean::Metric Euclidean::metric;
+        const IMetric * Euclidean::get_metric() const 
+        {
+            return &metric;
+        }
+
+        Point Euclidean::point_to_cartesian(const Point & point) const 
+        {
+            throw point;
+        }
+
+        Vector Euclidean::vector_to_cartesian(const Vector & vector, const Point & /*point*/) const 
+        {
+            throw vector;
+        }
+
+        const Real SphericalCoords::PI = M_PI;
+
+        void SphericalCoords::Connection::value_at(const Point & point, ConnectionCoeffs & coeffs) const 
+        {
+            Real rho = point[0], theta = point[1]/*, phi = point[2]*/;
 
             if ( equal(0, rho) || equal(0, sin(theta)) )
             {
@@ -128,13 +161,49 @@ namespace CrashAndSqueeze
             coeffs.set_at    (PHI,  PHI,  THETA,  -cos(theta)*sin(theta));
         }
 
-        void SphericalCoords::Metric::value_at(const Vector & point, MetricTensor & metric) const 
+        const SphericalCoords::Metric SphericalCoords::metric;
+        void SphericalCoords::Metric::value_at(const Point & point, MetricTensor & metric) const 
         {
-            Real rho = point[0], theta = point[1], phi = point[2];
+            Real rho = point[0], theta = point[1]/*, phi = point[2]*/;
             metric.set_all(0);
             metric.set_at(RHO,  RHO,   1);
             metric.set_at(THETA,THETA, sqr(rho));
             metric.set_at(PHI,  PHI,   sqr(rho*sin(theta)));
+        }
+
+        const SphericalCoords::Connection SphericalCoords::connection;
+        const IConnection * SphericalCoords::get_connection() const 
+        {
+            return &connection;
+        }
+
+        bool SphericalCoords::has_metric() const 
+        {
+            return true;
+        }
+
+        const IMetric * SphericalCoords::get_metric() const 
+        {
+            return &metric;
+        }
+
+        Point SphericalCoords::point_to_cartesian(const Point & point) const 
+        {
+            Real rho = point[0], theta = point[1], phi = point[2];
+            return Vector(rho*sin(theta)*cos(phi), rho*sin(theta)*sin(phi), rho*cos(theta));
+        }
+
+        Vector SphericalCoords::vector_to_cartesian(const Vector & vector, const Point & at_point) const 
+        {
+            Real rho = at_point[0], theta = at_point[1], phi = at_point[2];
+
+            // Cartesian coordinates of spherical basis vectors
+            Vector e_rho(sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta));
+            Vector e_theta(cos(theta)*cos(phi), cos(theta)*sin(phi), -sin(theta));
+            Vector e_phi(-sin(phi), cos(phi), 0);
+
+            // Now make the linear combination (TODO: write this as matrix multiplication?)
+            return e_rho*vector[0] + e_theta*vector[1] + e_phi*vector[2];
         }
 
     }

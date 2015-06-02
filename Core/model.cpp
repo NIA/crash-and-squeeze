@@ -28,12 +28,6 @@ namespace CrashAndSqueeze
             const int DEFAULT_UPDATE_TASKS_NUM = 4;
 
             // -- helpers --
-            template<class T>
-            inline void make_fixed_size(Collections::Array<T> &arr, int size)
-            {
-                arr.create_items(size);
-                arr.freeze();
-            }
 
             // TODO: move to regions.cpp?
             // weight func for BoxRegion clusters
@@ -177,10 +171,10 @@ namespace CrashAndSqueeze
             // -- Finish initialization of arrays --
             // -- (create enought items and freeze or just forbid reallocations) --
             
-            make_fixed_size(vertices,          physical_vetrices_num);
-            make_fixed_size(initial_positions, physical_vetrices_num);
+            vertices.make_fixed_size(physical_vetrices_num);
+            initial_positions.make_fixed_size(physical_vetrices_num);
             
-            make_fixed_size(graphical_vertices, graphical_vetrices_num);
+            graphical_vertices.make_fixed_size(graphical_vetrices_num);
 
             hit_vertices_indices.forbid_reallocation(vertices.size());
 
@@ -784,6 +778,7 @@ namespace CrashAndSqueeze
             {
                 int including_clusters_num = src_vertices[i].get_including_clusters_num();
 
+                // TODO: make less reinterpret_cast by using the template version of add_to_pointer
                 ClusterIndex *out_cluster_indices =
                     reinterpret_cast<ClusterIndex*>( add_to_pointer(out_vertex, vertex_info.get_cluster_indices_offset()) );
                 for(int j = 0; j < VertexInfo::CLUSTER_INDICES_NUM; ++j)

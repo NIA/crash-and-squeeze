@@ -9,6 +9,16 @@ namespace CrashAndSqueeze
 {
     namespace Math
     {
+        // An interface of curve: returns points of curve for parameter `t` ranging from T_START to T_END
+        class ICurve
+        {
+        public:
+            virtual Point point_at(Real t) const = 0;
+
+            static const Real T_START; /* = 0 */
+            static const Real T_END;   /* = 1 */
+        };
+
         // Coefficients of affine connection $\Gamma_{ij}^k$ at some given point: N^3 numbers
         class ConnectionCoeffs
         {
@@ -78,52 +88,90 @@ namespace CrashAndSqueeze
         // Any actual metric should be made as class implementing this interface
         typedef ICoordsAtPoint<MetricTensor> IMetric;
 
+        class ISpace
+        {
+        public:
+            virtual const IConnection * get_connection() const = 0;
+            
+            virtual bool has_metric() const = 0;
+            virtual const IMetric * get_metric() const = 0;
+
+            // Transform coordinates of point used in this space to Cartesian coordinates
+            virtual Point point_to_cartesian(const Point & point) const = 0;
+            // Transform coordinates of `vector` in local basis at point `at_point` to Cartesian coordinates
+            virtual Vector vector_to_cartesian(const Vector & vector, const Point & at_point) const = 0;
+        };
 
         // -- Implementations: for some specific spaces --
 
         // Trivial implementations for usual Cartesian coordinates in Euclidean space
-        namespace Euclidean
+        class Euclidean : public ISpace
         {
+        public:
             // Trivial (zero) connection of Euclidean space
             class Connection : public IConnection
             {
             public:
-                virtual void value_at(const Vector & point, ConnectionCoeffs & coeffs) const override;
+                virtual void value_at(const Point & point, ConnectionCoeffs & coeffs) const override;
             };
+            static const Connection connection;
 
             // Trivial (identity) metric of Euclidean space
             class Metric: public IMetric
             {
             public:
-                virtual void value_at(const Vector & point, MetricTensor & metric) const override;
+                virtual void value_at(const Point & point, MetricTensor & metric) const override;
             };
-        }
+            static const Metric metric;
+
+            // Implement ISpace:
+
+            virtual const IConnection * get_connection() const override;
+            virtual bool has_metric() const override;
+            virtual const IMetric * get_metric() const override;
+            virtual Point point_to_cartesian(const Point & point) const override;
+            virtual Vector vector_to_cartesian(const Vector & vector, const Point & at_point) const override;
+
+        };
 
         // Implementations for usual spherical coordinates in Euclidean space
         //
         // Components of vector (0, 1, 2) here refer to (rho, theta, phi)
-        namespace SphericalCoords
+        class SphericalCoords : public ISpace
         {
+        public:
             enum CoordName
             {
                 RHO   = 0,
                 THETA = 1,
                 PHI   = 2,
             };
+            static const Real PI;
 
             // Spherical coordinates connection coefficients for normal Euclidean space
             class Connection : public IConnection
             {
             public:
-                virtual void value_at(const Vector & point, ConnectionCoeffs & coeffs) const override;
+                virtual void value_at(const Point & point, ConnectionCoeffs & coeffs) const override;
             };
+            static const Connection connection;
 
             // Spherical coordinates metric for normal Euclidean space
             class Metric: public IMetric
             {
             public:
-                virtual void value_at(const Vector & point, MetricTensor & metric) const override;
+                virtual void value_at(const Point & point, MetricTensor & metric) const override;
             };
-        }
+            static const Metric metric;
+
+            // Implement ISpace:
+
+            virtual const IConnection * get_connection() const override;
+            virtual bool has_metric() const override;
+            virtual const IMetric * get_metric() const override;
+            virtual Point point_to_cartesian(const Point & point) const override;
+            virtual Vector vector_to_cartesian(const Vector & vector, const Point & at_point) const override;
+
+        };
     }
 }

@@ -83,6 +83,7 @@
   <ItemGroup>
     <ClCompile Include="body.cpp" />
     <ClCompile Include="cluster.cpp" />
+    <ClCompile Include="discrete_vector_field.cpp" />
     <ClCompile Include="force.cpp" />
     <ClCompile Include="graphical_vertex.cpp" />
     <ClCompile Include="model.cpp" />
@@ -97,6 +98,7 @@
     <ClInclude Include="body.h" />
     <ClInclude Include="cluster.h" />
     <ClInclude Include="core.h" />
+    <ClInclude Include="discrete_vector_field.h" />
     <ClInclude Include="force.h" />
     <ClInclude Include="graphical_vertex.h" />
     <ClInclude Include="ibody.h" />

@@ -71,6 +71,12 @@ namespace CrashAndSqueeze
             void freeze() { frozen = true; }
             bool is_frozen() const { return frozen; }
 
+            void make_fixed_size(int size)
+            {
+                create_items(size);
+                freeze();
+            }
+
             // allocates enough space for `max_size' items, and forbids further reallocations.
             void forbid_reallocation(int max_size);
 

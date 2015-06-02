@@ -194,7 +194,7 @@ namespace CrashAndSqueeze
             return (A - B).norm();
         }
 
-        inline bool near(const Point &A, const Point &B, Real max_dist = DEFAULT_REAL_PRECISION)
+        inline bool are_near(const Point &A, const Point &B, Real max_dist = DEFAULT_REAL_PRECISION)
         {
             return distance(A, B) < max_dist;
         }
