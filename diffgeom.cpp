@@ -72,8 +72,6 @@ namespace CrashAndSqueeze
             return true;
         }
 
-        // -- Implementations: for some specific spaces --
-
         namespace
         {
             inline Real cotan(Real x)
@@ -100,6 +98,8 @@ namespace CrashAndSqueeze
         }
 
         // -- Implementations: for some specific spaces --
+
+        // TODO: there is VERY much copy-paste...
 
         void Euclidean::Connection::value_at(const Point & /*point*/, ConnectionCoeffs & coeffs) const 
         {
@@ -143,7 +143,7 @@ namespace CrashAndSqueeze
 
         void SphericalCoords::Connection::value_at(const Point & point, ConnectionCoeffs & coeffs) const 
         {
-            Real rho = point[0], theta = point[1]/*, phi = point[2]*/;
+            Real rho = point[RHO], theta = point[THETA]/*, phi = point[PHI]*/;
 
             if ( equal(0, rho) || equal(0, sin(theta)) )
             {
@@ -161,10 +161,9 @@ namespace CrashAndSqueeze
             coeffs.set_at    (PHI,  PHI,  THETA,  -cos(theta)*sin(theta));
         }
 
-        const SphericalCoords::Metric SphericalCoords::metric;
         void SphericalCoords::Metric::value_at(const Point & point, MetricTensor & metric) const 
         {
-            Real rho = point[0], theta = point[1]/*, phi = point[2]*/;
+            Real rho = point[RHO], theta = point[THETA]/*, phi = point[PHI]*/;
             metric.set_all(0);
             metric.set_at(RHO,  RHO,   1);
             metric.set_at(THETA,THETA, sqr(rho));
@@ -182,6 +181,7 @@ namespace CrashAndSqueeze
             return true;
         }
 
+        const SphericalCoords::Metric SphericalCoords::metric;
         const IMetric * SphericalCoords::get_metric() const 
         {
             return &metric;
@@ -189,13 +189,13 @@ namespace CrashAndSqueeze
 
         Point SphericalCoords::point_to_cartesian(const Point & point) const 
         {
-            Real rho = point[0], theta = point[1], phi = point[2];
+            Real rho = point[RHO], theta = point[THETA], phi = point[PHI];
             return Vector(rho*sin(theta)*cos(phi), rho*sin(theta)*sin(phi), rho*cos(theta));
         }
 
         Vector SphericalCoords::vector_to_cartesian(const Vector & vector, const Point & at_point) const 
         {
-            Real rho = at_point[0], theta = at_point[1], phi = at_point[2];
+            Real rho = at_point[RHO], theta = at_point[THETA], phi = at_point[PHI];
 
             // Cartesian coordinates of spherical basis vectors
             Vector e_rho(sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta));
@@ -203,7 +203,61 @@ namespace CrashAndSqueeze
             Vector e_phi(-sin(phi), cos(phi), 0);
 
             // Now make the linear combination (TODO: write this as matrix multiplication?)
-            return e_rho*vector[0] + e_theta*vector[1] + e_phi*vector[2];
+            return e_rho*vector[RHO] + e_theta*vector[THETA] + e_phi*vector[PHI];
+        }
+
+        void UnitSphere2D::Connection::value_at(const Point & point, ConnectionCoeffs & coeffs) const 
+        {
+            Real theta = point[THETA]/*, phi = point[PHI]*/;
+            if ( equal(0, sin(theta)) )
+            {
+                Logger::error("In UnitSphere2D::Connection::value_at: value is not defined at theta = pi*n");
+                return;
+            }
+            // Same values as in SphericalCoords::Connection, but without RHO components
+            coeffs.set_all(0);
+            coeffs.set_at_sym(THETA,PHI,  PHI,    cotan(theta));
+            coeffs.set_at    (PHI,  PHI,  THETA,  -cos(theta)*sin(theta));
+        }
+
+        void UnitSphere2D::Metric::value_at(const Point & point, MetricTensor & metric) const 
+        {
+            Real theta = point[THETA]/*, phi = point[PHI]*/;
+            metric.set_all(0);
+            metric.set_at(THETA,THETA, 1);
+            metric.set_at(PHI,  PHI,   sqr(sin(theta)));
+        }
+
+        
+        const UnitSphere2D::Connection UnitSphere2D::connection;
+        const IConnection * UnitSphere2D::get_connection() const 
+        {
+            return & connection;
+        }
+
+        bool UnitSphere2D::has_metric() const 
+        {
+            return true;
+        }
+
+        const UnitSphere2D::Metric UnitSphere2D::metric;
+        const IMetric * UnitSphere2D::get_metric() const 
+        {
+            return & metric;
+        }
+
+        Point UnitSphere2D::point_to_cartesian(const Point & point) const 
+        {
+            // Reuse the logic of SphericalCoords for rho = 1
+            SphericalCoords spherical;
+            return spherical.point_to_cartesian(Point(1, point[THETA], point[PHI]));
+        }
+
+        CrashAndSqueeze::Math::Vector UnitSphere2D::vector_to_cartesian(const Vector & vector, const Point & at_point) const 
+        {
+            // Reuse the logic of SphericalCoords for rho = 1 (point) and rho = 0 (vector)
+            SphericalCoords spherical;
+            return spherical.vector_to_cartesian(Vector(0, vector[THETA], vector[PHI]), Point(1, at_point[THETA], at_point[PHI]));
         }
 
     }

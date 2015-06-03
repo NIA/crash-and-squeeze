@@ -61,19 +61,22 @@ namespace CrashAndSqueeze
 
             for (int s = 0; s <= steps_num; ++s)
             {
+                // Parameter values for current step
                 Real t = ICurve::T_START + dt*s;
                 Vector new_x = curve->point_at(t);
                 dx = new_x - x;
 
+                // Calculate parallel transport using connection
                 ConnectionCoeffs gijk;
                 conn->value_at(x, /*out*/ gijk);
                 v += gijk.d_parallel_transport(v, dx);
+                x = new_x;
 
+                // If possible, apply results to the nearby node
                 int i = find_near(x, dx.norm());
                 if (NOT_FOUND != i)
                     nodes[i].vector = v;
 
-                x = new_x;
             }
         }
 

@@ -35,7 +35,11 @@ using CrashAndSqueeze::Collections::Array;
 
 // TODO: move this physics out of main somewhere else?
 #include "Core/discrete_vector_field.h"
+using CrashAndSqueeze::Math::Point;
+using CrashAndSqueeze::Math::ISpace;
 using CrashAndSqueeze::Math::SphericalCoords;
+static const Real PI = CrashAndSqueeze::Math::SphericalCoords::PI;
+using CrashAndSqueeze::Math::UnitSphere2D;
 
 using DirectX::XMVECTOR;
 using DirectX::XMStoreFloat4;
@@ -105,7 +109,7 @@ namespace
     const Index GLOBE_EDGES_PER_DIAMETER = 50;
     const Index GLOBE_VERTICES = sphere_vertices_count(GLOBE_EDGES_PER_DIAMETER);
     const Index GLOBE_INDICES  = sphere_indices_count(GLOBE_EDGES_PER_DIAMETER);
-    const Index GLOBE_CURVE_VERTICES = 20;
+    const Index GLOBE_CURVE_VERTICES = 31;
 
     inline void my_message_box(const TCHAR *message, const TCHAR *caption, UINT type, bool force = false)
     {
@@ -863,31 +867,14 @@ namespace
         static const TCHAR * cmdline_option;
 
     protected:
-        // The curve used to transport vector
-        // Uses spherical coordinates!
-        class EquatorCurve : public CrashAndSqueeze::Math::ICurve
+        // An extension to ICurve: a curve which can also be rendered after generating vertices for it
+        class CurveWithVertices : public CrashAndSqueeze::Math::ICurve
         {
-        private:
-            Real r;
-            Real theta;
-            Real phi_start;
-            Real delta_phi;
-
         public:
-            EquatorCurve(Real r, Real theta, Real phi_start, Real phi_end)
-                : r(r), theta(theta), phi_start(phi_start), delta_phi(phi_end - phi_start)
-            {
-            }
-
-            virtual Vector point_at(Real t) const override
-            {
-                return Vector(r, theta, phi_start + t*delta_phi);
-            }
-
             void make_vertices(Index vertices_num, const float4 &color, /*out*/ Vertex *res_vertices, /*out*/ Index *res_indices)
             {
                 if (vertices_num < 2)
-                    throw OutOfRangeError(RT_ERR_ARGS("Invalid number of vertices for EquatorCurve"));
+                    throw OutOfRangeError(RT_ERR_ARGS("Invalid number of vertices for CurveWithVertices"));
 
                 Real dt = (T_END - T_START)/(vertices_num - 1);
                 for (Index i = 0; i < vertices_num; ++i)
@@ -897,15 +884,57 @@ namespace
                     res_indices[i] = i;
                 }
             }
-
         };
+
+        // The curves used to transport vector
+        // They use spherical coordinates, so lines are arcs on a sphere!
+
+        class LineSegment : public CurveWithVertices
+        {
+        private:
+            Point start;
+            Point delta;
+        public:
+            LineSegment() : start(Vector::ZERO), delta(Vector::ZERO) {}
+            LineSegment(Point start, Point end) : start(start), delta(end - start) {}
+
+            virtual Point point_at(Real t) const override
+            {
+                return start + t*delta;
+            }
+        };
+
+        // A "triangle" on the surface of sphere
+        class TriangleCurve : public CurveWithVertices
+        {
+        private:
+            LineSegment segments[3];
+            static const Vector mini_offset; // ~0.001: make first and last point slightly differ
+        public:
+            TriangleCurve(Real r, Real theta_min, Real theta_max, Real phi_min, Real phi_max)
+            {
+                Point left_point(r, theta_max, phi_min);
+                Point top_point(r, theta_min, (phi_min+phi_max)/2);
+                Point right_point(r, theta_max, phi_max);
+                segments[0] = LineSegment(left_point-mini_offset, top_point);   // "/" side
+                segments[1] = LineSegment(top_point, right_point);  // "\" side
+                segments[2] = LineSegment(right_point, left_point+mini_offset); // "_" side
+            }
+
+            virtual Point point_at(Real t) const override
+            {
+                int segment_id = std::min(static_cast<int>(t*3), 2); // = t*3 but no more than 2
+                Real s = t*3 - segment_id; // "inner" parameter `t` for i'th segment
+                return segments[segment_id].point_at(s);
+            }
+        };
+
         virtual void prepare() override
         {
             // A demo with vector transport in spherical coordinates
-            SphericalCoords spherical_coords;
-
             const float globe_radius = 1;
-            sphere(globe_radius, float3(0,0,0), NO_DEFORM_COLOR, GLOBE_EDGES_PER_DIAMETER, high_model_vertices, high_model_indices);
+            const float radius_coeff = 0.99f; // so that the line is visible well above sphere
+            sphere(globe_radius*radius_coeff, float3(0,0,0), NO_DEFORM_COLOR, GLOBE_EDGES_PER_DIAMETER, high_model_vertices, high_model_indices);
 
             Model * globe = new Model(
                 app.get_renderer(),
@@ -919,12 +948,18 @@ namespace
             add_auxiliary_model(globe);
 
             // Define curve
-            EquatorCurve curve(globe_radius, SphericalCoords::PI/2, 0, SphericalCoords::PI/2);
+            
+            /////!!! LineSegment curve(Point(globe_radius, PI/2, 0), Point(globe_radius, PI/4, PI/2));
+            Real triangle_size = PI/3;
+            TriangleCurve curve(globe_radius, 3*PI/4 - triangle_size, 3*PI/4, -triangle_size, triangle_size);
             curve.make_vertices(GLOBE_CURVE_VERTICES, float4(0,0,0,1), low_model_vertices, low_model_indices);
             
             // Make parallel transport and update vertices
-            CrashAndSqueeze::Core::DiscreteVectorField field(low_model_vertices, GLOBE_CURVE_VERTICES, VERTEX_INFO, &spherical_coords);
-            field.transport(Vector(0.2, 0.0, 0.0), &curve);
+            
+            ////!!! ISpace * space = new SphericalCoords;
+            ISpace * space = new UnitSphere2D;
+            CrashAndSqueeze::Core::DiscreteVectorField field(low_model_vertices, GLOBE_CURVE_VERTICES, VERTEX_INFO, space);
+            field.transport(Vector(0, -0.1, 0.2), &curve, 10000);
             field.update_vertices(low_model_vertices, VERTEX_INFO);
 
             // And show both curve and vectors
@@ -942,6 +977,7 @@ namespace
         }
     };
     const TCHAR * DiffGeomDemo::cmdline_option = _T("/diffgeom");
+    const Vector DiffGeomDemo::TriangleCurve::mini_offset(0,0,0.001);
 #pragma warning( pop )
 }
 

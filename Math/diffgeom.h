@@ -173,5 +173,41 @@ namespace CrashAndSqueeze
             virtual Vector vector_to_cartesian(const Vector & vector, const Point & at_point) const override;
 
         };
+
+        // 2D-Surface of 3D unit sphere in as a Riemannian space
+        class UnitSphere2D : public ISpace
+        {
+        public:
+            enum CoordName
+            {
+                // There is no `rho`! first component of Vector is ignored
+                THETA = 1,
+                PHI = 2,
+            };
+
+            // 2D sphere connection coefficients
+            class Connection : public IConnection
+            {
+            public:
+                virtual void value_at(const Point & point, ConnectionCoeffs & coeffs) const override;
+            };
+            static const Connection connection;
+
+            // 2D sphere metric
+            class Metric: public IMetric
+            {
+            public:
+                virtual void value_at(const Point & point, MetricTensor & metric) const override;
+            };
+            static const Metric metric;
+
+            // Implement ISpace:
+
+            virtual const IConnection * get_connection() const override;
+            virtual bool has_metric() const override;
+            virtual const IMetric * get_metric() const override;
+            virtual Point point_to_cartesian(const Point & point) const override;
+            virtual Vector vector_to_cartesian(const Vector & vector, const Point & at_point) const override;
+        };
     }
 }
