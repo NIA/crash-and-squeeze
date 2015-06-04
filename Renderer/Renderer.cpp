@@ -95,7 +95,7 @@ Renderer::Renderer(Window &window, Camera * camera) :
 {
     try
     {
-        XMStoreFloat4x4(&post_transform, rotate_x_matrix(XM_PI/2));
+        XMStoreFloat4x4(&post_transform, rotate_x_matrix(0));
 
         init_device(window);
         init_buffers();

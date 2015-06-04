@@ -965,7 +965,7 @@ namespace
             // And show both curve and vectors
             Model * curve_model = new Model(
                 app.get_renderer(),
-                D3D11_PRIMITIVE_TOPOLOGY_LINELIST,
+                D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,
                 simple_shader,
                 low_model_vertices,
                 GLOBE_CURVE_VERTICES,
@@ -974,6 +974,7 @@ namespace
             curve_model->add_shader(simple_pixel_shader);
             add_auxiliary_model(curve_model);
             add_normals_model_for(curve_model, 1, false);
+            set_camera_position(2.5f, PI/2, 0);
         }
     };
     const TCHAR * DiffGeomDemo::cmdline_option = _T("/diffgeom");

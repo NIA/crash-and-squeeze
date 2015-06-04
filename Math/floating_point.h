@@ -49,6 +49,12 @@ namespace CrashAndSqueeze
             return (a < b) ? a : b;
         }
 
+        template <typename T> /* requires LessThanComparable<T> */
+        inline T maximum(T a, T b)
+        {
+            return (b < a) ? a : b;
+        }
+
         inline Real cube_root(Real value)
         {
             return pow( abs(value), 1.0/3)*sign(value);

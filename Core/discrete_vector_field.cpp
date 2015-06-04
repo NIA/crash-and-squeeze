@@ -9,6 +9,7 @@ namespace CrashAndSqueeze
     using Math::IConnection;
     using Math::ISpace;
     using Math::ConnectionCoeffs;
+    using Math::maximum;
     using Logging::Logger;
     
     namespace Core
@@ -73,10 +74,12 @@ namespace CrashAndSqueeze
                 x = new_x;
 
                 // If possible, apply results to the nearby node
-                int i = find_near(x, dx.norm());
+                // Nearby here means closer than |dx| (or closer than min_dr if |dx|<min_dr)
+                // TODO: this `min_dr` was introduced as a hack in order not to skip the first point. Probably the original problem could be solved in some other way?
+                static const  Real min_dr = 0.0001;
+                int i = find_near(x, maximum(dx.norm(), min_dr));
                 if (NOT_FOUND != i)
                     nodes[i].vector = v;
-
             }
         }
 
@@ -91,7 +94,7 @@ namespace CrashAndSqueeze
             for (int i = 0; i < nodes.size(); ++i)
             {
                 Real cur_dist = distance(pos, nodes[i].pos);
-                if (cur_dist < reqired_dist) // then it is a candidate
+                if (cur_dist <= reqired_dist) // then it is a candidate
                 {
                     if (!found || cur_dist < min_dist)
                     {
