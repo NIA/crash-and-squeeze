@@ -82,11 +82,46 @@ namespace CrashAndSqueeze
         // Returns differential of line (arc) length `ds` when coordinates are changed by an infinitesimal `dv`
         // $ ds^2 = g_{ij} dx^i dx^j $
         // TODO: this function should probably be a method of class MetricTensor, but currently it is just a `typedef Matrix` and it seems not reasonable to make it a separate class
+        // TODO: also need a separate function/method for simply a scalar product using this metric
         Real d_line_length(const MetricTensor & metric, const Vector &dv);
 
         // Interface of metric: the field of metric tensor $g_{ij}$
         // Any actual metric should be made as class implementing this interface
         typedef ICoordsAtPoint<MetricTensor> IMetric;
+
+        // Curvature tensor $R^i_jkm$ at some given point: N^4 numbers
+        class CurvatureTensor
+        {
+        private:
+            // `i` and `j` enumerate items in this array, while `k` and `m` indices are mapped to rows and columns of matrix
+            Matrix coeffs_mxs[VECTOR_SIZE][VECTOR_SIZE];
+
+            bool check_index(int index) const;
+        public:
+            
+            // Return $R^i_jkm$ coordinate: `i` is up index, `j`, `k`, `m` are down indices
+            Real get_at(int i, int j, int k, int m) const;
+
+            // Set $R^i_jkm$ coordinate: `i` is up index, `j`, `k`, `m` are down indices
+            void set_at(int i, int j, int k, int m, Real value);
+
+            void set_all(Real value);
+
+            // Perform lowering of index `i` into `R_out`, given the value of metric tensor at this point `g`
+            void lower_index(const MetricTensor &g, /*out*/ CurvatureTensor &R_out);
+
+            Vector d_parallel_transport(const Vector &v, const Vector &dx1, const Vector &dx2) const;
+        };
+
+        typedef ICoordsAtPoint<CurvatureTensor> ICurvature;
+
+        class NoCurvature : public ICurvature
+        {
+        public:
+            virtual void value_at(const Vector & point, CurvatureTensor & coords) const override;
+
+            static const NoCurvature instance;
+        };
 
         class ISpace
         {
@@ -95,6 +130,8 @@ namespace CrashAndSqueeze
             
             virtual bool has_metric() const = 0;
             virtual const IMetric * get_metric() const = 0;
+
+            virtual const ICurvature * get_curvature() const = 0;
 
             // Transform coordinates of point used in this space to Cartesian coordinates
             virtual Point point_to_cartesian(const Point & point) const = 0;
@@ -112,7 +149,7 @@ namespace CrashAndSqueeze
             class Connection : public IConnection
             {
             public:
-                virtual void value_at(const Point & point, ConnectionCoeffs & coeffs) const override;
+                virtual void value_at(const Point & point, /*out*/ ConnectionCoeffs & coeffs) const override;
             };
             static const Connection connection;
 
@@ -120,7 +157,7 @@ namespace CrashAndSqueeze
             class Metric: public IMetric
             {
             public:
-                virtual void value_at(const Point & point, MetricTensor & metric) const override;
+                virtual void value_at(const Point & point, /*out*/ MetricTensor & metric) const override;
             };
             static const Metric metric;
 
@@ -129,6 +166,7 @@ namespace CrashAndSqueeze
             virtual const IConnection * get_connection() const override;
             virtual bool has_metric() const override;
             virtual const IMetric * get_metric() const override;
+            virtual const ICurvature * get_curvature() const override;
             virtual Point point_to_cartesian(const Point & point) const override;
             virtual Vector vector_to_cartesian(const Vector & vector, const Point & at_point) const override;
 
@@ -152,7 +190,7 @@ namespace CrashAndSqueeze
             class Connection : public IConnection
             {
             public:
-                virtual void value_at(const Point & point, ConnectionCoeffs & coeffs) const override;
+                virtual void value_at(const Point & point, /*out*/ ConnectionCoeffs & coeffs) const override;
             };
             static const Connection connection;
 
@@ -160,7 +198,7 @@ namespace CrashAndSqueeze
             class Metric: public IMetric
             {
             public:
-                virtual void value_at(const Point & point, MetricTensor & metric) const override;
+                virtual void value_at(const Point & point, /*out*/ MetricTensor & metric) const override;
             };
             static const Metric metric;
 
@@ -169,6 +207,7 @@ namespace CrashAndSqueeze
             virtual const IConnection * get_connection() const override;
             virtual bool has_metric() const override;
             virtual const IMetric * get_metric() const override;
+            virtual const ICurvature * get_curvature() const override;
             virtual Point point_to_cartesian(const Point & point) const override;
             virtual Vector vector_to_cartesian(const Vector & vector, const Point & at_point) const override;
 
@@ -189,7 +228,7 @@ namespace CrashAndSqueeze
             class Connection : public IConnection
             {
             public:
-                virtual void value_at(const Point & point, ConnectionCoeffs & coeffs) const override;
+                virtual void value_at(const Point & point, /*out*/ ConnectionCoeffs & coeffs) const override;
             };
             static const Connection connection;
 
@@ -197,15 +236,24 @@ namespace CrashAndSqueeze
             class Metric: public IMetric
             {
             public:
-                virtual void value_at(const Point & point, MetricTensor & metric) const override;
+                virtual void value_at(const Point & point, /*out*/ MetricTensor & metric) const override;
             };
             static const Metric metric;
+
+            // 2D sphere curvature tensor
+            class Curvature: public ICurvature
+            {
+            public:
+                virtual void value_at(const Vector & point, /*out*/ CurvatureTensor & coords) const override;
+            };
+            static const Curvature curvature;
 
             // Implement ISpace:
 
             virtual const IConnection * get_connection() const override;
             virtual bool has_metric() const override;
             virtual const IMetric * get_metric() const override;
+            virtual const ICurvature * get_curvature() const override;
             virtual Point point_to_cartesian(const Point & point) const override;
             virtual Vector vector_to_cartesian(const Vector & vector, const Point & at_point) const override;
         };

@@ -89,7 +89,7 @@ TEST(DiffGeomTest, SphericTransport2)
     // Temporary variables
     ConnectionCoeffs gijk;
     Real dtheta = 0.0001;
-    Vector x(1, M_PI_4, 0); // rho, theta, phi
+    Point x(1, M_PI_4, 0); // rho, theta, phi
     Vector dx(0, dtheta, 0); // drho, dtheta, dphi
     // Integration
     for(Real theta = M_PI_4; theta < M_PI_2; theta += dtheta)
@@ -99,4 +99,81 @@ TEST(DiffGeomTest, SphericTransport2)
         v += gijk.d_parallel_transport(v, dx);
     }
     EXPECT_PRED3(are_near, expected, v, 0.0001);
+}
+
+TEST(DiffGeomTest, U2SphereCurvatureComp)
+{
+    Real theta = M_PI/6;
+    Point x(0, theta, 0);
+
+    UnitSphere2D::Curvature curv;
+    CurvatureTensor R;
+    curv.value_at(x, R);
+
+    Real expected = sin(theta)*sin(theta);
+    EXPECT_DOUBLE_EQ(expected, R.get_at(UnitSphere2D::THETA, UnitSphere2D::PHI, UnitSphere2D::THETA, UnitSphere2D::PHI));
+
+    // print R^i_jkm
+    const int theta_and_phi[] = {UnitSphere2D::THETA, UnitSphere2D::PHI};
+    for (int i: theta_and_phi)
+        for (int j: theta_and_phi)
+            for (int k: theta_and_phi)
+                for (int m: theta_and_phi)
+                    std::cout << "R^" << i << "_" << j << k << m << "=" << R.get_at(i, j, k, m) << std::endl;
+
+    UnitSphere2D::Metric metric;
+    MetricTensor g;
+    metric.value_at(x, g);
+    // Lowering index `i`
+    CurvatureTensor R_lower;
+    R.lower_index(g, R_lower);
+    EXPECT_DOUBLE_EQ(expected,  R_lower.get_at(UnitSphere2D::THETA, UnitSphere2D::PHI, UnitSphere2D::THETA, UnitSphere2D::PHI));
+    EXPECT_DOUBLE_EQ(-expected, R_lower.get_at(UnitSphere2D::PHI, UnitSphere2D::THETA, UnitSphere2D::THETA, UnitSphere2D::PHI));
+
+    // print R_ijkm
+    std::cout << std::endl;
+    for (int i: theta_and_phi) {
+        for (int j: theta_and_phi) {
+            for (int k: theta_and_phi) {
+                for (int m: theta_and_phi) {
+                    std::cout << "R_"<< i << j << k << m << "=" << R_lower.get_at(i, j, k, m) << std::endl;
+                }
+            }
+        }
+    }
+}
+
+// Get change of vector after parallel transport around infinitesimal loop
+TEST(DiffGeomTest, U2SphereTransport)
+{
+    // vector to be transported
+    Vector v(0, 1, 2);
+    // Point where the loop is located
+    Point x(0, M_PI/6, M_PI_2);
+    Real dx = 0.001;
+    // Vectors forming the loop
+    Vector dx1(0, dx, 0);
+    Vector dx2(0, 0, dx);
+
+
+    // First way: using Gijk
+    UnitSphere2D::Connection conn;
+    Vector dv1 = Vector::ZERO;
+    Vector v1 = v;
+    Vector loop[] = {dx1, dx2, -dx1, -dx2};
+    for (auto &dx: loop)
+    {
+        ConnectionCoeffs Gijk;
+        conn.value_at(x, Gijk);
+        dv1 += Gijk.d_parallel_transport(v1, dx);
+        v1 = v + dv1;
+        x += dx;
+    }
+
+    // Second way: using R
+    UnitSphere2D::Curvature curv;
+    CurvatureTensor R;
+    curv.value_at(x, R);
+    Vector dv2 = R.d_parallel_transport(v, dx1, dx2);
+    EXPECT_PRED3(are_near, dv1, dv2, 1e-7);
 }

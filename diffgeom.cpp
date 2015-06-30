@@ -97,6 +97,72 @@ namespace CrashAndSqueeze
             return sqrt(ds_squared);
         }
 
+        bool CurvatureTensor::check_index(int index) const
+        {
+            if(index < 0 || index >= VECTOR_SIZE)
+            {
+                Logger::error("Curvature tensor index out of range", __FILE__, __LINE__);
+                return false;
+            }
+            return true;
+        }
+
+        Real CurvatureTensor::get_at(int i, int j, int k, int m) const
+        {
+#ifndef NDEBUG
+            if (false == check_index(i) || false == check_index(j) || false == check_index(k) || false == check_index(m) )
+                return;
+            else
+#endif //ifndef NDEBUG
+                return coeffs_mxs[i][j].get_at(k, m);
+        }
+
+        void CurvatureTensor::set_at(int i, int j, int k, int m, Real value)
+        {
+#ifndef NDEBUG
+            if (false == check_index(i) || false == check_index(j) || false == check_index(k) || false == check_index(m) )
+                return;
+            else
+#endif //ifndef NDEBUG
+                coeffs_mxs[i][j].set_at(k, m, value);
+        }
+
+        void CurvatureTensor::set_all(Real value)
+        {
+            for (int k = 0; k < VECTOR_SIZE; ++k)
+                for (int m = 0; m < VECTOR_SIZE; ++m)
+                    coeffs_mxs[k][m].set_all(value);
+        }
+
+        void CurvatureTensor::lower_index(const MetricTensor &g, CurvatureTensor &R_out)
+        {
+            R_out.set_all(0);
+            for (int i = 0; i < VECTOR_SIZE; ++i)
+                for (int j = 0; j < VECTOR_SIZE; ++j)
+                    for (int k = 0; k < VECTOR_SIZE; ++k)
+                        for (int m = 0; m < VECTOR_SIZE; ++m)
+                            for (int q = 0; q < VECTOR_SIZE; ++q)
+                                // R_ijkm += R^q_jkm * g_qi
+                                R_out.set_at(i,j,k,m, R_out.get_at(i,j,k,m) + get_at(q,j,k,m)*g.get_at(q, i));
+        }
+
+        CrashAndSqueeze::Math::Vector CurvatureTensor::d_parallel_transport(const Vector &v, const Vector &dx1, const Vector &dx2) const
+        {
+            Vector res = Vector::ZERO;
+            for (int i = 0; i < VECTOR_SIZE; ++i)
+                for (int k = 0; k < VECTOR_SIZE; ++k)
+                    for (int m = 0; m < VECTOR_SIZE; ++m)
+                        for (int j = 0; j < VECTOR_SIZE; ++j)
+                            res[i] += get_at(i, m, k, j) * v[j] * (dx1[m]*dx2[k] - dx1[k]*dx2[m]) / 2;
+            return res;
+        }
+
+        const NoCurvature NoCurvature::instance;
+        void NoCurvature::value_at(const Vector & /*point*/, CurvatureTensor & coords) const 
+        {
+            coords.set_all(0);
+        }
+
         // -- Implementations: for some specific spaces --
 
         // TODO: there is VERY much copy-paste...
@@ -127,6 +193,11 @@ namespace CrashAndSqueeze
         const IMetric * Euclidean::get_metric() const 
         {
             return &metric;
+        }
+
+        const ICurvature * Euclidean::get_curvature() const 
+        {
+            return &NoCurvature::instance;
         }
 
         Point Euclidean::point_to_cartesian(const Point & point) const 
@@ -187,6 +258,11 @@ namespace CrashAndSqueeze
             return &metric;
         }
 
+        const ICurvature * SphericalCoords::get_curvature() const 
+        {
+            return &NoCurvature::instance;
+        }
+
         Point SphericalCoords::point_to_cartesian(const Point & point) const 
         {
             Real rho = point[RHO], theta = point[THETA], phi = point[PHI];
@@ -228,6 +304,20 @@ namespace CrashAndSqueeze
             metric.set_at(PHI,  PHI,   sqr(sin(theta)));
         }
 
+
+        void UnitSphere2D::Curvature::value_at(const Vector & point, CurvatureTensor & coords) const 
+        {
+            coords.set_all(0);
+            Matrix delta = Matrix::IDENTITY; // `delta` = coordinates of Kronecker delta
+            MetricTensor g;
+            metric.value_at(point, g);       // `g` = coordinates of metric tensor at that point
+            // Values as of http://www.physics.usu.edu/Wheeler/GenRel/Lectures/2Sphere.pdf
+            for (int i = 0; i < VECTOR_SIZE; ++i)
+                for (int j = 0; j < VECTOR_SIZE; ++j)
+                    for (int k = 0; k < VECTOR_SIZE; ++k)
+                        for (int m = 0; m < VECTOR_SIZE; ++m)
+                            coords.set_at(i, j, k, m, delta.get_at(i,k)*g.get_at(j,m) - delta.get_at(i, m)*g.get_at(j,k));
+        }
         
         const UnitSphere2D::Connection UnitSphere2D::connection;
         const IConnection * UnitSphere2D::get_connection() const 
@@ -244,6 +334,13 @@ namespace CrashAndSqueeze
         const IMetric * UnitSphere2D::get_metric() const 
         {
             return & metric;
+        }
+
+
+        const UnitSphere2D::Curvature UnitSphere2D::curvature;
+        const ICurvature * UnitSphere2D::get_curvature() const 
+        {
+            return &curvature;
         }
 
         Point UnitSphere2D::point_to_cartesian(const Point & point) const 
