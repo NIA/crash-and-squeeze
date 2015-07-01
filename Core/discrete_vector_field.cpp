@@ -56,7 +56,7 @@ namespace CrashAndSqueeze
 
             const IConnection * conn = space->get_connection();
             Vector v = initial_vector;
-            Vector x = curve->point_at(0);
+            Vector x = curve->point_at(ICurve::T_START);
             Vector dx = Vector::ZERO;
             Real dt = (ICurve::T_END - ICurve::T_START) / steps_num;
 

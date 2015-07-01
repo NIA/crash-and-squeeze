@@ -111,7 +111,7 @@ namespace CrashAndSqueeze
         {
 #ifndef NDEBUG
             if (false == check_index(i) || false == check_index(j) || false == check_index(k) || false == check_index(m) )
-                return;
+                return 0;
             else
 #endif //ifndef NDEBUG
                 return coeffs_mxs[i][j].get_at(k, m);

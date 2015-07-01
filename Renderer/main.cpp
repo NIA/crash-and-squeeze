@@ -870,6 +870,14 @@ namespace
         // An extension to ICurve: a curve which can also be rendered after generating vertices for it
         class CurveWithVertices : public CrashAndSqueeze::Math::ICurve
         {
+        protected:
+            void check_t(Real t) const
+            {
+                if (t < T_START || t > T_END)
+                {
+                    throw OutOfRangeError(RT_ERR_ARGS("Curve parameter t out of range"));
+                }
+            }
         public:
             void make_vertices(Index vertices_num, const float4 &color, /*out*/ Vertex *res_vertices, /*out*/ Index *res_indices)
             {
@@ -900,7 +908,10 @@ namespace
 
             virtual Point point_at(Real t) const override
             {
-                return start + t*delta;
+#ifndef NDEBUG
+                check_t(t);
+#endif //ifndef NDEBUG
+                return start + (t - T_START)/(T_END-T_START)*delta;
             }
         };
 
@@ -923,8 +934,12 @@ namespace
 
             virtual Point point_at(Real t) const override
             {
-                int segment_id = std::min(static_cast<int>(t*3), 2); // = t*3 but no more than 2
-                Real s = t*3 - segment_id; // "inner" parameter `t` for i'th segment
+#ifndef NDEBUG
+                check_t(t);
+#endif //ifndef NDEBUG
+                Real t_0_1 = (t - T_START)/(T_END-T_START); // normalize t to the interval 0..1
+                int segment_id = std::min(static_cast<int>(t_0_1*3), 2); // = t*3 but no more than 2
+                Real s = T_START + (t_0_1*3 - segment_id)*(T_END - T_START); // "inner" parameter `t` for i'th segment
                 return segments[segment_id].point_at(s);
             }
         };
@@ -950,8 +965,8 @@ namespace
             // Define curve
             
             /////!!! LineSegment curve(Point(globe_radius, PI/2, 0), Point(globe_radius, PI/4, PI/2));
-            Real triangle_size = PI/3;
-            TriangleCurve curve(globe_radius, 3*PI/4 - triangle_size, 3*PI/4, -triangle_size, triangle_size);
+            Real triangle_size = PI/3; // height and half-width of triangle
+            TriangleCurve curve(globe_radius, PI/2 - triangle_size/2, PI/2 + triangle_size/2, -triangle_size, triangle_size);
             curve.make_vertices(GLOBE_CURVE_VERTICES, float4(0,0,0,1), low_model_vertices, low_model_indices);
             
             // Make parallel transport and update vertices
@@ -974,7 +989,7 @@ namespace
             curve_model->add_shader(simple_pixel_shader);
             add_auxiliary_model(curve_model);
             add_normals_model_for(curve_model, 1, false);
-            set_camera_position(2.5f, PI/2, 0);
+            set_camera_position(2.5f, DirectX::XM_PI/2, 0);
         }
     };
     const TCHAR * DiffGeomDemo::cmdline_option = _T("/diffgeom");
