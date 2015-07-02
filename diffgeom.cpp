@@ -9,6 +9,11 @@ namespace CrashAndSqueeze
         const Real ICurve::T_START = 0.0;
         const Real ICurve::T_END   = 1.0;
 
+        const Real ISurface::U_START = 0.0;
+        const Real ISurface::U_END   = 1.0;
+        const Real ISurface::V_START = 0.0;
+        const Real ISurface::V_END   = 1.0;
+
         ConnectionCoeffs::ConnectionCoeffs(Real all_components)
         {
             set_all(all_components);
@@ -70,19 +75,6 @@ namespace CrashAndSqueeze
                 return false;
             }
             return true;
-        }
-
-        namespace
-        {
-            inline Real cotan(Real x)
-            {
-                return tan(M_PI_2 - x);
-            }
-            inline Real sqr(Real x)
-            {
-                return x*x;
-            }
-
         }
 
         Real d_line_length(const MetricTensor & metric, const Vector &dv)
@@ -153,7 +145,7 @@ namespace CrashAndSqueeze
                 for (int k = 0; k < VECTOR_SIZE; ++k)
                     for (int m = 0; m < VECTOR_SIZE; ++m)
                         for (int j = 0; j < VECTOR_SIZE; ++j)
-                            res[i] += get_at(i, m, k, j) * v[j] * (dx1[m]*dx2[k] - dx1[k]*dx2[m]) / 2;
+                            res[i] += get_at(i, m, k, j) * v[j] * (dx1[m]*dx2[k] - dx1[k]*dx2[m]);// (?) / 2;
             return res;
         }
 
@@ -210,6 +202,18 @@ namespace CrashAndSqueeze
             throw vector;
         }
 
+        namespace
+        {
+            inline Real cotan(Real x)
+            {
+                return tan(M_PI_2 - x);
+            }
+            inline Real sqr(Real x)
+            {
+                return x*x;
+            }
+
+        }
         const Real SphericalCoords::PI = M_PI;
 
         void SphericalCoords::Connection::value_at(const Point & point, ConnectionCoeffs & coeffs) const 
@@ -308,14 +312,20 @@ namespace CrashAndSqueeze
         void UnitSphere2D::Curvature::value_at(const Vector & point, CurvatureTensor & coords) const 
         {
             coords.set_all(0);
-            Matrix delta = Matrix::IDENTITY; // `delta` = coordinates of Kronecker delta
+            
+            // `delta` = coordinates of Kronecker delta
+            Matrix delta = Matrix::ZERO;
+            delta.set_at(THETA, THETA, 1);
+            delta.set_at(PHI, PHI, 1);
+            
             MetricTensor g;
             metric.value_at(point, g);       // `g` = coordinates of metric tensor at that point
             // Values as of http://www.physics.usu.edu/Wheeler/GenRel/Lectures/2Sphere.pdf
-            for (int i = 0; i < VECTOR_SIZE; ++i)
-                for (int j = 0; j < VECTOR_SIZE; ++j)
-                    for (int k = 0; k < VECTOR_SIZE; ++k)
-                        for (int m = 0; m < VECTOR_SIZE; ++m)
+            const int theta_and_phi[] = {THETA, PHI};
+            for (int i: theta_and_phi)
+                for (int j: theta_and_phi)
+                    for (int k: theta_and_phi)
+                        for (int m: theta_and_phi)
                             coords.set_at(i, j, k, m, delta.get_at(i,k)*g.get_at(j,m) - delta.get_at(i, m)*g.get_at(j,k));
         }
         

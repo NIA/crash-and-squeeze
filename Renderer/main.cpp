@@ -109,7 +109,7 @@ namespace
     const Index GLOBE_EDGES_PER_DIAMETER = 50;
     const Index GLOBE_VERTICES = sphere_vertices_count(GLOBE_EDGES_PER_DIAMETER);
     const Index GLOBE_INDICES  = sphere_indices_count(GLOBE_EDGES_PER_DIAMETER);
-    const Index GLOBE_CURVE_VERTICES = 31;
+    const Index GLOBE_CURVE_VERTICES = 37;
 
     inline void my_message_box(const TCHAR *message, const TCHAR *caption, UINT type, bool force = false)
     {
@@ -878,6 +878,17 @@ namespace
                     throw OutOfRangeError(RT_ERR_ARGS("Curve parameter t out of range"));
                 }
             }
+            // When curve consists of multiple sub-curves, this function can be used
+            // to split T_START..T_END interval into `parts_num` sub-intervals each having
+            // its own parameter `s` in T_START..T_END.
+            // Returns this `s` and sets `part_index` to the index of current sub-interval.
+            Real partition(Real t, int parts_num, /*out*/ int & part_index) const
+            {
+                _ASSERT(parts_num >= 1);
+                Real t_0_1 = (t - T_START)/(T_END-T_START); // normalize t to the interval 0..1
+                part_index = std::min(static_cast<int>(t_0_1*parts_num), parts_num - 1); // = t*parts_num but no more than parts_num-1
+                return T_START + (t_0_1*parts_num - part_index)*(T_END - T_START); // "inner" parameter `t` for i'th part
+            }
         public:
             void make_vertices(Index vertices_num, const float4 &color, /*out*/ Vertex *res_vertices, /*out*/ Index *res_indices)
             {
@@ -920,9 +931,8 @@ namespace
         {
         private:
             LineSegment segments[3];
-            static const Vector mini_offset; // ~0.001: make first and last point slightly differ
         public:
-            TriangleCurve(Real r, Real theta_min, Real theta_max, Real phi_min, Real phi_max)
+            TriangleCurve(Real r, Real theta_min, Real theta_max, Real phi_min, Real phi_max, const Vector &mini_offset = Vector(0,0,0.001))
             {
                 Point left_point(r, theta_max, phi_min);
                 Point top_point(r, theta_min, (phi_min+phi_max)/2);
@@ -937,11 +947,50 @@ namespace
 #ifndef NDEBUG
                 check_t(t);
 #endif //ifndef NDEBUG
-                Real t_0_1 = (t - T_START)/(T_END-T_START); // normalize t to the interval 0..1
-                int segment_id = std::min(static_cast<int>(t_0_1*3), 2); // = t*3 but no more than 2
-                Real s = T_START + (t_0_1*3 - segment_id)*(T_END - T_START); // "inner" parameter `t` for i'th segment
+                int segment_id = 0;
+                Real s = partition(t, 3, /*out*/ segment_id);
                 return segments[segment_id].point_at(s);
             }
+        };
+
+        // A "parallelogram" which is both an ICurve and ISurface
+        class Parallelogram : public CurveWithVertices, public CrashAndSqueeze::Math::ISurface
+        {
+        private:
+            LineSegment segments[4];
+            Point origin;
+            Vector side1;
+            Vector side2;
+        public:
+            // TODO: mini_offset is a kind of hack which depends on values of origin/side1/side2
+            Parallelogram(const Point &origin, const Vector &side1, const Vector &side2, const Vector &mini_offset = Vector(0,0,-0.001))
+                : origin(origin), side1(side1), side2(side2)
+            {
+                segments[0] = LineSegment(origin - mini_offset,   origin + side1);
+                segments[1] = LineSegment(origin + side1,         origin + side1 + side2);
+                segments[2] = LineSegment(origin + side1 + side2, origin + side2);
+                segments[3] = LineSegment(origin + side2,         origin + mini_offset);
+            }
+
+            // Implement ICurve
+            virtual Point point_at(Real t) const override
+            {
+#ifndef NDEBUG
+                check_t(t);
+#endif //ifndef NDEBUG
+                int segment_id = 0;
+                Real s = partition(t, 4, /*out*/ segment_id);
+                return segments[segment_id].point_at(s);
+            }
+
+            // Implement ISurface
+            virtual Point point_at(Real u, Real v) const override
+            {
+                return origin
+                     + side1 * (u - U_START)/(U_END - U_START)
+                     + side2 * (v - V_START)/(V_END - V_START);
+            }
+
         };
 
         virtual void prepare() override
@@ -964,17 +1013,40 @@ namespace
 
             // Define curve
             
-            /////!!! LineSegment curve(Point(globe_radius, PI/2, 0), Point(globe_radius, PI/4, PI/2));
+            /*(1)
+            LineSegment curve(Point(globe_radius, PI/2, 0), Point(globe_radius, PI/4, PI/2));
+            */
+            
+            /*(2)
             Real triangle_size = PI/3; // height and half-width of triangle
             TriangleCurve curve(globe_radius, PI/2 - triangle_size/2, PI/2 + triangle_size/2, -triangle_size, triangle_size);
+            */
+            
+            /*(3)*/
+            Real square_size = PI/8;
+            Parallelogram curve(Point(globe_radius, PI/2 + square_size/2, square_size/2),
+                                Vector(0, -square_size, 0), Vector(0, 0, -square_size));
+            
+
+            /*(4)
+            Real rhomb_size = PI/8;
+            Real sqrt_2 = 1.41421356237309504880;
+            Parallelogram curve(Point(globe_radius, PI/3 + rhomb_size/sqrt_2, rhomb_size/sqrt_2),
+                                Vector(0, -rhomb_size/sqrt_2, -rhomb_size/sqrt_2), Vector(0, rhomb_size/sqrt_2, -rhomb_size/sqrt_2));
+            */
+
             curve.make_vertices(GLOBE_CURVE_VERTICES, float4(0,0,0,1), low_model_vertices, low_model_indices);
+            
+            // Define initial vector
+            Real vec_length = 0.2;
+            Vector vec = Vector(0, -1, 3).normalized()*vec_length;
             
             // Make parallel transport and update vertices
             
             ////!!! ISpace * space = new SphericalCoords;
             ISpace * space = new UnitSphere2D;
             CrashAndSqueeze::Core::DiscreteVectorField field(low_model_vertices, GLOBE_CURVE_VERTICES, VERTEX_INFO, space);
-            field.transport(Vector(0, -0.1, 0.2), &curve, 10000);
+            field.transport_along(vec, &curve, 10000);
             field.update_vertices(low_model_vertices, VERTEX_INFO);
 
             // And show both curve and vectors
@@ -990,10 +1062,26 @@ namespace
             add_auxiliary_model(curve_model);
             add_normals_model_for(curve_model, 1, false);
             set_camera_position(2.5f, DirectX::XM_PI/2, 0);
+
+            // Compare with parallel transport using curvature tensor
+            Vector new_vec = field.transport_around(vec, &curve, 1000, 1000);
+            Vector pos = curve.point_at(CrashAndSqueeze::Math::ICurve::T_START);
+            Vertex vec_vertices[2];
+            vec_vertices[0].pos = math_vector_to_float3( space->point_to_cartesian(pos) + space->vector_to_cartesian(vec, pos) );
+            vec_vertices[1].pos = math_vector_to_float3( space->point_to_cartesian(pos) + space->vector_to_cartesian(new_vec, pos) );
+            vec_vertices[0].color = vec_vertices[1].color = float4(0,1,0, 1);
+            Index vec_indices[2] = {0, 1};
+            Model * vec_model = new Model(
+                app.get_renderer(), D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP, simple_shader,
+                vec_vertices, 2, vec_indices, 2);
+            vec_model->add_shader(simple_pixel_shader);
+            add_auxiliary_model(vec_model);
+
+            Vector dv = new_vec - vec;
+            Real dvl = dv.norm();
         }
     };
     const TCHAR * DiffGeomDemo::cmdline_option = _T("/diffgeom");
-    const Vector DiffGeomDemo::TriangleCurve::mini_offset(0,0,0.001);
 #pragma warning( pop )
 }
 

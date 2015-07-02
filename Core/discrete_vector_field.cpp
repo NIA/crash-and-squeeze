@@ -7,8 +7,11 @@ namespace CrashAndSqueeze
     using Math::Point;
     using Math::ICurve;
     using Math::IConnection;
+    using Math::ISurface;
+    using Math::ICurvature;
     using Math::ISpace;
     using Math::ConnectionCoeffs;
+    using Math::CurvatureTensor;
     using Math::maximum;
     using Logging::Logger;
     
@@ -46,16 +49,16 @@ namespace CrashAndSqueeze
             }
         }
 
-        void DiscreteVectorField::transport(const Vector & initial_vector, const ICurve * curve, int steps_num /*= DEFAULT_STEPS_NUM*/)
+        void DiscreteVectorField::transport_along(const Vector & initial_vector, const ICurve * curve, int steps_num /*= DEFAULT_STEPS_NUM*/)
         {
             if (steps_num < 1)
             {
-                Logger::error("in DiscreteVectorField::transport: steps_num must be 1 or more", __FILE__, __LINE__);
+                Logger::error("in DiscreteVectorField::transport_along: steps_num must be 1 or more", __FILE__, __LINE__);
                 return;
             }
 
             const IConnection * conn = space->get_connection();
-            Vector v = initial_vector;
+            Vector vec = initial_vector;
             Vector x = curve->point_at(ICurve::T_START);
             Vector dx = Vector::ZERO;
             Real dt = (ICurve::T_END - ICurve::T_START) / steps_num;
@@ -70,7 +73,7 @@ namespace CrashAndSqueeze
                 // Calculate parallel transport using connection
                 ConnectionCoeffs gijk;
                 conn->value_at(x, /*out*/ gijk);
-                v += gijk.d_parallel_transport(v, dx);
+                vec += gijk.d_parallel_transport(vec, dx);
                 x = new_x;
 
                 // If possible, apply results to the nearby node
@@ -79,8 +82,38 @@ namespace CrashAndSqueeze
                 static const  Real min_dr = 0.0001;
                 int i = find_near(x, maximum(dx.norm(), min_dr));
                 if (NOT_FOUND != i)
-                    nodes[i].vector = v;
+                    nodes[i].vector = vec;
             }
+        }
+
+        Vector DiscreteVectorField::transport_around(const Vector & initial_vector, const ISurface *surface, int u_steps_num /*= DEFAULT_STEPS_NUM*/, int v_steps_num /*= DEFAULT_STEPS_NUM*/)
+        {
+            if (u_steps_num < 1 || v_steps_num < 1)
+            {
+                Logger::error("in DiscreteVectorField::transport_around: steps_num must be 1 or more", __FILE__, __LINE__);
+                return Vector::ZERO;
+            }
+
+            const ICurvature * curv = space->get_curvature();
+            Vector vec = initial_vector;
+            Real du = (ISurface::U_END - ISurface::U_START) / u_steps_num;
+            Real dv = (ISurface::V_END - ISurface::V_START) / v_steps_num;
+            for (int us = 0; us < u_steps_num; ++us)
+            {
+                for (int vs = 0; vs < v_steps_num; ++vs)
+                {
+                    Real u = ISurface::U_START + du*us;
+                    Real v = ISurface::V_START + du*vs;
+                    Point x = surface->point_at(u, v);
+                    Vector dx1 = surface->point_at(u+du,v) - x;
+                    Vector dx2 = surface->point_at(u,v+dv) - x;
+
+                    CurvatureTensor Rijkm;
+                    curv->value_at(x, Rijkm);
+                    vec += Rijkm.d_parallel_transport(vec, dx1, dx2);
+                }
+            }
+            return vec;
         }
 
         int DiscreteVectorField::find_near(Vector pos, Real reqired_dist) const

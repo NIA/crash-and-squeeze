@@ -32,7 +32,10 @@ namespace CrashAndSqueeze
             static const int DEFAULT_STEPS_NUM = 1000;
 
             // Perform transporting of `initial_vector` along `curve` using connection of `this->space`. Integration is made using `steps_num` steps.
-            void transport(const Math::Vector & initial_vector, const Math::ICurve * curve, int steps_num = DEFAULT_STEPS_NUM);
+            void transport_along(const Math::Vector & initial_vector, const Math::ICurve * curve, int steps_num = DEFAULT_STEPS_NUM);
+
+            // Perform transporting of `initial_vector` along the border of `surface` using curvature tensor of `this->space`. Integration is made using `u_steps_num` steps along u-axis and `v_steps_num` along v-axis
+            Math::Vector transport_around(const Math::Vector & initial_vector, const Math::ISurface *surface, int u_steps_num = DEFAULT_STEPS_NUM, int v_steps_num = DEFAULT_STEPS_NUM);
 
             // TODO: some copy-paste from model.h might be eliminated
 

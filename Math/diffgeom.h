@@ -19,6 +19,19 @@ namespace CrashAndSqueeze
             static const Real T_END;   /* = 1 */
         };
 
+        // An interface of surface: returns points of surface for two parameters `u` and `v`, ranging from U_START to U_END and from T_START to T_END, correspondingly
+        // TODO: currently surface is a unit square in (u,v), other parameterizations should also be possible
+        class ISurface
+        {
+        public:
+            virtual Point point_at(Real u, Real v) const = 0;
+            
+            static const Real U_START; /* = 0 */
+            static const Real U_END;   /* = 1 */
+            static const Real V_START; /* = 0 */
+            static const Real V_END;   /* = 1 */
+        };
+
         // Coefficients of affine connection $\Gamma_{ij}^k$ at some given point: N^3 numbers
         class ConnectionCoeffs
         {
