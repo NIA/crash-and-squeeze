@@ -78,7 +78,7 @@
     <ClCompile Include="Math\quadratic.cpp">
       <Filter>Math</Filter>
     </ClCompile>
-    <ClCompile Include="diffgeom.cpp">
+    <ClCompile Include="Math\diffgeom.cpp">
       <Filter>Math</Filter>
     </ClCompile>
   </ItemGroup>
