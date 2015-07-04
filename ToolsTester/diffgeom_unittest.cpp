@@ -36,7 +36,7 @@ TEST(DiffGeomTest, SphericMetric)
     MetricTensor mt;
     metric.value_at(v, mt);
     // compare length
-    EXPECT_DOUBLE_EQ(dphi, d_line_length(mt, dv));
+    EXPECT_DOUBLE_EQ(dphi, mt.norm(dv));
 }
 
 TEST(DiffGeomTest, SphericMetric2)
@@ -52,7 +52,7 @@ TEST(DiffGeomTest, SphericMetric2)
     MetricTensor mt;
     metric.value_at(v, mt);
     // compare length
-    EXPECT_DOUBLE_EQ(3*dtheta, d_line_length(mt, dv));
+    EXPECT_DOUBLE_EQ(3*dtheta, mt.norm(dv));
 }
 
 TEST(DiffGeomTest, SphericTransport)

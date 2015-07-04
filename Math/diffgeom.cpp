@@ -77,13 +77,18 @@ namespace CrashAndSqueeze
             return true;
         }
 
-        Real d_line_length(const MetricTensor & metric, const Vector &dv)
+        Real MetricTensor::dot_product(const Vector &v, const Vector & u) const
         {
-            // $ ds^2 = g_{ij} dx^i dx^j $
-            Real ds_squared = (metric * dv) * dv;
+            return (*this * v) * u;
+        }
+
+        Real MetricTensor::norm(const Vector &v) const
+        {
+            // $ v^2 = g_{ij} v^i v^j $
+            Real ds_squared = dot_product(v, v);
             if (ds_squared < 0)
             {
-                Logger::error("In MetricTensor::d_line_length: ds^2 < 0 - Pseudo-Riemannian metric is not supported", __FILE__, __LINE__);
+                Logger::error("In MetricTensor::norm: v^2 < 0 - Pseudo-Riemannian metric is not supported", __FILE__, __LINE__);
                 return 0;
             }
             return sqrt(ds_squared);

@@ -49,12 +49,12 @@ namespace CrashAndSqueeze
             }
         }
 
-        void DiscreteVectorField::transport_along(const Vector & initial_vector, const ICurve * curve, int steps_num /*= DEFAULT_STEPS_NUM*/)
+        Vector DiscreteVectorField::transport_along(const Vector & initial_vector, const ICurve * curve, int steps_num /*= DEFAULT_STEPS_NUM*/)
         {
             if (steps_num < 1)
             {
                 Logger::error("in DiscreteVectorField::transport_along: steps_num must be 1 or more", __FILE__, __LINE__);
-                return;
+                return Vector::ZERO;
             }
 
             const IConnection * conn = space->get_connection();
@@ -73,7 +73,11 @@ namespace CrashAndSqueeze
                 // Calculate parallel transport using connection
                 ConnectionCoeffs gijk;
                 conn->value_at(x, /*out*/ gijk);
+#if CAS_UPDATE_DURING_TRANSPORT
                 vec += gijk.d_parallel_transport(vec, dx);
+#else
+                vec += gijk.d_parallel_transport(initial_vector, dx);
+#endif // UPDATE_DURING_TRANSPORT
                 x = new_x;
 
                 // If possible, apply results to the nearby node
@@ -84,6 +88,7 @@ namespace CrashAndSqueeze
                 if (NOT_FOUND != i)
                     nodes[i].vector = vec;
             }
+            return vec;
         }
 
         Vector DiscreteVectorField::transport_around(const Vector & initial_vector, const ISurface *surface, int u_steps_num /*= DEFAULT_STEPS_NUM*/, int v_steps_num /*= DEFAULT_STEPS_NUM*/)
@@ -110,7 +115,11 @@ namespace CrashAndSqueeze
 
                     CurvatureTensor Rijkm;
                     curv->value_at(x, Rijkm);
+#if CAS_UPDATE_DURING_TRANSPORT
                     vec += Rijkm.d_parallel_transport(vec, dx1, dx2);
+#else
+                    vec += Rijkm.d_parallel_transport(initial_vector, dx1, dx2);
+#endif // CAS_UPDATE_DURING_TRANSPORT
                 }
             }
             return vec;

@@ -12,6 +12,7 @@
 #include <codecvt>
 #endif // defined UNICODE || defined _UNICODE
 #include <vector>
+#include <sstream>
 #include "logger.h" // application logger
 
 #include "Logging/logger.h" // crash-and-squeeze logger
@@ -47,6 +48,7 @@ using DirectX::XMStoreFloat4;
 using DirectX::XMVectorLerp;
 
 using std::string;
+using std::ostringstream;
 
 // TODO: store these options in config file instead of source code
 namespace
@@ -109,6 +111,25 @@ namespace
     const Index GLOBE_VERTICES = sphere_vertices_count(GLOBE_EDGES_PER_DIAMETER);
     const Index GLOBE_INDICES  = sphere_indices_count(GLOBE_EDGES_PER_DIAMETER);
     const Index GLOBE_CURVE_VERTICES = 37;
+
+    inline std::ostream &operator<<(std::ostream &stream, const Vector &vector)
+    {
+        return stream << "(" << vector[0] << ", " << vector[1] << ", " << vector[2] << ")";
+    }
+
+    class StringFormat {
+    public:
+        template<class T>
+        StringFormat& operator<< (const T& arg) {
+            stream << arg;
+            return *this;
+        }
+        operator std::string() const {
+            return stream.str();
+        }
+    protected:
+        std::ostringstream stream;
+    };
 
     inline void my_message_box(const TCHAR *message, const TCHAR *caption, UINT type, bool force = false)
     {
@@ -902,6 +923,8 @@ namespace
                     res_indices[i] = i;
                 }
             }
+
+            virtual string get_description() const = 0;
         };
 
         // The curves used to transport vector
@@ -911,7 +934,7 @@ namespace
         {
         private:
             Point start;
-            Point delta;
+            Vector delta;
         public:
             LineSegment() : start(Vector::ZERO), delta(Vector::ZERO) {}
             LineSegment(Point start, Point end) : start(start), delta(end - start) {}
@@ -923,6 +946,14 @@ namespace
 #endif //ifndef NDEBUG
                 return start + (t - T_START)/(T_END-T_START)*delta;
             }
+
+            virtual const Point & get_start() const { return start; }
+            virtual Point get_end() const { return start + delta; }
+
+            virtual string get_description() const override
+            {
+                return StringFormat() << "Segment from " << start << " to " << start+delta;
+            }
         };
 
         // A "triangle" on the surface of sphere
@@ -930,6 +961,7 @@ namespace
         {
         private:
             LineSegment segments[3];
+            string desc;
         public:
             TriangleCurve(Real r, Real theta_min, Real theta_max, Real phi_min, Real phi_max, const Vector &mini_offset = Vector(0,0,0.001))
             {
@@ -950,6 +982,12 @@ namespace
                 Real s = partition(t, 3, /*out*/ segment_id);
                 return segments[segment_id].point_at(s);
             }
+
+            virtual string get_description() const override
+            {
+                return StringFormat() << "Triangle " << segments[0].get_start() << "-" << segments[1].get_start() << "-" << segments[2].get_start();
+            }
+
         };
 
         // A "parallelogram" which is both an ICurve and ISurface
@@ -990,6 +1028,11 @@ namespace
                      + side2 * (v - V_START)/(V_END - V_START);
             }
 
+            virtual string get_description() const override
+            {
+                return StringFormat() << "Parallelogram " << segments[0].get_start() << "-" << segments[1].get_start() << "-" << segments[2].get_start() << "-" << segments[3].get_start();
+            }
+
         };
 
         virtual void prepare() override
@@ -1022,7 +1065,7 @@ namespace
             */
             
             /*(3)*/
-            Real square_size = PI/8;
+            Real square_size = PI/4;
             Parallelogram curve(Point(globe_radius, PI/2 + square_size/2, square_size/2),
                                 Vector(0, -square_size, 0), Vector(0, 0, -square_size));
             
@@ -1045,7 +1088,7 @@ namespace
             ////!!! ISpace * space = new SphericalCoords;
             ISpace * space = new UnitSphere2D;
             CrashAndSqueeze::Core::DiscreteVectorField field(low_model_vertices, GLOBE_CURVE_VERTICES, VERTEX_INFO, space);
-            field.transport_along(vec, &curve, 10000);
+            Vector new_vec_along = field.transport_along(vec, &curve, 10000);
             field.update_vertices(low_model_vertices, VERTEX_INFO);
 
             // And show both curve and vectors
@@ -1063,11 +1106,11 @@ namespace
             set_camera_position(2.5f, DirectX::XM_PI/2, 0);
 
             // Compare with parallel transport using curvature tensor
-            Vector new_vec = field.transport_around(vec, &curve, 1000, 1000);
+            Vector new_vec_around = field.transport_around(vec, &curve, 100, 100);
             Vector pos = curve.point_at(CrashAndSqueeze::Math::ICurve::T_START);
             Vertex vec_vertices[2];
             vec_vertices[0].pos = math_vector_to_float3( space->point_to_cartesian(pos) + space->vector_to_cartesian(vec, pos) );
-            vec_vertices[1].pos = math_vector_to_float3( space->point_to_cartesian(pos) + space->vector_to_cartesian(new_vec, pos) );
+            vec_vertices[1].pos = math_vector_to_float3( space->point_to_cartesian(pos) + space->vector_to_cartesian(new_vec_around, pos) );
             vec_vertices[0].color = vec_vertices[1].color = float4(0,1,0, 1);
             Index vec_indices[2] = {0, 1};
             Model * vec_model = new Model(
@@ -1076,8 +1119,12 @@ namespace
             vec_model->add_shader(simple_pixel_shader);
             add_auxiliary_model(vec_model);
 
-            Vector dv = new_vec - vec;
-            Real dvl = dv.norm();
+            string msg = StringFormat() << "Result for transporting " << vec << (CAS_UPDATE_DURING_TRANSPORT?" WITH ":" WITHOUT ") << "v+=dv: " << curve.get_description() << ":";
+            app.get_logger().log("        [DiffGeom]", msg.c_str());
+            msg = StringFormat() << "Along (using Gijk):   " << new_vec_along << ", change = " << new_vec_along - vec << "dl = " << new_vec_along.norm() - vec.norm() << "(" << (new_vec_along.norm() - vec.norm())/vec.norm()*100 << "%)";
+            app.get_logger().log("        [DiffGeom]", msg.c_str());
+            msg = StringFormat() << "Around (using Rijkm): " << new_vec_around << ", change = " << new_vec_around - vec << "dl = "<< new_vec_around.norm() - vec.norm() << "(" << (new_vec_around.norm() - vec.norm())/vec.norm()*100 << "%)" << "; difference from above " << new_vec_around - new_vec_along;
+            app.get_logger().log("        [DiffGeom]", msg.c_str());
         }
     };
     const TCHAR * DiffGeomDemo::cmdline_option = _T("/diffgeom");

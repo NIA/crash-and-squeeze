@@ -90,13 +90,25 @@ namespace CrashAndSqueeze
         typedef ICoordsAtPoint<ConnectionCoeffs> IConnection;
 
         // Metric tensor at given point: N^2 coordinates. (Can be implemented just as matrix)
-        typedef Matrix MetricTensor;
+        class MetricTensor : public Matrix
+        {
+        public:
+            // Returns scalar product with respect to metric: $ g_{ij} v^i u^j $
+            Real dot_product(const Vector &v, const Vector & u) const;
 
-        // Returns differential of line (arc) length `ds` when coordinates are changed by an infinitesimal `dv`
-        // $ ds^2 = g_{ij} dx^i dx^j $
-        // TODO: this function should probably be a method of class MetricTensor, but currently it is just a `typedef Matrix` and it seems not reasonable to make it a separate class
-        // TODO: also need a separate function/method for simply a scalar product using this metric
-        Real d_line_length(const MetricTensor & metric, const Vector &dv);
+            // Returns differential of line (arc) length `ds` when coordinates are changed by an infinitesimal `dv`
+            // $ ds^2 = g_{ij} dx^i dx^j $
+            // TODO: this function should probably be a method of class MetricTensor, but currently it is just a `typedef Matrix` and it seems not reasonable to make it a separate class
+            Real norm(const Vector &dv) const;
+
+            // Allow assignment of usual matrix
+            MetricTensor & operator=(const Matrix &m)
+            {
+                Matrix::operator=(m);
+                return *this;
+            }
+        };
+
 
         // Interface of metric: the field of metric tensor $g_{ij}$
         // Any actual metric should be made as class implementing this interface
