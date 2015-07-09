@@ -150,7 +150,7 @@ namespace CrashAndSqueeze
                 for (int k = 0; k < VECTOR_SIZE; ++k)
                     for (int m = 0; m < VECTOR_SIZE; ++m)
                         for (int j = 0; j < VECTOR_SIZE; ++j)
-                            res[i] += get_at(i, m, k, j) * v[j] * (dx1[m]*dx2[k] - dx1[k]*dx2[m]);// (?) / 2;
+                            res[i] += get_at(i, j, k, m) * v[j] * (dx1[m]*dx2[k] - dx1[k]*dx2[m]) / 2;
             return res;
         }
 
@@ -199,12 +199,12 @@ namespace CrashAndSqueeze
 
         Point Euclidean::point_to_cartesian(const Point & point) const 
         {
-            throw point;
+            return point;
         }
 
         Vector Euclidean::vector_to_cartesian(const Vector & vector, const Point & /*point*/) const 
         {
-            throw vector;
+            return vector;
         }
 
         namespace
@@ -280,7 +280,7 @@ namespace CrashAndSqueeze
 
         Vector SphericalCoords::vector_to_cartesian(const Vector & vector, const Point & at_point) const 
         {
-            Real rho = at_point[RHO], theta = at_point[THETA], phi = at_point[PHI];
+            Real /*rho = at_point[RHO],*/ theta = at_point[THETA], phi = at_point[PHI];
 
             // Cartesian coordinates of spherical basis vectors
             Vector e_rho(sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta));

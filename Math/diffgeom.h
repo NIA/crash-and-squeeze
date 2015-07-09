@@ -76,7 +76,7 @@ namespace CrashAndSqueeze
             Vector covariant_addition(const Vector &v, int k) const;
         };
 
-        // A template interface that is basic for IConnectionObject and IMetric
+        // A template interface that is basic for IConnectionObject, IMetric and ICurvature, as well as IVectorField
         template <class T>
         class ICoordsAtPoint
         {
@@ -135,6 +135,8 @@ namespace CrashAndSqueeze
             // Perform lowering of index `i` into `R_out`, given the value of metric tensor at this point `g`
             void lower_index(const MetricTensor &g, /*out*/ CurvatureTensor &R_out);
 
+            // Returns differential of vector `v` coordinates after moving around the loop based
+            // on vectors `dx1` and `dx2`: $d v^k = R^i_jkm v^j dx1^m /\ dx2^k $
             Vector d_parallel_transport(const Vector &v, const Vector &dx1, const Vector &dx2) const;
         };
 
