@@ -130,6 +130,13 @@ namespace CrashAndSqueeze
             // Set $R^i_jkm$ coordinate: `i` is up index, `j`, `k`, `m` are down indices
             void set_at(int i, int j, int k, int m, Real value);
 
+            // Set both $R^i_jkm$ and $-R^i_jmk$ because this tensor is antisymmetric
+            void set_at_asym(int i, int j, int k, int m, Real value)
+            {
+                set_at(i, j, k, m,  value);
+                set_at(i, j, m, k, -value);
+            }
+
             void set_all(Real value);
 
             // Perform lowering of index `i` into `R_out`, given the value of metric tensor at this point `g`
@@ -148,6 +155,16 @@ namespace CrashAndSqueeze
             virtual void value_at(const Vector & point, CurvatureTensor & coords) const override;
 
             static const NoCurvature instance;
+        };
+
+        typedef ICoordsAtPoint<Vector> IVectorField;
+        class UniformVectorField : public IVectorField
+        {
+        private:
+            Vector same_vector;
+        public:
+            UniformVectorField(const Vector &same_vector) : same_vector(same_vector) {}
+            virtual void value_at(const Vector &, /*out*/ Vector & value) const override { value = same_vector; }
         };
 
         class ISpace

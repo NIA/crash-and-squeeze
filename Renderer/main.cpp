@@ -41,6 +41,7 @@ using CrashAndSqueeze::Math::ISpace;
 using CrashAndSqueeze::Math::SphericalCoords;
 static const Real PI = CrashAndSqueeze::Math::SphericalCoords::PI;
 using CrashAndSqueeze::Math::UnitSphere2D;
+using CrashAndSqueeze::Core::DiscreteVectorField;
 
 using DirectX::XMVECTOR;
 using DirectX::XMStoreFloat4;
@@ -1040,7 +1041,7 @@ namespace
             // A demo with vector transport in spherical coordinates
             const float globe_radius = 1;
             const float radius_coeff = 0.99f; // so that the line is visible well above sphere
-            sphere(globe_radius*radius_coeff, float3(0,0,0), NO_DEFORM_COLOR, GLOBE_EDGES_PER_DIAMETER, high_model_vertices, high_model_indices);
+            sphere(globe_radius*radius_coeff, float3(0,0,0), float4(0.1f,0.1f,0.1f,1), GLOBE_EDGES_PER_DIAMETER, high_model_vertices, high_model_indices);
 
             Model * globe = new Model(
                 app.get_renderer(),
@@ -1066,7 +1067,7 @@ namespace
             
             /*(3)*/
             Real square_size = PI/4;
-            Parallelogram curve(Point(globe_radius, PI/2 + square_size/2, square_size/2),
+            Parallelogram curve(Point(globe_radius, PI/2.5 + square_size/2, square_size/2 /*!!!*/ + PI),
                                 Vector(0, -square_size, 0), Vector(0, 0, -square_size));
             
 
@@ -1080,14 +1081,14 @@ namespace
             curve.make_vertices(GLOBE_CURVE_VERTICES, float4(0,0,0,1), low_model_vertices, low_model_indices);
             
             // Define initial vector
-            Real vec_length = 0.2;
-            Vector vec = Vector(0, -1, 3).normalized()*vec_length;
+            Real vec_length = 0.8;//0.2;
+            Vector vec = Vector(0, 1, 2).normalized()*vec_length;
             
             // Make parallel transport and update vertices
             
             ////!!! ISpace * space = new SphericalCoords;
             ISpace * space = new UnitSphere2D;
-            CrashAndSqueeze::Core::DiscreteVectorField field(low_model_vertices, GLOBE_CURVE_VERTICES, VERTEX_INFO, space);
+            DiscreteVectorField field(low_model_vertices, GLOBE_CURVE_VERTICES, VERTEX_INFO, space);
             Vector new_vec_along = field.transport_along(vec, &curve, 10000);
             field.update_vertices(low_model_vertices, VERTEX_INFO);
 
@@ -1106,6 +1107,7 @@ namespace
             set_camera_position(2.5f, DirectX::XM_PI/2, 0);
 
             // Compare with parallel transport using curvature tensor
+
             Vector new_vec_around = field.transport_around(vec, &curve, 100, 100);
             Vector pos = curve.point_at(CrashAndSqueeze::Math::ICurve::T_START);
             Vertex vec_vertices[2];
@@ -1125,6 +1127,50 @@ namespace
             app.get_logger().log("        [DiffGeom]", msg.c_str());
             msg = StringFormat() << "Around (using Rijkm): " << new_vec_around << ", change = " << new_vec_around - vec << "dl = "<< new_vec_around.norm() - vec.norm() << "(" << (new_vec_around.norm() - vec.norm())/vec.norm()*100 << "%)" << "; difference from above " << new_vec_around - new_vec_along;
             app.get_logger().log("        [DiffGeom]", msg.c_str());
+
+/* the same, but find vector length using metric tensor of 2-sphere (which variant is right?)
+            msg = StringFormat() << "Along (using Gijk):   " << new_vec_along << ", change = " << new_vec_along - vec << "dl(g) = " << g.norm(new_vec_along) - g.norm(vec) << "(" << (g.norm(new_vec_along) - g.norm(vec))/g.norm(vec)*100 << "%)";
+            app.get_logger().log("        [DiffGeom]", msg.c_str());
+            msg = StringFormat() << "Around (using Rijkm): " << new_vec_around << ", change = " << new_vec_around - vec << "dl(g) = "<< g.norm(new_vec_around) - g.norm(vec) << "(" << (g.norm(new_vec_around) - g.norm(vec))/g.norm(vec)*100 << "%)" << "; difference from above " << new_vec_around - new_vec_along;
+*/
+            /* == compare norm step-by-step
+            const CrashAndSqueeze::Math::IMetric * metric = space->get_metric();
+            for(int i = 0; i < field.get_nodes_count(); ++i)
+            {
+                const Vector & v = field.get_vector(i);
+                CrashAndSqueeze::Math::MetricTensor g;
+                metric->value_at(field.get_pos(i), g);
+                msg = StringFormat() << v << " |v|=" << v.norm() << " / |v|g=" << g.norm(v);
+                app.get_logger().log("        [DiffGeom]", msg.c_str());
+            }*/
+
+            // Coloring subshape demo
+            CrashAndSqueeze::Core::VertexInfo color_vector_vinfo(
+                sizeof(Vertex), 0, 24, false, 40, 48
+                );
+            // a piece of sphere surface
+            const Index SUBSHAPE_VERTICES_COUNT = PLANE_VERTICES_COUNT;
+            const Index SUBSHAPE_INDICES_COUNT  = PLANE_INDICES_COUNT;
+            Vertex * subshape_vertices = new Vertex[SUBSHAPE_VERTICES_COUNT];
+            Index * subshape_indices = new Index[SUBSHAPE_INDICES_COUNT];
+            plane(float3(0, PI/4, 0), float3(0, 0, PI/4), float3(globe_radius, PI/2, 0), subshape_vertices, subshape_indices, float4(0.5f,0.5f,0.5f,1));
+
+            DiscreteVectorField subshape_field(subshape_vertices, SUBSHAPE_VERTICES_COUNT, VERTEX_INFO, space);
+            Parallelogram little_loop(Point(0,0,0), Vector(0, -PI/32, 0), Vector(0, 0, -PI/32));
+            CrashAndSqueeze::Math::UniformVectorField same_vector(vec);
+            subshape_field.transport_around_each(&same_vector, &little_loop, 10, 10);
+            // store vector as color
+            subshape_field.update_vertices(subshape_vertices, color_vector_vinfo, DiscreteVectorField::POS_TO_CARTESIAN);
+            // store vector as normal
+            subshape_field.update_vertices(subshape_vertices, VERTEX_INFO);
+            Model * subshape_model = new Model(
+                app.get_renderer(), D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, simple_shader,
+                subshape_vertices, SUBSHAPE_VERTICES_COUNT, subshape_indices, SUBSHAPE_INDICES_COUNT);
+            subshape_model->add_shader(simple_pixel_shader);
+            add_auxiliary_model(subshape_model);
+            add_normals_model_for(subshape_model, 0.2, false);
+            delete_array(subshape_vertices);
+            delete_array(subshape_indices);
         }
     };
     const TCHAR * DiffGeomDemo::cmdline_option = _T("/diffgeom");

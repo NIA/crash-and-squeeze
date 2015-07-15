@@ -93,6 +93,12 @@ namespace CrashAndSqueeze
 
         Vector DiscreteVectorField::transport_around(const Vector & initial_vector, const ISurface *surface, int u_steps_num /*= DEFAULT_STEPS_NUM*/, int v_steps_num /*= DEFAULT_STEPS_NUM*/)
         {
+            Math::UniformVectorField uniform(initial_vector);
+            return transport_around(&uniform, surface, u_steps_num, v_steps_num);
+        }
+
+        Math::Vector DiscreteVectorField::transport_around(const Math::IVectorField * vector_field, const Math::ISurface *surface, int u_steps_num /*= DEFAULT_STEPS_NUM*/, int v_steps_num /*= DEFAULT_STEPS_NUM*/)
+        {
             if (u_steps_num < 1 || v_steps_num < 1)
             {
                 Logger::error("in DiscreteVectorField::transport_around: steps_num must be 1 or more", __FILE__, __LINE__);
@@ -100,7 +106,11 @@ namespace CrashAndSqueeze
             }
 
             const ICurvature * curv = space->get_curvature();
-            Vector vec = initial_vector;
+            
+            // initial value of `res` = vector of `vector_field` at start point of `surface`
+            Vector res;
+            vector_field->value_at(surface->point_at(ISurface::U_START, ISurface::V_START), res);
+            
             Real du = (ISurface::U_END - ISurface::U_START) / u_steps_num;
             Real dv = (ISurface::V_END - ISurface::V_START) / v_steps_num;
             for (int us = 0; us < u_steps_num; ++us)
@@ -116,13 +126,49 @@ namespace CrashAndSqueeze
                     CurvatureTensor Rijkm;
                     curv->value_at(x, Rijkm);
 #if CAS_UPDATE_DURING_TRANSPORT
-                    vec += Rijkm.d_parallel_transport(vec, dx1, dx2);
+                    res += Rijkm.d_parallel_transport(res, dx1, dx2);
 #else
-                    vec += Rijkm.d_parallel_transport(initial_vector, dx1, dx2);
+                    Vector vec;
+                    vector_field->value_at(x, vec);
+                    res += Rijkm.d_parallel_transport(vec, dx1, dx2);
 #endif // CAS_UPDATE_DURING_TRANSPORT
                 }
             }
-            return vec;
+            return res;
+
+        }
+
+        namespace
+        {
+            // Makes a surface moved by vector `shift` from `surface;
+            class SurfaceShiftDecorator : public ISurface
+            {
+            private:
+                const ISurface * surface;
+                Vector shift;
+            public:
+                SurfaceShiftDecorator(const ISurface * surface, const Vector &shift)
+                    : surface(surface), shift(shift) {}
+
+                virtual Point point_at(Real u, Real v) const override
+                {
+                    return surface->point_at(u, v) + shift;
+                }
+
+            };
+        }
+
+        void DiscreteVectorField::transport_around_each(const Math::IVectorField * vector_field, const Math::ISurface *surface, int u_steps_num /*= DEFAULT_STEPS_NUM*/, int v_steps_num /*= DEFAULT_STEPS_NUM*/)
+        {
+            Point start_point = surface->point_at(ISurface::U_START, ISurface::V_START);
+            for (int i = 0; i < nodes.size(); ++i)
+            {
+                Point pos = nodes[i].pos;
+                SurfaceShiftDecorator shifted_surface(surface, pos - start_point);
+                Vector initial_vector; /*!!!*/
+                vector_field->value_at(start_point, initial_vector);
+                nodes[i].vector = transport_around(vector_field, &shifted_surface, u_steps_num, v_steps_num) /*!!!*/ - initial_vector;
+            }
         }
 
         int DiscreteVectorField::find_near(Vector pos, Real reqired_dist) const
@@ -155,7 +201,7 @@ namespace CrashAndSqueeze
 
         // TODO: some copy-paste from model.cpp might be eliminated
 
-        void DiscreteVectorField::update_vertices(/*out*/ void *out_vertices, const VertexInfo &vertex_info, int start_vertex /*= 0*/, int vertices_num /*= ALL_VERTICES*/, bool to_cartesian /*= true*/) const
+        void DiscreteVectorField::update_vertices(/*out*/ void *out_vertices, const VertexInfo &vertex_info, unsigned flags /*= POS_TO_CARTESIAN | VECTOR_TO_CARTESIAN*/, int start_vertex /*= 0*/, int vertices_num /*= ALL_VERTICES*/) const
         {
             if(vertices_num == ALL_VERTICES)
             {
@@ -180,14 +226,14 @@ namespace CrashAndSqueeze
                 // Update position
                 VertexFloat * out_pos = add_to_pointer(out_vertex, vertex_info.get_point_offset(0));
                 Point pos = nodes[i].pos;
-                if (to_cartesian)
+                if (flags & POS_TO_CARTESIAN)
                     pos = space->point_to_cartesian(pos);
                 VertexInfo::vector_to_vertex_floats(pos, out_pos);
                 
                 // Update vector
                 VertexFloat * out_vector = add_to_pointer(out_vertex, vertex_info.get_vector_offset(0));
                 Vector vector = nodes[i].vector;
-                if (to_cartesian)
+                if (flags & VECTOR_TO_CARTESIAN)
                     vector = space->vector_to_cartesian(vector, nodes[i].pos);
                 VertexInfo::vector_to_vertex_floats(vector, out_vector);
 

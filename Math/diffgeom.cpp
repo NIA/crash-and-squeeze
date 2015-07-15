@@ -313,11 +313,21 @@ namespace CrashAndSqueeze
             metric.set_at(PHI,  PHI,   sqr(sin(theta)));
         }
 
+        namespace
+        {
+            inline Real delta_function(Real x)
+            {
+                static const Real W = 1.0/10; // width of delta function
+                return 1/(W*sqrt(M_PI))*exp(-sqr(x/W));
+            }
+
+        }
 
         void UnitSphere2D::Curvature::value_at(const Vector & point, CurvatureTensor & coords) const 
         {
+            Real theta = point[THETA]/*, phi = point[PHI]*/;
             coords.set_all(0);
-            
+            /*
             // `delta` = coordinates of Kronecker delta
             Matrix delta = Matrix::ZERO;
             delta.set_at(THETA, THETA, 1);
@@ -331,7 +341,15 @@ namespace CrashAndSqueeze
                 for (int j: theta_and_phi)
                     for (int k: theta_and_phi)
                         for (int m: theta_and_phi)
-                            coords.set_at(i, j, k, m, delta.get_at(i,k)*g.get_at(j,m) - delta.get_at(i, m)*g.get_at(j,k));
+                            coords.set_at(i, j, k, m, (delta.get_at(i,k)*g.get_at(j,m) - delta.get_at(i, m)*g.get_at(j,k)));
+            */
+            coords.set_at_asym(THETA, PHI, THETA, PHI, sqr(sin(theta)));
+            coords.set_at_asym(PHI, THETA, PHI, THETA, 1);
+
+            /* EXPERIMENT: not sphere, kind of dislocation - delta function instead of sin
+                coords.set_at_asym(THETA, PHI, THETA, PHI, 1);
+                coords.set_at_asym(PHI, THETA, PHI, THETA, delta_function(phi)*delta_function(theta - M_PI_2));
+            */
         }
         
         const UnitSphere2D::Connection UnitSphere2D::connection;
