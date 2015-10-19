@@ -5,28 +5,21 @@
 #include <d3d11.h>
 
 // Define a handy alias `tstring`
-namespace std
-{
-#if defined UNICODE || defined _UNICODE
-    typedef wstring tstring;
-#else // defined UNICODE || defined _UNICODE
-    typedef string  tstring;
-#endif // defined UNICODE || defined _UNICODE
-}
+typedef std::basic_string<TCHAR> tstring;
 
 class RuntimeError : public std::exception
 {
 private:
     // Message is a short line that is shown in a message box
-    std::tstring message;
+    tstring message;
     // Log entry is a detailed error description that is written into log
     std::string log_entry;
 public:
-    RuntimeError(const std::tstring &message, const std::string &log_entry = "application crash") :  message(message), log_entry(log_entry) {}
+    RuntimeError(const tstring &message, const std::string &log_entry = "application crash") :  message(message), log_entry(log_entry) {}
     void set_log_entry(const std::string &str) { log_entry = str; }
     void set_log_entry(const char * str) { log_entry = str; }
     
-    const std::tstring & get_message() const { return message; }
+    const tstring & get_message() const { return message; }
     virtual const std::string & get_log_entry() const { return log_entry; }
     virtual const char *what() const override { return get_log_entry().c_str(); }
 
@@ -158,7 +151,7 @@ class MeshError : public RuntimeError
 {
 public:
     MeshError(const TCHAR * filename, const std::string & log_entry_start = "Failed to load mesh from file", unsigned line_no = 0)
-        : RuntimeError( std::tstring(_T("Error while loading mesh from file")) + filename )
+        : RuntimeError( tstring(_T("Error while loading mesh from file")) + filename )
     {
         if (line_no != 0)
             set_log_entry(log_entry_start + " (line " + std::to_string(line_no) + ")");

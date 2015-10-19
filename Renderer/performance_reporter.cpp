@@ -13,7 +13,7 @@ namespace
 }
 
 PerformanceReporter::PerformanceReporter(Logger &logger, const char *description)
-    : measurements_count(0), logger(logger)
+    : measurements_count(0), logger(logger), last_measurement(0)
 {
     if(NULL == description)
     {
@@ -65,6 +65,15 @@ void PerformanceReporter::add_measurement(double time)
 
         ++measurements_count;
     }
+    last_measurement = time;
+}
+
+double PerformanceReporter::get_last_fps() const
+{
+    if (last_measurement == 0)
+        return 0;
+    else
+        return 1/last_measurement;
 }
 
 void PerformanceReporter::report_results()

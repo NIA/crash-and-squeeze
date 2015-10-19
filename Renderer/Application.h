@@ -11,7 +11,7 @@
 #include "IInputHandler.h"
 #include "settings.h"
 
-class Application : public IInputHandler, public ISettingsHandler
+class Application : public IInputHandler, public ISettingsHandler, public ControlsWindow::ITextInfo
 {
 private:
     Logger &logger;
@@ -23,8 +23,6 @@ private:
     SimulationSettings sim_settings;
     GlobalSettings global_settings;
     RenderSettings render_settigns;
-
-    bool show_help;
 
     Window window;
     ControlsWindow controls_window;
@@ -48,8 +46,7 @@ private:
 
     WinFactory prim_factory;
 
-    static const int MAX_TEXT_SIZE = 2048;
-    TCHAR text_buffer[MAX_TEXT_SIZE];
+    PerformanceReporter total_performance_reporter;
 
     static const int THREADS_COUNT = 4;
     WorkerThread threads[THREADS_COUNT];
@@ -58,7 +55,7 @@ private:
 
     void rotate_models(float phi);
 
-    const TCHAR * get_text_info();
+    virtual tstring get_text_info() const override;
 
     // Deinitialization steps:
     void stop_threads();

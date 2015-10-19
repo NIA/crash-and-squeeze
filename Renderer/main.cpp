@@ -39,7 +39,6 @@ using DirectX::XMStoreFloat4;
 using DirectX::XMVectorLerp;
 
 using std::string;
-using std::tstring;
 
 // TODO: store these options in config file instead of source code
 namespace

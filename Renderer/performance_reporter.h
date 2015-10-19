@@ -9,6 +9,7 @@ private:
     char *description;
 
     int measurements_count;
+    double last_measurement;
     
     double max_time;
     double min_time;
@@ -21,6 +22,9 @@ public:
     PerformanceReporter(Logger &logger, const char *description);
     
     void add_measurement(double time);
+    
+    double get_last_measurement() const { return last_measurement; }
+    double get_last_fps() const;
 
     void report_results();
     

@@ -164,6 +164,7 @@ class ControlsWindowImpl : public ATL::CDialogImpl<ControlsWindowImpl>,
 private:
     ATL::CWindow main_window;
     ISettingsHandler * settings_handler;
+    ControlsWindow::ITextInfo * text_info_handler;
 
     // DDX variables:
     SimulationSettings sim_settings;
@@ -171,19 +172,26 @@ private:
     RenderSettings  render_settings;
     WTL::CString info;
 public:
-    enum { IDD = IDD_CONTROLS };
+    enum
+    {
+        IDD = IDD_CONTROLS,
+
+        // Timer settings
+        ID_TIMER_TEXT = 42,
+        TIMER_TEXT_DELAY = 1000,
+    };
 
     ControlsWindowImpl();
 
-    void create(Window & main_window, ISettingsHandler * settings_handler);
+    void create(Window & main_window, ISettingsHandler * settings_handler, ControlsWindow::ITextInfo * text_info);
     void show();
-    void set_settings_handler(ISettingsHandler * handler);
     BEGIN_UPDATE_UI_MAP(ControlsWindowImpl)
         // To be filled in future
     END_UPDATE_UI_MAP()
 
     BEGIN_MSG_MAP(ControlsWindowImpl)
         MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
+        MESSAGE_HANDLER(WM_TIMER, OnTimer)
         MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
         COMMAND_ID_HANDLER(ID_HELP_ABOUT, OnHelpAbout)
         COMMAND_ID_HANDLER(IDOK,          OnApply)
@@ -233,8 +241,14 @@ public:
         DLGRESIZE_CONTROL(IDC_DEFAULTS, DLSZ_MOVE_Y)
     END_DLGRESIZE_MAP()
 
+    // -- message handlers: --
+
     LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
     LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+    LRESULT OnTimer(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+
+    // -- command handlers
+
     LRESULT OnHelpAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
     LRESULT OnApply(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
     LRESULT OnCancel(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -250,9 +264,9 @@ ControlsWindow::ControlsWindow()
     impl = new ControlsWindowImpl;
 }
 
-void ControlsWindow::create(Window & main_window, ISettingsHandler * settings_handler)
+void ControlsWindow::create(Window & main_window, ISettingsHandler * settings_handler, ControlsWindow::ITextInfo * text_info)
 {
-    impl->create(main_window, settings_handler);
+    impl->create(main_window, settings_handler, text_info);
 }
 
 void ControlsWindow::show()
@@ -275,34 +289,7 @@ ControlsWindowImpl::ControlsWindowImpl()
     global_settings.set_defaults();
     render_settings.set_defaults();
 
-    // TODO: get actual info from Application
-    info = 
-        _T("Crash-And-Squeeze version 0.9\r\n")
-        _T("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n")
-        _T("Simulation: ON\r\n")
-        _T("Show: Graphical vertices\r\n\r\n")
-        _T("Performance: 119 FPS (8.39 ms/frame)\r\n")
-        _T("Model:\r\n")
-        _T("~~~~~~\r\n")
-        _T("19802 low-vertices\r\n")
-        _T("19802 high-vertices\r\n")
-        _T("24=2x3x4 clusters\r\n\r\n")
-        _T("Keyboard controls:\r\n")
-        _T("~~~~~~~~~~~~~~~~~~\r\n")
-        _T("Enter: hit the model,\r\n")
-        _T("I/J/K/L: move hit area (yellow sphere),\r\n")
-        _T("Arrows: rotate camera,\r\n")
-        _T("+/-, PgUp/PgDn: zoom in/out,\r\n")
-        _T("F2: show settings window,\r\n")
-        _T("Esc: exit.\r\n\r\n")
-        _T("Advanced:\r\n")
-        _T("~~~~~~~~~\r\n")
-        _T("Tab: switch between current, initial\r\n")
-        _T("        and equilibrium state,\r\n")
-        _T("Space: pause/continue emulation,\r\n")
-        _T("S: emulate one step (when paused),\r\n")
-        _T("F: toggle forces on/off,\r\n")
-        _T("W: toggle wireframe on/off,\r\n");
+    info = _T("Loading...");
 }
 LRESULT ControlsWindowImpl::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
@@ -319,20 +306,24 @@ LRESULT ControlsWindowImpl::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
     WTL::CComboBox show_mode_cb = GetDlgItem(IDC_SHOW_MODE);
     for (int i = 0; i < RenderSettings::_SHOW_MODES_COUNT; ++i)
         show_mode_cb.AddString(RenderSettings::SHOW_MODES_CAPTIONS[i]);
-
     return TRUE;
 }
 
-void ControlsWindowImpl::create(Window & main_window, ISettingsHandler * settings_handler)
+void ControlsWindowImpl::create(Window & main_window, ISettingsHandler * settings_handler, ControlsWindow::ITextInfo * text_info_handler)
 {
     this->main_window = main_window;
     this->settings_handler = settings_handler;
+    this->text_info_handler = text_info_handler;
 
     Create(main_window);
 
     // load initial values
     this->settings_handler->get_settings(sim_settings, global_settings, render_settings);
+    info = this->text_info_handler->get_text_info().c_str();
     DoDataExchange(DDX_LOAD);
+
+    // Set timer for updating text info
+    SetTimer(ID_TIMER_TEXT, TIMER_TEXT_DELAY);
 }
 
 void ControlsWindowImpl::show()
@@ -348,9 +339,29 @@ void ControlsWindowImpl::show()
     main_window.SetFocus();
 }
 
+
+LRESULT ControlsWindowImpl::OnTimer(UINT /*uMsg*/, WPARAM timer_id, LPARAM /*lParam*/, BOOL& handled)
+{
+    if (ID_TIMER_TEXT == timer_id)
+    {
+        if (nullptr != text_info_handler)
+        {
+            info = text_info_handler->get_text_info().c_str();
+            DoDataExchange(DDX_LOAD, IDC_INFO);
+        }
+        handled = TRUE;
+    }
+    else
+    {
+        handled = FALSE;
+    }
+    return 0;
+}
+
+
 LRESULT ControlsWindowImpl::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
-    // to be filled in future
+    KillTimer(ID_TIMER_TEXT);
     return 0;
 }
 

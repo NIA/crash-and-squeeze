@@ -2,6 +2,7 @@
 #include "Stopwatch.h"
 #include "matrices.h"
 #include <time.h>
+#include <sstream>
 
 using CrashAndSqueeze::Core::ForcesArray;
 using CrashAndSqueeze::Math::Vector;
@@ -28,23 +29,22 @@ namespace
     const float       VERTEX_MASS = 1;
     const Real        CLUSTER_PADDING_COEFF = 0.2;
 
-    const TCHAR *     HELP_TEXT = _T("Welcome to Crash-And-Squeeze Demo!\n\n")
-                                  _T("Keys:\n\n")
-                                  _T("Enter: hit the model,\n")
-                                  _T("I/J/K/L: move hit area (yellow sphere),\n")
-                                  _T("Arrows: rotate camera,\n")
-                                  _T("+/-, PgUp/PgDn: zoom in/out,\n")
-                                  _T("F1: display/hide this help,\n")
-                                  _T("Esc: exit.\n\n")
-                                  _T("Advanced:\n\n")
-                                  _T("Tab: switch between current, initial\n")
-                                  _T("        and equilibrium state,\n")
-                                  _T("Space: pause/continue emulation,\n")
-                                  _T("S: emulate one step (when paused),\n")
-                                  _T("F: toggle forces on/off,\n")
-                                  _T("W: toggle wireframe on/off,\n")
-                                  _T("T: toggle alpha test of/off.\n");
-
+    const TCHAR *     HELP_TEXT = _T("Keyboard controls:\r\n")
+                                  _T("~~~~~~~~~~~~~~~~~~\r\n")
+                                  _T("Enter: hit the model,\r\n")
+                                  _T("I/J/K/L: move hit area (yellow sphere),\r\n")
+                                  _T("Arrows: rotate camera,\r\n")
+                                  _T("+/-, PgUp/PgDn: zoom in/out,\r\n")
+                                  _T("F2: show settings window,\r\n")
+                                  _T("Esc: exit.\r\n\r\n")
+                                  _T("Advanced:\r\n")
+                                  _T("~~~~~~~~~\r\n")
+                                  _T("Tab: switch between current, initial\r\n")
+                                  _T("        and equilibrium state,\r\n")
+                                  _T("Space: pause/continue emulation,\r\n")
+                                  _T("S: emulate one step (when paused),\r\n")
+                                  _T("F: toggle forces on/off,\r\n")
+                                  _T("W: toggle wireframe on/off,\r\n");
 
 }
 
@@ -54,8 +54,8 @@ Application::Application(Logger &logger) :
     renderer(window, &camera),
     emulation_enabled(true), emultate_one_step(true), forces_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false),
-    forces(NULL), logger(logger), show_help(false), impact_model(NULL), prim_factory(false),
-    impact_axis(0)
+    forces(NULL), logger(logger), impact_model(NULL), prim_factory(false),
+    impact_axis(0), total_performance_reporter(logger, "total")
 {
     sim_settings.set_defaults(); // TODO: load from config file
     global_settings.set_defaults();
@@ -69,18 +69,36 @@ Application::Application(Logger &logger) :
     }
 }
 
-const TCHAR* Application::get_text_info()
+tstring Application::get_text_info() const
 {
-    if(show_help)
+    std::basic_ostringstream<TCHAR> big_text;
+    big_text.precision(2);
+    big_text <<
+        _T("Crash-And-Squeeze version ") _T(CAS_VERSION) _T("\r\n")
+        _T("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n")
+        _T("Simulation: ") <<  (emulation_enabled ? _T("ON") : _T("OFF")) << _T("\r\n")
+        _T("Show: ") << RenderSettings::SHOW_MODES_CAPTIONS[render_settigns.show_mode] << _T("\r\n\r\n")
+        _T("Performance: ") << int(total_performance_reporter.get_last_fps()) << _T(" FPS ")
+                            << std::fixed << total_performance_reporter.get_last_measurement()*1000 << _T(" ms/frame)\r\n")
+        _T("Models:\r\n")
+        _T("~~~~~~\r\n");
+    for (auto& me: model_entities)
     {
-        return HELP_TEXT;
+        if (nullptr != me.physical_model)
+        {
+            big_text <<
+                me.low_model->get_vertices_count() << _T(" low-vertices\r\n") <<
+                me.high_model->get_vertices_count() << _T(" high-vertices\r\n") <<
+                me.physical_model->get_clusters_num() << _T("=") <<
+                    // TODO: get clusters_by_axes from each model separately (by now they all have the same clusters count)
+                    global_settings.clusters_by_axes[0] << _T("x") <<
+                    global_settings.clusters_by_axes[1] << _T("x") <<
+                    global_settings.clusters_by_axes[2] << _T(" clusters\r\n\r\n");
+        }
     }
-    else
-    {
-        const TCHAR * emulation_text = emulation_enabled ? _T("Emulation: ON") : _T("Emulation: OFF");
-        _stprintf_s(text_buffer, _T("%s\n%s\nPress F1 for help"), RenderSettings::SHOW_MODES_CAPTIONS[render_settigns.show_mode], emulation_text);
-        return text_buffer;
-    }
+    big_text << HELP_TEXT;
+
+    return big_text.str().c_str();
 }
 
 IRenderer* Application::get_renderer()
@@ -331,9 +349,6 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
     case VK_RETURN:
         impact_happened = true;
         break;
-    case VK_F1:
-        show_help = !show_help;
-        break;
     case VK_F2:
         controls_window.show();
     }
@@ -400,7 +415,7 @@ void Application::run()
     window.set_input_handler(this);
     window.show();
     window.update();
-    controls_window.create(window, this);
+    controls_window.create(window, this, this);
     controls_window.show();
     
     Stopwatch stopwatch;
@@ -408,7 +423,6 @@ void Application::run()
     PerformanceReporter render_performance_reporter(logger, "rendering");
     PerformanceReporter update_performance_reporter(logger, "updating");
     PerformanceReporter gen_normals_performance_reporter(logger, "generate_normals");
-    PerformanceReporter total_performance_reporter(logger, "total");
     PerformanceReporter internal_render_performance_reporter(logger, "swap_chain->Present");
 
     int physics_frames = 0;
@@ -562,7 +576,6 @@ void Application::run()
             }
             
             // graphics
-            renderer.set_text_to_draw(get_text_info());
             stopwatch.start();
             renderer.render(model_entities, internal_render_performance_reporter, global_settings.update_vertices_on_gpu, RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode);
             render_performance_reporter.add_measurement(stopwatch.stop());

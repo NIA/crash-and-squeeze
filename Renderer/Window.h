@@ -50,7 +50,14 @@ private:
 public:
     ControlsWindow();
 
-    void create(Window & main_window, ISettingsHandler * settings_handler);
+    // Interface that defines a method to get text info
+    class ITextInfo
+    {
+    public:
+        virtual tstring get_text_info() const = 0;
+    };
+
+    void create(Window & main_window, ISettingsHandler * settings_handler, ITextInfo * text_info);
     void show();
 
     ~ControlsWindow();

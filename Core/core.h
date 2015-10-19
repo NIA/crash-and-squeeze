@@ -2,6 +2,8 @@
 #include "Logging/logger.h"
 #include "Collections/array.h"
 
+#define CAS_VERSION "0.9.0"
+
 // ** Options (preprocessor switches) **
 
 // Set to 0 to disable quadratic extensions
