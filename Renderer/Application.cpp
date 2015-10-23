@@ -322,7 +322,8 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
         set_show_mode(3);
         break;
     case VK_SPACE:
-        emulation_enabled = !emulation_enabled;
+        // toggle emulation enabled
+        process_command_emulation_on(!emulation_enabled);
         break;
     case 'F':
         forces_enabled = !forces_enabled;
@@ -335,7 +336,7 @@ void Application::process_key(unsigned code, bool shift, bool ctrl, bool alt)
             (*forces)[forces->size() - 1]->toggle();
         break;
     case 'S':
-        emultate_one_step = true;
+        process_command_step();
         break;
     case 'T':
         renderer.toggle_alpha_test();
@@ -389,6 +390,18 @@ void Application::process_mouse_wheel(short x, short y, short dw, bool shift, bo
     }
 }
 
+
+void Application::process_command_emulation_on(bool on /*= true*/)
+{
+    emulation_enabled = on;
+}
+
+void Application::process_command_step()
+{
+    emulation_enabled = false;
+    emultate_one_step = true;
+}
+
 void Application::set_settings(const SimulationSettings &sim, const GlobalSettings &global, const RenderSettings &render)
 {
     sim_settings = sim;
@@ -415,7 +428,7 @@ void Application::run()
     window.set_input_handler(this);
     window.show();
     window.update();
-    controls_window.create(window, this, this);
+    controls_window.create(window, this, this, this);
     controls_window.show();
     
     Stopwatch stopwatch;

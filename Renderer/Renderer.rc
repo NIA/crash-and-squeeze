@@ -91,9 +91,9 @@ BEGIN
     CONTROL         "Update on GPU",IDC_GPU_UPDATE,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,110,110,100,10
     PUSHBUTTON      "Step",IDC_STEP,140,5,50,14
     PUSHBUTTON      "Defaults",IDC_DEFAULTS,115,285,50,14
-    CONTROL         "",IDC_SPIN_CLUSTERS_X,"msctls_updown32",UDS_ARROWKEYS,69,265,10,12
-    CONTROL         "",IDC_SPIN_CLUSTERS_Y,"msctls_updown32",UDS_ARROWKEYS,115,265,10,12
-    CONTROL         "",IDC_SPIN_CLUSTERS_Z,"msctls_updown32",UDS_ARROWKEYS,160,265,10,12
+    CONTROL         "",IDC_SPIN_CLUSTERS_X,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,69,265,10,12
+    CONTROL         "",IDC_SPIN_CLUSTERS_Y,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,115,265,10,12
+    CONTROL         "",IDC_SPIN_CLUSTERS_Z,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,160,265,10,12
     COMBOBOX        IDC_SHOW_MODE,100,225,110,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Vertices to show",IDC_STATIC,10,227,85,8
     CONTROL         "Wireframe",IDC_WIREFRAME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,240,45,10
@@ -157,15 +157,15 @@ BEGIN
     END
     POPUP "Simulation"
     BEGIN
-        MENUITEM "Play",                        ID_SIMULATION_PLAY
-        MENUITEM "Pause",                       ID_SIMULATION_PAUSE
-        MENUITEM "Step",                        ID_SIMULATION_STEP
+        MENUITEM "Play",                        IDC_PLAY
+        MENUITEM "Pause",                       IDC_PAUSE
+        MENUITEM "Step",                        IDC_STEP
         MENUITEM "Restart",                     ID_SIMULATION_RESTART
     END
     POPUP "Parameters"
     BEGIN
-        MENUITEM "Apply",                       ID_PARAMETERS_APPLY
-        MENUITEM "Reset to defaults",           ID_PARAMETERS_RESETTODEFAULTS
+        MENUITEM "Apply",                       IDOK
+        MENUITEM "Reset to defaults",           IDC_DEFAULTS
         MENUITEM "Load from file...",           ID_PARAMETERS_LOADFROM
         MENUITEM "Save to file...",             ID_PARAMETERS_SAVETOFILE
     END

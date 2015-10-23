@@ -156,6 +156,11 @@ Window::~Window()
 // Enable visual styles
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
+namespace
+{
+    const UINT IDC_CMD_BUTTONS[] = {IDC_PLAY, IDC_PAUSE, IDC_STEP};
+}
+
 class ControlsWindowImpl : public ATL::CDialogImpl<ControlsWindowImpl>,
     public WTL::CDialogResize<ControlsWindowImpl>,
     public WTL::CUpdateUI<ControlsWindowImpl>,
@@ -164,6 +169,7 @@ class ControlsWindowImpl : public ATL::CDialogImpl<ControlsWindowImpl>,
 private:
     ATL::CWindow main_window;
     ISettingsHandler * settings_handler;
+    ControlsWindow::ICommandHandler * cmd_handler;
     ControlsWindow::ITextInfo * text_info_handler;
 
     // DDX variables:
@@ -183,7 +189,7 @@ public:
 
     ControlsWindowImpl();
 
-    void create(Window & main_window, ISettingsHandler * settings_handler, ControlsWindow::ITextInfo * text_info);
+    void create(Window & main_window, ISettingsHandler * settings_handler, ControlsWindow::ICommandHandler * cmd_handler, ControlsWindow::ITextInfo * text_info);
     void show();
     BEGIN_UPDATE_UI_MAP(ControlsWindowImpl)
         // To be filled in future
@@ -195,14 +201,17 @@ public:
         MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
         COMMAND_ID_HANDLER(ID_HELP_ABOUT, OnHelpAbout)
         COMMAND_ID_HANDLER(IDOK,          OnApply)
-        COMMAND_ID_HANDLER(IDC_CANCEL,      OnCancel) // IDC_CANCEL (Cancel button) means "Cancel all changes since last Apply"
+        COMMAND_ID_HANDLER(IDC_CANCEL,    OnCancel) // IDC_CANCEL (Cancel button) means "Cancel all changes since last Apply"
         COMMAND_ID_HANDLER(IDC_DEFAULTS,  OnDefaults)
-        COMMAND_ID_HANDLER(IDCANCEL,       OnHide)    // IDCCANCEL (Hide button or [x]) means "Hide window"
+        COMMAND_ID_HANDLER(IDCANCEL,      OnHide)    // IDCANCEL (Hide button or [x]) means "Hide window"
         COMMAND_ID_HANDLER(ID_FILE_QUIT,  OnQuit)
+        for (auto idc: IDC_CMD_BUTTONS)
+            COMMAND_ID_HANDLER(idc,  OnCommand)
         CHAIN_MSG_MAP(CDialogResize<ControlsWindowImpl>)
     END_MSG_MAP()
 
     static const UINT IDC_ED_CLUSTERS[GlobalSettings::AXES_COUNT];
+    static const UINT IDC_SP_CLUSTERS[GlobalSettings::AXES_COUNT];
 
     // TODO: Use for-loops to shorten this map?
     // TODO: handle spinners
@@ -238,6 +247,7 @@ public:
         DLGRESIZE_CONTROL(IDC_INFO, DLSZ_SIZE_X | DLSZ_SIZE_Y)
         DLGRESIZE_CONTROL(IDOK, DLSZ_MOVE_Y)
         DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_Y)
+        DLGRESIZE_CONTROL(IDC_CANCEL, DLSZ_MOVE_Y)
         DLGRESIZE_CONTROL(IDC_DEFAULTS, DLSZ_MOVE_Y)
     END_DLGRESIZE_MAP()
 
@@ -255,6 +265,7 @@ public:
     LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
     LRESULT OnHide(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
     LRESULT OnQuit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+    LRESULT OnCommand(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
     ~ControlsWindowImpl();
 };
@@ -264,9 +275,9 @@ ControlsWindow::ControlsWindow()
     impl = new ControlsWindowImpl;
 }
 
-void ControlsWindow::create(Window & main_window, ISettingsHandler * settings_handler, ControlsWindow::ITextInfo * text_info)
+void ControlsWindow::create(Window & main_window, ISettingsHandler * settings_handler, ICommandHandler * cmd_handler, ITextInfo * text_info)
 {
-    impl->create(main_window, settings_handler, text_info);
+    impl->create(main_window, settings_handler, cmd_handler, text_info);
 }
 
 void ControlsWindow::show()
@@ -280,6 +291,7 @@ ControlsWindow::~ControlsWindow()
 }
 
 const UINT ControlsWindowImpl::IDC_ED_CLUSTERS[GlobalSettings::AXES_COUNT] = {IDC_ED_CLUSTERS_X, IDC_ED_CLUSTERS_Y, IDC_ED_CLUSTERS_Z};
+const UINT ControlsWindowImpl::IDC_SP_CLUSTERS[GlobalSettings::AXES_COUNT] = {IDC_SPIN_CLUSTERS_X, IDC_SPIN_CLUSTERS_Y, IDC_SPIN_CLUSTERS_Z};
 
 ControlsWindowImpl::ControlsWindowImpl()
     : main_window(nullptr), settings_handler(nullptr)
@@ -306,14 +318,25 @@ LRESULT ControlsWindowImpl::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
     WTL::CComboBox show_mode_cb = GetDlgItem(IDC_SHOW_MODE);
     for (int i = 0; i < RenderSettings::_SHOW_MODES_COUNT; ++i)
         show_mode_cb.AddString(RenderSettings::SHOW_MODES_CAPTIONS[i]);
+
+    // Init "simple" (integer) spinners
+
+    for (int i = 0; i < GlobalSettings::AXES_COUNT; ++i)
+    {
+        WTL::CUpDownCtrl spin_clusters = GetDlgItem(IDC_SP_CLUSTERS[i]);
+        spin_clusters.SetBuddy(GetDlgItem(IDC_ED_CLUSTERS[i]));
+        spin_clusters.SetRange(1, 10);
+    }
+
     return TRUE;
 }
 
-void ControlsWindowImpl::create(Window & main_window, ISettingsHandler * settings_handler, ControlsWindow::ITextInfo * text_info_handler)
+void ControlsWindowImpl::create(Window & main_window, ISettingsHandler * settings_handler, ControlsWindow::ICommandHandler * cmd_handler, ControlsWindow::ITextInfo * text_info)
 {
     this->main_window = main_window;
     this->settings_handler = settings_handler;
-    this->text_info_handler = text_info_handler;
+    this->cmd_handler = cmd_handler;
+    this->text_info_handler = text_info;
 
     Create(main_window);
 
@@ -441,6 +464,25 @@ LRESULT ControlsWindowImpl::OnQuit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hW
 {
     DestroyWindow();
     ::DestroyWindow(main_window);
+    return 0;
+}
+
+LRESULT ControlsWindowImpl::OnCommand(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+    if (nullptr == cmd_handler)
+        return 0;
+    switch (wID)
+    {
+    case IDC_PLAY:
+        cmd_handler->process_command_emulation_on(true);
+        break;
+    case IDC_PAUSE:
+        cmd_handler->process_command_emulation_on(false);
+        break;
+    case IDC_STEP:
+        cmd_handler->process_command_step();
+        break;
+    }
     return 0;
 }
 

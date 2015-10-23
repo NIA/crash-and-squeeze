@@ -11,7 +11,10 @@
 #include "IInputHandler.h"
 #include "settings.h"
 
-class Application : public IInputHandler, public ISettingsHandler, public ControlsWindow::ITextInfo
+class Application : public IInputHandler,
+                    public ISettingsHandler,
+                    public ControlsWindow::ICommandHandler,
+                    public ControlsWindow::ITextInfo
 {
 private:
     Logger &logger;
@@ -82,9 +85,13 @@ public:
     void run();
 
     // Implement IInputHandler:
-    void process_key(unsigned code, bool shift, bool ctrl, bool alt) override;
-    void process_mouse_drag(short x, short y, short dx, short dy, bool shift, bool ctrl) override;
-    void process_mouse_wheel(short x, short y, short dw, bool shift, bool ctrl) override;
+    virtual void process_key(unsigned code, bool shift, bool ctrl, bool alt) override;
+    virtual void process_mouse_drag(short x, short y, short dx, short dy, bool shift, bool ctrl) override;
+    virtual void process_mouse_wheel(short x, short y, short dw, bool shift, bool ctrl) override;
+
+    // Implement ICommandHandler
+    virtual void process_command_emulation_on(bool on = true) override;
+    virtual void process_command_step() override;
 
     // Implement ISettingsHandler:
     virtual void set_settings(const SimulationSettings &sim, const GlobalSettings &global, const RenderSettings &render) override;

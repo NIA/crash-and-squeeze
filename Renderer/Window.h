@@ -57,7 +57,14 @@ public:
         virtual tstring get_text_info() const = 0;
     };
 
-    void create(Window & main_window, ISettingsHandler * settings_handler, ITextInfo * text_info);
+    class ICommandHandler
+    {
+    public:
+        virtual void process_command_emulation_on(bool on = true) = 0;
+        virtual void process_command_step() = 0;
+    };
+
+    void create(Window & main_window, ISettingsHandler * settings_handler, ICommandHandler * cmd_handler, ITextInfo * text_info);
     void show();
 
     ~ControlsWindow();
