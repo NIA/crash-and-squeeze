@@ -16,6 +16,7 @@ extern WTL::CAppModule _Module;
 #define _WTL_USE_CSTRING
 #include <atlctrls.h> // for CComboBox, DDX_COMBO_INDEX (and other controls)
 #include <atlddx.h>   // for CWinDataExchange, DDX_*
+#include <atlstr.h>   // for ATL::CString (for GetDlgItemText)
 
 using ::CrashAndSqueeze::Math::VECTOR_SIZE;
 
@@ -159,6 +160,30 @@ Window::~Window()
 namespace
 {
     const UINT IDC_CMD_BUTTONS[] = {IDC_PLAY, IDC_PAUSE, IDC_STEP};
+
+    struct SpinParams
+    {
+        UINT idcEdit;
+        float minVal;
+        float maxVal;
+        float step;
+
+        enum { MULTIPLIER = 10 };
+    };
+    
+    // Maps id of up-down ctrl -> id of edittext ctrl
+    const std::map<UINT, SpinParams> SPIN_PARAMS = {
+        /*    IDC of spinner                   IDC of edit        min..max / step  */
+        { IDC_SPIN_GOAL_SPEED,   /* -> */ { IDC_ED_GOAL_SPEED,   0.1f, 1.0f, 0.1f } },
+        { IDC_SPIN_LINEAR_ELAST, /* -> */ { IDC_ED_LINEAR_ELAST, 0.0f, 1.0f, 0.1f } },
+        { IDC_SPIN_DAMPING,      /* -> */ { IDC_ED_DAMPING,      0.2f, 1.0f, 0.1f } },
+        { IDC_SPIN_YIELD,        /* -> */ { IDC_ED_YIELD,        0.1f, 1.0f, 0.1f } },
+        { IDC_SPIN_CREEP,        /* -> */ { IDC_ED_CREEP,        0,    100,  0.5f } },
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+        { IDC_SPIN_QX_CREEP,     /* -> */ { IDC_ED_QX_CREEP,     0,    100,  0.5f } },
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED && CAS_QUADRATIC_PLASTICITY_ENABLED
+        { IDC_SPIN_MAX_DEFORM,   /* -> */ { IDC_ED_MAX_DEFORM,   0,    10,   0.5f } },
+    };
 }
 
 class ControlsWindowImpl : public ATL::CDialogImpl<ControlsWindowImpl>,
@@ -207,6 +232,8 @@ public:
         COMMAND_ID_HANDLER(ID_FILE_QUIT,  OnQuit)
         for (auto idc: IDC_CMD_BUTTONS)
             COMMAND_ID_HANDLER(idc,  OnCommand)
+        for (const auto &kv : SPIN_PARAMS)
+            NOTIFY_HANDLER(kv.first, UDN_DELTAPOS, OnSpinnerChange)
         CHAIN_MSG_MAP(CDialogResize<ControlsWindowImpl>)
     END_MSG_MAP()
 
@@ -255,9 +282,12 @@ public:
 
     LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
     LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-    LRESULT OnTimer(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+    LRESULT OnTimer(UINT /*uMsg*/, WPARAM timer_id, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
-    // -- command handlers
+    // -- notify handlers:
+    LRESULT OnSpinnerChange(int idCtrl, LPNMHDR pNMHDR, BOOL& /*bHandled*/);
+
+    // -- command handlers: --
 
     LRESULT OnHelpAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
     LRESULT OnApply(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -345,6 +375,21 @@ void ControlsWindowImpl::create(Window & main_window, ISettingsHandler * setting
     info = this->text_info_handler->get_text_info().c_str();
     DoDataExchange(DDX_LOAD);
 
+    // init spinners
+    for (auto const &kv : SPIN_PARAMS)
+    {
+        const UINT & idcSpin = kv.first;
+        const SpinParams & params = kv.second;
+        WTL::CUpDownCtrl spin = GetDlgItem(idcSpin);
+        WTL::CEdit edit = GetDlgItem(params.idcEdit);
+        spin.SetBuddy(edit);
+        spin.SetRange(int(params.minVal*params.MULTIPLIER), int(params.maxVal*params.MULTIPLIER));
+        ATL::CString strVal;
+        GetDlgItemText(params.idcEdit, strVal);
+        int val = static_cast<int>(_tcstof(strVal, nullptr)*params.MULTIPLIER);
+        spin.SetPos( val );
+    }
+
     // Set timer for updating text info
     SetTimer(ID_TIMER_TEXT, TIMER_TEXT_DELAY);
 }
@@ -377,6 +422,28 @@ LRESULT ControlsWindowImpl::OnTimer(UINT /*uMsg*/, WPARAM timer_id, LPARAM /*lPa
     else
     {
         handled = FALSE;
+    }
+    return 0;
+}
+
+LRESULT ControlsWindowImpl::OnSpinnerChange(int idCtrl, LPNMHDR pNMHDR, BOOL& /*bHandled*/)
+{
+    NMUPDOWN* lpNMUD = (NMUPDOWN*) pNMHDR;
+    WTL::CUpDownCtrl spin = lpNMUD->hdr.hwndFrom;
+    if (SPIN_PARAMS.count(lpNMUD->hdr.idFrom) > 0) // if has key
+    {
+        const SpinParams & params = SPIN_PARAMS.at(lpNMUD->hdr.idFrom);
+
+        int val = spin.GetPos();
+
+        lpNMUD->iDelta *= static_cast<int>(params.step*params.MULTIPLIER);
+        float newVal = static_cast<float>(lpNMUD->iPos + lpNMUD->iDelta)/params.MULTIPLIER;
+        if (newVal >= params.minVal && newVal <= params.maxVal)
+        {
+            ATL::CString strVal;
+            strVal.Format(_T("%g"), newVal);
+            spin.GetBuddy().SetWindowText(strVal);
+        }
     }
     return 0;
 }

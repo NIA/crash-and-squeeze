@@ -83,7 +83,7 @@ BEGIN
     LTEXT           "0.05 .. 1.0 (0.1)",IDC_HELP_YIELD,155,143,53,8
     LTEXT           "0.0 .. 100 (60)",IDC_HELP_CREEP,155,158,48,8
     LTEXT           "0.0 .. 100 (10)",IDC_HELP_QX_CREEP,155,173,48,8
-    LTEXT           "0.0 .. 10 (10)",IDC_HELP_MAX_DEFORM,155,188,44,8
+    LTEXT           "0.0 .. 10 (1.5)",IDC_HELP_MAX_DEFORM,155,188,47,8
     CONTROL         "Quadratic deformation",IDC_QUAD_DEFORM,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,10,95,95,10
     GROUPBOX        "Algorithm features",IDC_STATIC,5,85,210,40
     CONTROL         "Quadratic plasticity",IDC_QUAD_PLAST,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,10,110,95,10
