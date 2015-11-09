@@ -12,6 +12,7 @@
 #include <codecvt>
 #endif // defined UNICODE || defined _UNICODE
 #include <vector>
+#include <algorithm> // for std::max
 #include "logger.h" // application logger
 
 #include "Logging/logger.h" // crash-and-squeeze logger
