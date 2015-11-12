@@ -2,6 +2,9 @@
 
 A Bachelor's degree work project: a system for physical-based simulation of 3D model deformation.
 
+{Main window}[link:Renderer/img/screen-main.jpg] {Settings window}[link:Renderer/img/screen-settings.png]
+{Demo with car}[link:Renderer/img/demo.jpg]
+
 Subprojects/Modules:
 * <b>Core:</b> the core of the system that implements deformation simulation algorithm. Provides class Model, an abstraction of deformable body.
 * <b>CoreTester:</b> unit tests for Core.
