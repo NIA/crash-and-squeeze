@@ -35,14 +35,6 @@ namespace CrashAndSqueeze
             return (x > 0) - (x < 0);
         }
 
-        inline void swap(Real &a, Real &b)
-        {
-            Real temp;
-            temp = a;
-            a = b;
-            b = temp;
-        }
-
         template <typename T> /* requires LessThanComparable<T> */
         inline T minimum(T a, T b)
         {

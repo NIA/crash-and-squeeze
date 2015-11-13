@@ -185,57 +185,82 @@ TEST(QxTest, NineMatrixMulTriMatrix)
     EXPECT_EQ(expected.matrices[2], actual.matrices[2]);
 }
 
+TEST(QxTest, NineMatrixMulNineMatrix)
+{
+    const Real m1_values[NineMatrix::SIZE][NineMatrix::SIZE] = {
+        { 1, 0, 0, 0, 0, 0, 0, 0, 0 },
+        { 0,-1, 0, 0, 0, 1, 1, 0, 0 },
+        { 0, 0, 1, 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 1, 0, 0,-1, 0, 0 },
+        { 0, 0, 0, 0, 1, 0, 0, 0, 0 },
+        { 0, 1, 0, 0, 0, 1, 0, 0, 0 },
+        { 0, 1, 0,-1, 0, 0, 1, 0, 0 },
+        { 0, 0, 0, 0, 0, 0, 0, 1, 0 },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 1 }
+    };
+    NineMatrix m1(m1_values);
+    const Real m2_values[NineMatrix::SIZE][NineMatrix::SIZE] = {
+        { 1, 0, 0, 0, 0, 0, 0, 0, 0 },
+        { 0,-1, 0, 0, 0, 1, 1, 0, 0 },
+        { 0, 0, 1, 0, 0, 0,-1, 0, 0 },
+        { 0, 0, 0, 1, 0, 0,-1, 0, 0 },
+        { 0, 0, 0, 0, 1, 0, 0, 0, 0 },
+        { 0, 1, 0, 0, 0, 1, 0, 0, 0 },
+        { 0,-1, 0,-1, 0, 0, 1, 0,-1 },
+        { 0, 0, 0, 0, 0, 0, 0, 1, 0 },
+        { 0, 0, 0, 0, 0, 0, 0,-1, 1 }
+    };
+    const NineMatrix m2(m2_values);
+    const Real expected_values[NineMatrix::SIZE][NineMatrix::SIZE] = {
+        { 1,  0,  0,  0,  0,  0,  0,  0,  0 },
+        { 0,  1,  0, -1,  0,  0,  0,  0, -1 },
+        { 0,  0,  1,  0,  0,  0, -1,  0,  0 },
+        { 0,  1,  0,  2,  0,  0, -2,  0,  1 },
+        { 0,  0,  0,  0,  1,  0,  0,  0,  0 },
+        { 0,  0,  0,  0,  0,  2,  1,  0,  0 },
+        { 0, -2,  0, -2,  0,  1,  3,  0, -1 },
+        { 0,  0,  0,  0,  0,  0,  0,  1,  0 },
+        { 0,  0,  0,  0,  0,  0,  0, -1,  1 },
+    };
+    const NineMatrix expected(expected_values);
+
+    m1 *= m2;
+
+    EXPECT_TRUE(expected == m1);
+}
+
 TEST(QxTest, NineMatrixInvert)
 {
     // input
     const Real m_values[NineMatrix::SIZE][NineMatrix::SIZE] = {
-        {1,0,0,0,0,0,0,0,0},
-        {0,1,0,0,0,2,0,0,0},
-        {0,0,1,0,0,0,0,0,0},
-        {0,0,0,0.5,0,0,-1,0,0},
-        {0,0,0,0,1,0,0,0,0},
-        {0,0,0,0,0,1,0,0,0},
-        {0,1,0,0,0,0,1,0,0},
-        {0,0,1,0,0,0,0,1,0},
-        {0,0,0,0,0,0,0,0,1}
+        {1, 0, 0, 0, 0, 0, 0, 0, 0 },
+        {0,-1, 0, 0, 0, 1, 1, 0, 0 },
+        {0, 0, 1, 0, 0, 0, 0, 0, 0 },
+        {0, 0, 0, 1, 0, 0,-1, 0, 0 },
+        {0, 0, 0, 0, 1, 0, 0, 0, 0 },
+        {0, 1, 0, 0, 0, 1, 0, 0, 0 },
+        {0, 1, 0,-1, 0, 0, 1, 0, 0 },
+        {0, 0, 0, 0, 0, 0, 0, 1, 0 },
+        {0, 0, 0, 0, 0, 0, 0, 0, 1 }
     };
     NineMatrix m(m_values);
     // expected result
     const Real m_inv_values[NineMatrix::SIZE][NineMatrix::SIZE] = {
         {1, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 1, 0, 0, 0, -2, 0, 0, 0},
+        {0, 0, 0, 1, 0, 0, 1, 0, 0},
         {0, 0, 1, 0, 0, 0, 0, 0, 0},
-        {0, -2, 0, 2, 0, 4, 2, 0, 0},
+        {0, 1, 0, 3, 0,-1, 2, 0, 0},
         {0, 0, 0, 0, 1, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 1, 0, 0, 0},
-        {0, -1, 0, 0, 0, 2, 1, 0, 0},
-        {0, 0, -1, 0, 0, 0, 0, 1, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 1}
+        {0, 0, 0,-1, 0, 1,-1, 0, 0},
+        {0, 1, 0, 2, 0,-1, 2, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 1, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 1},
     };
     NineMatrix expected(m_inv_values);
 
-    EXPECT_TRUE(m.invert());
+    EXPECT_TRUE(m.invert_sym());
     // check only few submatrices
     EXPECT_EQ(expected.submatrix(2, 0), m.submatrix(2, 0));
     EXPECT_EQ(expected.submatrix(1, 1), m.submatrix(1, 1));
     EXPECT_EQ(expected.submatrix(0, 1), m.submatrix(0, 1));
-}
-
-TEST(QxTest, NineMatrixBadInvert) {
-    // input (singular: line 3 and 4 equal)
-    const Real m_values[NineMatrix::SIZE][NineMatrix::SIZE] = {
-        {1,0,0,0,0,0,0,0,0},
-        {0,1,0,0,0,2,0,0,0},
-        {0,0,0,0.5,0,0,-1,0,0},
-        {0,0,0,0.5,0,0,-1,0,0},
-        {0,0,0,0,1,0,0,0,0},
-        {0,0,0,0,0,1,0,0,0},
-        {0,1,0,0,0,0,1,0,0},
-        {0,0,1,0,0,0,0,1,0},
-        {0,0,0,0,0,0,0,0,1}
-    };
-    NineMatrix m(m_values);
-    const NineMatrix old_m = m;
-    EXPECT_FALSE( m.invert() );
-    EXPECT_TRUE( old_m == m ); // matrix should be left untouched if it cannot be inverted
 }

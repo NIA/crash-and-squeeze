@@ -340,6 +340,24 @@ TEST_F(MatrixTest, BadInvert)
     EXPECT_EQ( old_m1, m1 ); // matrix should be left untouched if it cannot be inverted
 }
 
+TEST_F(MatrixTest, InvertSym)
+{
+    const Real values[MATRIX_ELEMENTS_NUM] = {
+        1,-1, 0,
+       -1, 2,-1,
+        0,-1,-1
+    };
+    Matrix sym(values);
+    const Real inv_values[MATRIX_ELEMENTS_NUM] = {
+        1.5, 0.5,-0.5,
+        0.5, 0.5,-0.5,
+       -0.5,-0.5,-0.5,
+    };
+    const Matrix inv(inv_values);
+    sym.invert_sym(12);
+    EXPECT_EQ(inv, sym);
+}
+
 TEST_F(MatrixTest, InvertedIdentity)
 {
     EXPECT_EQ( I, I.inverted() );

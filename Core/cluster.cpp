@@ -267,7 +267,7 @@ namespace CrashAndSqueeze
 #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             }
             // Try to invert matrix, if not possible => mark cluster as not valid
-            valid = symmetric_term.invert();
+            valid = symmetric_term.invert_sym();
 
             if (!valid)
                 Logger::warning("in Cluster::compute_symmetric_term: symmetric term is not invertible, cluster marked as invalid", __FILE__, __LINE__);

@@ -173,6 +173,9 @@ namespace CrashAndSqueeze
             // Inverts matrix (in place). Returns false if determinant == 0 and does not report error
             bool invert();
 
+            // Inverts symmetric (!) matrix in place (!) by diagonalizing it using diag_rotations Jacobi rotations
+            bool invert_sym(int diag_rotations = 2*DEFAULT_JACOBI_ROTATIONS_COUNT);
+
             // squared Frobenius norm of matrix
             Real squared_norm() const;
             
@@ -182,7 +185,7 @@ namespace CrashAndSqueeze
                 return sqrt( squared_norm() );
             }
 
-            // Does Jacobi rotation for p and q rows and columns.
+            // Does Jacobi rotation to nullify A(p, q).
             // Modifies matrix in place (!), multiplies given matrix
             // current_transformation by rotation matrix in place (!).
             // The matrix is assumed to be symmetric (!), and this is NOT checked.

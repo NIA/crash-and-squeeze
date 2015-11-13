@@ -1,5 +1,7 @@
 #include "Math/matrix.h"
 #include <cstring>
+#include <algorithm> // for std::swap
+using std::swap;
 
 namespace CrashAndSqueeze
 {
@@ -300,9 +302,14 @@ namespace CrashAndSqueeze
 
         namespace
         {
-            Real cautious_sqrt(Real value)
+            Real safe_sqrt(Real value)
             {
                 return value < 0 ? 0 : sqrt(value);
+            }
+
+            Real safe_inv(Real value)
+            {
+                return equal(0, value) ? 0 : (1 / value);
             }
         }
 
@@ -310,7 +317,7 @@ namespace CrashAndSqueeze
                                             /*out*/ Matrix &symmetric_part,
                                             int diagonalization_rotations_count) const
         {
-            symmetric_part = (this->transposed()*(*this)).compute_function(cautious_sqrt, diagonalization_rotations_count);
+            symmetric_part = (this->transposed()*(*this)).compute_function(safe_sqrt, diagonalization_rotations_count);
             // FIXME: what if symmetric_part.determinant() == 0?
             if( ! symmetric_part.is_invertible() )
             {
@@ -319,6 +326,12 @@ namespace CrashAndSqueeze
             }
 
             orthogonal_part = (*this)*symmetric_part.inverted();
+        }
+
+        bool Matrix::invert_sym(int diag_rotations /*= DEFAULT_JACOBI_ROTATIONS_COUNT*/)
+        {
+            *this = compute_function(safe_inv, diag_rotations);
+            return true;
         }
 
         // -- identity matrix --

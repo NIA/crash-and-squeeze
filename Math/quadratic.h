@@ -132,24 +132,31 @@ namespace CrashAndSqueeze
 
         public:
             static const int SIZE = VECTOR_SIZE*COMPONENTS_NUM; // = 9
+            static const int DEFAULT_JACOBI_ROTATIONS_COUNT = SIZE*(SIZE - 1); // the number of off-diagonal elements
 
             explicit NineMatrix() {}
             // construct ninematrix from values (mainly for testing)
             explicit NineMatrix(const Real values[SIZE][SIZE]);
             // construct ninematrix as outer product of two trivectors
             explicit NineMatrix(const TriVector &left_vector, const TriVector &right_vector);
+            // construct unit matrix
+            void make_unit();
+            // construct rotation matrix for axes p and q and rotation angle given by its sine and cosine
+            void make_rotation(int p, int q, Real sine, Real cosine);
 
             // i, j = [0..9], i = row, j = column
             Real get_at(int i, int j) const;
             void set_at(int i, int j, Real value);
+            void add_at(int i, int j, Real value);
             void set_all(const Real &value);
 
-            Matrix submatrix(int i, int j) const
+            const Matrix & submatrix(int i, int j) const
             {
                 return columns[j].matrices[i];
             }
 
             NineMatrix & operator+=(const NineMatrix &another);
+            NineMatrix & operator*=(const NineMatrix &another);
             bool operator==(const NineMatrix &another) const;
 
             // Multiplication of TriMatrix and NineMatrix: yields TriMatrix
@@ -158,8 +165,27 @@ namespace CrashAndSqueeze
             void left_mult_by(/*in*/  const TriMatrix  & m3,
                               /*out*/ TriMatrix & res) const;
 
-            // Inverts matrix (in place). Returns false if determinant == 0 and does not report error
-            bool invert();
+            // Does Jacobi rotation to nullify A(p, q).
+            // Modifies matrix in place (!), multiplies given matrix
+            // current_transformation by rotation matrix in place (!).
+            // The matrix is assumed to be symmetric (!), and this is NOT checked.
+            void do_jacobi_rotation(int p, int q, /*in/out*/ NineMatrix & current_transformation);
+
+            // Diagonalizes matrix in place(!) using rotations_count Jacobi rotations.
+            // Writes diagonalizing transformation matrix into transformation
+            // (transformation matrix V is such that D = V.transposed()*A*V,
+            //  where A is given matrix and D is diagonalized result).
+            // Returns itself.
+            // The matrix is assumed to be symmetric (!), and this is NOT checked.
+            void diagonalize(int rotations_count, /*out*/ NineMatrix & transformation);
+            
+            // Inverts symmetric (!) matrix in place (!) by diagonalizing it using diag_rotations Jacobi rotations
+            bool invert_sym(int diag_rotations = DEFAULT_JACOBI_ROTATIONS_COUNT);
+
+#ifndef NDEBUG
+            void print(char * header = "") const;
+#endif // !NDEBUG
+
         };
 
     }

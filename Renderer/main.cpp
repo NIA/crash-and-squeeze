@@ -614,15 +614,10 @@ namespace
                 high_model_indices,
                 HIGH_CYLINDER_INDICES);
             high_cylinder_model->add_shader(lighting_shader); // add lighting
-#if CAS_QUADRATIC_EXTENSIONS_ENABLED
-            float random_amp = 0.3f;
-#else
-            float random_amp = 0.0f; // no need for randomization without quadratic extensions
-#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
             cylinder( cylinder_radius, cylinder_height, float3(0,0,cylinder_z),
                      &CYLINDER_COLOR, 1,
                      LOW_EDGES_PER_BASE, LOW_EDGES_PER_HEIGHT, LOW_EDGES_PER_CAP,
-                     low_model_vertices, low_model_indices, random_amp );
+                     low_model_vertices, low_model_indices );
             Model * low_cylinder_model = new Model(
                 app.get_renderer(),
                 D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,
@@ -881,7 +876,7 @@ INT WINAPI _tWinMain( HINSTANCE, HINSTANCE, LPTSTR, INT )
         }
         else if (mesh_filename == CylinderDemo::cmdline_option)
         {
-            CylinderDemo demo(app, 0.5, 1);
+            CylinderDemo demo(app, 0.5, 2);
             demo.run();
         }
         else

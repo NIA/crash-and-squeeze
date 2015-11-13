@@ -1,7 +1,8 @@
 #include "Math/quadratic.h"
-// TODO: avoid external dependency!
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_linalg.h>
+#ifndef NDEBUG
+#include <iostream>// for NineMatrix::print
+#include <iomanip> // for NineMatrix::print
+#endif // NDEBUG
 
 namespace CrashAndSqueeze
 {
@@ -109,6 +110,22 @@ namespace CrashAndSqueeze
             }
         }
 
+        void NineMatrix::make_unit()
+        {
+            set_all(0);
+            for (int i = 0; i < SIZE; ++i)
+                set_at(i, i, 1);
+        }
+
+        void NineMatrix::make_rotation(int p, int q, Real sine, Real cosine)
+        {
+            make_unit();
+            set_at(p, p, cosine);
+            set_at(q, q, cosine);
+            set_at(p, q, -sine);
+            set_at(q, p, sine);
+        }
+
         Real NineMatrix::get_at(int i, int j) const
         {
             // TODO: check boundaries
@@ -118,7 +135,12 @@ namespace CrashAndSqueeze
         void NineMatrix::set_at(int i, int j, Real value)
         {
             // TODO: check boundaries
-            return columns[j / 3].matrices[i / 3].set_at(i % 3, j % 3, value);
+            columns[j / 3].matrices[i / 3].set_at(i % 3, j % 3, value);
+        }
+
+        void NineMatrix::add_at(int i, int j, Real value)
+        {
+            columns[j / 3].matrices[i / 3].add_at(i % 3, j % 3, value);
         }
 
         NineMatrix & NineMatrix::operator+=(const NineMatrix &another)
@@ -137,6 +159,23 @@ namespace CrashAndSqueeze
                    columns[2] == another.columns[2];
         }
 
+        NineMatrix & NineMatrix::operator*=(const NineMatrix &another)
+        {
+            NineMatrix first = *this;
+            set_all(0);
+            for (int i = 0; i < COMPONENTS_NUM; ++i)
+            {
+                for (int j = 0; j < COMPONENTS_NUM; ++j)
+                {
+                    for (int k = 0; k < COMPONENTS_NUM; ++k)
+                    {
+                        columns[j].matrices[i] += first.submatrix(i, k)*another.submatrix(k, j);
+                    }
+                }
+            }
+            return *this;
+        }
+
         void NineMatrix::left_mult_by(/*in*/  const TriMatrix  & m3,
                                       /*out*/ TriMatrix & res) const
         {
@@ -149,44 +188,117 @@ namespace CrashAndSqueeze
             }
         }
 
-        bool NineMatrix::invert()
+        void NineMatrix::do_jacobi_rotation(int p, int q, NineMatrix & current_transformation)
         {
-            // Create GSL matrix
-            gsl_matrix * m = gsl_matrix_alloc(SIZE, SIZE);
-            // TODO: avoid such copying! Change internal representation of NineMatrix to array[81]
-            for (int i = 0; i < SIZE; ++i)
+            // TODO: avoid copy-paste from Matrix::do_jacobi_rotation?
+            if (p == q)
             {
-                for (int j = 0; j < SIZE; ++j)
-                {
-                    gsl_matrix_set(m, i, j, get_at(i, j));
-                }
+                Logger::warning("incorrect Jacobi rotation: `p` and `q` must be different indices", __FILE__, __LINE__);
+                return;
             }
-            // TODO: avoid allocation! (Use gsl_matrix_view_array ?)
-            gsl_matrix * inverse = gsl_matrix_alloc (SIZE, SIZE);
-            gsl_permutation * perm = gsl_permutation_alloc (SIZE);
-            int signum; // sign of permutation - used for determinant
+            if (equal(0, get_at(p, q))) // already zeroed, no need to rotate
+                return;
 
-            // Make LU decomposition of matrix m (both L and U are encoded in matrix m)
-            gsl_linalg_LU_decomp(m, perm, &signum);
-            // Find determinant from LU decomposition 
-            double det = gsl_linalg_LU_det(m, signum);
-            if (equal(0, det))
+            // theta is cotangent of Real rotation angle
+            Real theta = (get_at(q, q) - get_at(p, p)) / get_at(p, q) / 2;
+            // t is sin/cos of rotation angle
+            // it is determined from equation t^2 + 2*t*theta - 1 = 0,
+            // which implies from definition of theta as (cos^2 - sin^2)/(2*sin*cos)
+            Real t = (0 != theta) ? sign(theta) / (abs(theta) + sqrt(theta*theta + 1)) : 1;
+            Real cosine = 1 / sqrt(t*t + 1);
+            Real sine = t*cosine;
+            // tau is tangent of half of rotation angle
+            Real tau = sine / (1 + cosine);
+
+            // transform A
+            add_at(p, p, -t*get_at(p, q));
+            add_at(q, q, +t*get_at(p, q));
+            set_at(p, q, 0);
+            set_at(q, p, 0);
+            for (int r = 0; r < SIZE; ++r)
             {
-                return false;
-            }
-            // Invert the matrix `m`, result into `inverse`
-            gsl_linalg_LU_invert(m, perm, inverse);
-            // TODO: avoid such copying! Change internal representation of NineMatrix to array[81]
-            for (int i = 0; i < SIZE; ++i)
-            {
-                for (int j = 0; j < SIZE; ++j)
+                if (r != p && r != q)
                 {
-                    set_at(i, j, gsl_matrix_get(inverse, i, j));
+                    // correction to element at (r,p)
+                    Real rp_correction = -sine*(get_at(r, q) + tau*get_at(r, p));
+                    // correction to element at (r,q)
+                    Real rq_correction = +sine*(get_at(r, p) - tau*get_at(r, q));
+                    add_at(r, p, rp_correction);
+                    add_at(p, r, rp_correction);
+                    add_at(r, q, rq_correction);
+                    add_at(q, r, rq_correction);
                 }
             }
-            gsl_matrix_free(m);
-            gsl_matrix_free(inverse);
-            gsl_permutation_free(perm);
+
+            // store rotation in R
+            for (int r = 0; r < SIZE; ++r)
+            {
+                Real Rkp = cosine*current_transformation.get_at(r, p) - sine*current_transformation.get_at(r, q);
+                Real Rkq = sine*current_transformation.get_at(r, p) + cosine*current_transformation.get_at(r, q);
+                current_transformation.set_at(r, p, Rkp);
+                current_transformation.set_at(r, q, Rkq);
+            }
+        }
+
+        void NineMatrix::diagonalize(int rotations_count, NineMatrix & transformation)
+        {
+            // Start with unit matrix
+            transformation.make_unit();
+
+            // Repeat rotations_count times
+            for (int iter = 0; iter < rotations_count; ++iter)
+            {
+                // Find max non-diagonal element
+                int p = -1, q = -1;
+                Real max = -1;
+                for (int i = 0; i < SIZE - 1; ++i)
+                {
+                    for (int j = i + 1; j < SIZE; ++j)
+                    {
+                        Real a = fabs(get_at(i, j));
+                        if (max < 0 || a > max)
+                        {
+                            p = i;
+                            q = j;
+                            max = a;
+                        }
+                    }
+                }
+                // If all elements are small enough => done
+                if (less_or_equal(max, 0))
+                    return;
+                // Else nullify the found element
+                do_jacobi_rotation(p, q, transformation);
+            }
+        }
+
+        bool NineMatrix::invert_sym(int diag_rotations)
+        {
+            // diagonalize
+            NineMatrix R;
+            NineMatrix diagonalized = *this;
+            diagonalized.diagonalize(diag_rotations, R);
+
+            // invert eigenvalues
+            Real egnv[SIZE];
+            for (int i = 0; i < SIZE; ++i)
+            {
+                egnv[i] = diagonalized.get_at(i, i);
+                if ( ! equal(0, egnv[i]) )
+                    egnv[i] = 1 / egnv[i];
+            }
+
+            // transform back
+            for (int i = 0; i < SIZE; ++i)
+            {
+                for (int j = 0; j < SIZE ; ++j)
+                {
+                    set_at(i, j, 0);
+                    for (int k = 0; k < SIZE; ++k)
+                        add_at(i, j, egnv[k] * R.get_at(i, k) * R.get_at(j, k));
+                }
+            }
+
             return true;
         }
 
@@ -198,5 +310,26 @@ namespace CrashAndSqueeze
             }
         }
 
+#ifndef NDEBUG
+        void NineMatrix::print(char * header /*= ""*/) const
+        {
+            std::ostream & stream = std::cout;
+            stream << std::fixed << header << std::endl;
+            for (int i = 0; i < SIZE; ++i)
+            {
+                for (int j = 0; j < SIZE; ++j)
+                {
+                    Real val = get_at(i, j);
+                    int int_val = (int)round(val);
+                    if (equal(val, int_val, 0.001))
+                        stream << std::setw(4) << int_val;
+                    else
+                        stream << std::setprecision(2) << val;
+                    stream << ' ';
+                }
+                stream << std::endl;
+            }
+        }
+#endif // NDEBUG
     }
 }
