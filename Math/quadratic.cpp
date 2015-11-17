@@ -2,7 +2,7 @@
 #ifndef NDEBUG
 #include <iostream>// for NineMatrix::print
 #include <iomanip> // for NineMatrix::print
-#endif // NDEBUG
+#endif // !NDEBUG
 
 namespace CrashAndSqueeze
 {
@@ -245,6 +245,7 @@ namespace CrashAndSqueeze
             // Start with unit matrix
             transformation.make_unit();
 
+            // TODO: avoid copy-paste from Matrix::diagonalize?
             // Repeat rotations_count times
             for (int iter = 0; iter < rotations_count; ++iter)
             {
@@ -330,6 +331,6 @@ namespace CrashAndSqueeze
                 stream << std::endl;
             }
         }
-#endif // NDEBUG
+#endif // !NDEBUG
     }
 }

@@ -87,8 +87,8 @@ protected:
         orthogonal = Matrix(orthogonal_values);
     }
 
-    void test_jacobi_rotation(Matrix matrix);
-    void test_diagonalization(Matrix matrix, int rotations, Real accuracy);
+    void test_jacobi_rotation(const Matrix & matrix);
+    void test_diagonalization(const Matrix & matrix, int rotations, Real accuracy);
     void test_polar_decomposition(const Matrix &matrix, int rotations, Real accuracy);
 
     bool is_approximately_diagonalized(const Matrix &matrix, Real accuracy)
@@ -342,19 +342,17 @@ TEST_F(MatrixTest, BadInvert)
 
 TEST_F(MatrixTest, InvertSym)
 {
-    const Real values[MATRIX_ELEMENTS_NUM] = {
-        1,-1, 0,
-       -1, 2,-1,
-        0,-1,-1
-    };
-    Matrix sym(values);
-    const Real inv_values[MATRIX_ELEMENTS_NUM] = {
-        1.5, 0.5,-0.5,
-        0.5, 0.5,-0.5,
-       -0.5,-0.5,-0.5,
-    };
-    const Matrix inv(inv_values);
-    sym.invert_sym(12);
+    Matrix sym(
+        1, -1, 0,
+        -1, 2, -1,
+        0, -1, -1
+    );
+    const Matrix inv(
+        1.5, 0.5, -0.5,
+        0.5, 0.5, -0.5,
+        -0.5, -0.5, -0.5
+    );
+    sym.invert_sym();
     EXPECT_EQ(inv, sym);
 }
 
@@ -389,7 +387,7 @@ TEST_F(MatrixTest, Norm)
     EXPECT_EQ(3, M.norm());
 }
 
-void MatrixTest::test_jacobi_rotation(Matrix src_matrix)
+void MatrixTest::test_jacobi_rotation(const Matrix & src_matrix)
 {
     Matrix P = I;
     Matrix matrix = src_matrix;
@@ -447,11 +445,10 @@ TEST_F(MatrixTest, JacobiRotationDummy)
     EXPECT_EQ(I, P);
 }
 
-void MatrixTest::test_diagonalization(Matrix src_matrix, int rotations, Real accuracy)
+void MatrixTest::test_diagonalization(const Matrix & src_matrix, int rotations, Real accuracy)
 {
-    Matrix matrix = src_matrix;
     Matrix V;
-    matrix.diagonalize(rotations, V);
+    Matrix matrix = src_matrix.diagonalized(rotations, V, accuracy);
     EXPECT_EQ( src_matrix, V*matrix*V.transposed() );
     EXPECT_TRUE( is_approximately_diagonalized(matrix, accuracy) );
 }
@@ -521,11 +518,14 @@ void MatrixTest::test_polar_decomposition(Matrix const &matrix, int rotations, R
 {
     Matrix R;
     Matrix S;
-    matrix.do_polar_decomposition(R, S, rotations);
+    matrix.do_polar_decomposition(R, S, rotations, 2*rotations, accuracy);
     
     EXPECT_EQ( matrix, R*S );
     
-    EXPECT_NEAR( 1, abs( R.determinant() ), accuracy );
+    if ( !equal(0, matrix.determinant()) )
+    {
+        EXPECT_NEAR(1, abs(R.determinant()), accuracy);
+    }
     
     Matrix S_simmetrized = S;
     simmetrize(S_simmetrized);
@@ -539,11 +539,10 @@ TEST_F(MatrixTest, PolarDecompositionOfInvertible1)
 
 TEST_F(MatrixTest, PolarDecompositionOfInvertible2)
 {
-    test_polar_decomposition(m3, 12, 1e-8);
+    test_polar_decomposition(m3, 12, 1e-10);
 }
 
-// FAILS:
-//TEST_F(MatrixTest, PolarDecompositionOfUninvertible)
-//{
-//    test_polar_decomposition(m1, 9, 1e-8);
-//}
+TEST_F(MatrixTest, PolarDecompositionOfUninvertible)
+{
+    test_polar_decomposition(m1, 9, 1e-10);
+}

@@ -271,15 +271,30 @@ namespace CrashAndSqueeze
             current_transformation = current_transformation*rotation;
         }
 
-        Matrix & Matrix::diagonalize(int rotations_count, /*out*/ Matrix & transformation)
+        Matrix & Matrix::diagonalize(int rotations_count, /*out*/ Matrix & transformation, Real precision /*=DEFAULT_REAL_PRECISION*/)
         {
+            static const size_t OFF_DIAGONAL_ITEMS_COUNT = VECTOR_SIZE*(VECTOR_SIZE - 1)/2;
+            static const int off_diagonal_items[OFF_DIAGONAL_ITEMS_COUNT] = { element_index(0,1), element_index(0,2), element_index(1, 2) };
+
             transformation = Matrix::IDENTITY;
-            for(int i = 0; i < rotations_count; ++i)
-                do_jacobi_rotation((i+1)%3, (i+2)%3, transformation);
+            for (int iter = 0; iter < rotations_count; ++iter)
+            {
+                Real max = -1;
+                for (int i = 0; i < OFF_DIAGONAL_ITEMS_COUNT; ++i)
+                {
+                    Real a = fabs(get_at_index(off_diagonal_items[i]));
+                    if (max < 0 || a > max) { max = a; }
+                }
+                if (less_or_equal(max, 0, precision))
+                {
+                    return *this;
+                }
+                do_jacobi_rotation((iter + 1) % VECTOR_SIZE, (iter + 2) % VECTOR_SIZE, transformation);
+            }
             return *this;
         }
 
-        Matrix Matrix::compute_function(Function function, int diagonalization_rotations_count) const
+        Matrix Matrix::compute_function(Function function, int diagonalization_rotations_count /*= DEFAULT_JACOBI_ROTATIONS_COUNT*/, Real diag_precision /*=DEFAULT_REAL_PRECISION*/) const
         {
             if(NULL == function)
             {
@@ -288,7 +303,7 @@ namespace CrashAndSqueeze
             }
             
             Matrix transformation;
-            Matrix diagonalized = this->diagonalized(diagonalization_rotations_count, transformation);
+            Matrix diagonalized = this->diagonalized(diagonalization_rotations_count, transformation, diag_precision);
             
             Real value;
             for(int i = 0; i < VECTOR_SIZE; ++i)
@@ -315,22 +330,22 @@ namespace CrashAndSqueeze
 
         void Matrix::do_polar_decomposition(/*out*/ Matrix &orthogonal_part,
                                             /*out*/ Matrix &symmetric_part,
-                                            int diagonalization_rotations_count) const
+                                            int diagonalization_rotations_count /*= DEFAULT_JACOBI_ROTATIONS_COUNT*/,
+                                            int invert_rotations_count /*= 2*DEFAULT_JACOBI_ROTATIONS_COUNT*/,
+                                            Real diag_precision /*=DEFAULT_REAL_PRECISION*/) const
         {
-            symmetric_part = (this->transposed()*(*this)).compute_function(safe_sqrt, diagonalization_rotations_count);
-            // FIXME: what if symmetric_part.determinant() == 0?
-            if( ! symmetric_part.is_invertible() )
-            {
-                Logger::error("in Matrix::do_polar_decomposition: symmetric_part is singular, cannot invert", __FILE__, __LINE__);
-                return;
-            }
+            symmetric_part = (this->transposed()*(*this)).compute_function(safe_sqrt, diagonalization_rotations_count, diag_precision);
+            
+            // TODO: don't diagonalize twice (but this may be less accurate)
+            Matrix sym_inv = symmetric_part;
+            sym_inv.invert_sym(invert_rotations_count, diag_precision);
 
-            orthogonal_part = (*this)*symmetric_part.inverted();
+            orthogonal_part = (*this)*sym_inv;
         }
 
-        bool Matrix::invert_sym(int diag_rotations /*= DEFAULT_JACOBI_ROTATIONS_COUNT*/)
+        bool Matrix::invert_sym(int diag_rotations /*= 2*DEFAULT_JACOBI_ROTATIONS_COUNT*/, Real diag_precision /*=DEFAULT_REAL_PRECISION*/)
         {
-            *this = compute_function(safe_inv, diag_rotations);
+            *this = compute_function(safe_inv, diag_rotations, diag_precision);
             return true;
         }
 

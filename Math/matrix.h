@@ -20,7 +20,7 @@ namespace CrashAndSqueeze
             // matrix represented in memory in row-major order ("C-like arrays")
             Real values[MATRIX_ELEMENTS_NUM];
             
-            bool check_index(int index) const
+            static bool check_index(int index)
             {
                 if(index < 0 || index >= VECTOR_SIZE)
                 {
@@ -30,7 +30,7 @@ namespace CrashAndSqueeze
                 return true;
             }
 
-            int element_index(int row, int column) const
+            static int element_index(int row, int column)
             {
             #ifndef NDEBUG
                 if(false == check_index(row) || false == check_index(column))
@@ -83,6 +83,12 @@ namespace CrashAndSqueeze
             void Matrix::add_at(int row, int column, Real value)
             {
                 values[ element_index(row, column) ] += value;
+            }
+
+            // indices in matrix: 0,0 to 2,2
+            void Matrix::mult_at(int row, int column, Real value)
+            {
+                values[ element_index(row, column) ] *= value;
             }
 
             Vector get_row(int row) const;
@@ -174,7 +180,7 @@ namespace CrashAndSqueeze
             bool invert();
 
             // Inverts symmetric (!) matrix in place (!) by diagonalizing it using diag_rotations Jacobi rotations
-            bool invert_sym(int diag_rotations = 2*DEFAULT_JACOBI_ROTATIONS_COUNT);
+            bool invert_sym(int diag_rotations = 2*DEFAULT_JACOBI_ROTATIONS_COUNT, Real diag_precision = DEFAULT_REAL_PRECISION);
 
             // squared Frobenius norm of matrix
             Real squared_norm() const;
@@ -195,19 +201,23 @@ namespace CrashAndSqueeze
             // Writes diagonalizing transformation matrix into transformation
             // (transformation matrix V is such that D = V.transposed()*A*V,
             //  where A is given matrix and D is diagonalized result).
+            // Might finish before rotations_count iterations if all diagonal elements
+            // are equal to zero with given precision.
             // Returns itself.
             // The matrix is assumed to be symmetric (!), and this is NOT checked.
-            Matrix & diagonalize(int rotations_count, /*out*/ Matrix & transformation);
+            Matrix & diagonalize(int rotations_count, /*out*/ Matrix & transformation, Real precision = DEFAULT_REAL_PRECISION);
             
             // Returns matrix, diagonalized using rotations_count Jacobi rotations.
             // Writes diagonalizing transformation matrix into transformation
             // (transformation matrix V is such that D = V.transposed()*A*V,
             //  where A is given matrix and D is diagonalized result).
+            // Might finish before rotations_count iterations if all diagonal elements
+            // are equal to zero with given precision.
             // The matrix is assumed to be symmetric (!), and this is NOT checked.
-            Matrix diagonalized(int rotations_count, /*out*/ Matrix & transformation) const
+            Matrix diagonalized(int rotations_count, /*out*/ Matrix & transformation, Real precision = DEFAULT_REAL_PRECISION) const
             {
                 Matrix result = *this;
-                return result.diagonalize(rotations_count, transformation);
+                return result.diagonalize(rotations_count, transformation, precision);
             }
 
             // Computes scalar functions of matrix by diagonalizing it using
@@ -216,14 +226,17 @@ namespace CrashAndSqueeze
             // ("un-diagonalizing") it back.
             // The matrix is assumed to be symmetric (!), and this is NOT checked.
             Matrix compute_function(Function function,
-                                    int diagonalization_rotations_count = DEFAULT_JACOBI_ROTATIONS_COUNT) const;
+                                    int diagonalization_rotations_count = DEFAULT_JACOBI_ROTATIONS_COUNT,
+                                    Real invert_precision = DEFAULT_REAL_PRECISION) const;
 
             // Does polar decomposition of matrix, writing orthogonal term
             // ("rotation part") into orthogonal_part, and symmetric term
             // ("scale part") into symmetric_part
             void do_polar_decomposition(/*out*/ Matrix &orthogonal_part,
                                         /*out*/ Matrix &symmetric_part,
-                                        int diagonalization_rotations_count = DEFAULT_JACOBI_ROTATIONS_COUNT) const;
+                                        int diagonalization_rotations_count = DEFAULT_JACOBI_ROTATIONS_COUNT,
+                                        int invert_rotations_count = 2*DEFAULT_JACOBI_ROTATIONS_COUNT,
+                                        Real invert_precision = DEFAULT_REAL_PRECISION) const;
         };
 
         inline Matrix operator*(const Real &scalar, const Matrix &matrix)
