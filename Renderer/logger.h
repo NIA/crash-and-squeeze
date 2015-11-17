@@ -7,7 +7,7 @@ class Logger
 {
 private:
     std::ofstream log_file;
-    static const int MESSAGES_SIZE =50000;
+    static const int MESSAGES_SIZE =500;
     const char * messages[MESSAGES_SIZE];
     int next_message_index;
     WinLock lock;

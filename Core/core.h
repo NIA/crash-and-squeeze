@@ -14,6 +14,9 @@
 // use equilibrium transformation (R*Sp) instead of total deformation (A)
 // to hide some oscillations (looks more realistic for metal-like objects)
 #define CAS_GRAPHICAL_TRANSFORM_TOTAL    1
+// Set to 0 to enable protection from flipping to inverse shape
+// by checking that det A >= 0
+#define CAS_ALLOW_SHAPE_FLIP             0
 // Set to 0 to disable warnings appearing when the shape indices array
 // passed to a ShapeDeformationReaction or a RegionReaction is empty.
 // But anyway, it is useful to leave these warnings enabled for safety from bugs

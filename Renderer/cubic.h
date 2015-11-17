@@ -18,7 +18,7 @@ void cubic( float x_size, float y_size, float z_size, const float3 & position, c
  // NB: SimpleCube is not well suited for lighting (all normals are the same)
 class SimpleCube
 {
-private:
+public:
     static const unsigned VERT_PER_FACE = 4;
     static const unsigned IND_PER_FACE = 6; // for D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
     static const unsigned FACES_NUM = 6;
@@ -26,6 +26,7 @@ private:
     static const unsigned INDICES_NUM = FACES_NUM*IND_PER_FACE;
     static const D3D_PRIMITIVE_TOPOLOGY TOPOLOGY = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
+private:
     Vertex vertices[VERTICES_NUM];
     static const Index INDICES[INDICES_NUM];
 public:

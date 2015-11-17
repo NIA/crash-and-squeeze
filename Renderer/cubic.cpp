@@ -112,21 +112,21 @@ void cubic( float x_size, float y_size, float z_size, const float3 & position, c
 const Index SimpleCube::INDICES[INDICES_NUM] =
 {
     0, 1, 2,
-    0, 3, 2,
+    0, 2, 3,
 
-    6, 7, 4,
+    6, 4, 7,
     6, 5, 4,
 
-    0, 4, 7,
+    0, 7, 4,
     0, 3, 7,
 
-    6, 5, 1,
+    6, 1, 5,
     6, 2, 1,
 
     6, 7, 3,
-    6, 2, 3,
+    6, 3, 2,
 
-    0, 5, 4,
+    0, 4, 5,
     0, 5, 1,
 };
 

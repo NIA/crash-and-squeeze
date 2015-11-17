@@ -215,10 +215,12 @@ namespace CrashAndSqueeze
             graphical_pos_transform.as_matrix() = graphical_pos_transform.to_matrix()*plasticity_state;
         #endif // CAS_QUADRATIC_PLASTICITY_ENABLED
             // TODO: use quadratic transformation for graphical vertices normals as well
-            graphical_nrm_transform = graphical_pos_transform.to_matrix().inverted().transposed();
+            if (graphical_pos_transform.to_matrix().is_invertible())
+                graphical_nrm_transform = graphical_pos_transform.to_matrix().inverted().transposed();
     #else
             graphical_pos_transform = total_deformation*plasticity_state;
-            graphical_nrm_transform = graphical_pos_transform.inverted().transposed();
+            if (graphical_pos_transform.is_invertible()) // TODO: what if graphical_pos_transform is not invertible?
+                graphical_nrm_transform = graphical_pos_transform.inverted().transposed();
     #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 #else
     #if CAS_QUADRATIC_EXTENSIONS_ENABLED
@@ -314,33 +316,43 @@ namespace CrashAndSqueeze
             // A = Apq * Aqq
 #if CAS_QUADRATIC_EXTENSIONS_ENABLED
             symmetric_term.left_mult_by(asymmetric_term, optimal_transformation);
+            Matrix & linear_transform = optimal_transformation.as_matrix();
 #else
             optimal_transformation = asymmetric_term*symmetric_term;
+            Matrix & linear_transform = optimal_transformation;
 #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 
             // -- enforce volume conservation --
 
-#if CAS_QUADRATIC_EXTENSIONS_ENABLED
-            Real det = optimal_transformation.to_matrix().determinant();
-#else
-            Real det = optimal_transformation.determinant();
-#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+            Real det = linear_transform.determinant();
             if( ! equal(0, det) )
             {
-                if( det < 0 )
+                if( (!CAS_ALLOW_SHAPE_FLIP) && det < 0 )
                 {
                     Logger::warning("in Cluster::compute_optimal_transformation: optimal_transformation.determinant() is less than 0, inverted state detected!", __FILE__, __LINE__);
+                    // Prevent from flipping
+                    linear_transform.mult_at(0, 2, -1);
+                    linear_transform.mult_at(1, 2, -1);
+                    linear_transform.mult_at(2, 2, -1);
+                    det *= -1;
                 }
+                det = 1 / cube_root(det);
+                if (fabs(det) > max_deformation_constant)
+                {
+                    Logger::warning("in Cluster::compute_optimal_transformation: optimal_transformation.determinant() is too small, collapsed state detected!", __FILE__, __LINE__);
+                    linear_transform = Matrix::IDENTITY;
 #if CAS_QUADRATIC_EXTENSIONS_ENABLED
-                optimal_transformation.as_matrix() /= cube_root(det);
-#else
-                optimal_transformation /= cube_root(det);
+                    optimal_transformation.matrices[1] = optimal_transformation.matrices[2] = Matrix::ZERO;
 #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+                }
+                else
+                {
+                    linear_transform *= det;
+                }
             }
             else
             {
                 Logger::warning("in Cluster::compute_optimal_transformation: optimal_transformation is singular, so volume-preserving constraint cannot be enforced", __FILE__, __LINE__);
-                // but now, while polar decomposition is only for invertible matrix - it's very, very bad...
             }
         }
 

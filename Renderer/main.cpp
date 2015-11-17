@@ -5,6 +5,7 @@
 #include "plane.h"
 #include "cylinder.h"
 #include "sphere.h"
+#include "tessellate.h"
 #include "ObjMeshLoader.h"
 #include "Stopwatch.h"
 #include <ctime>
@@ -834,6 +835,59 @@ namespace
     };
     const TCHAR * OvalDemo::cmdline_option = _T("/oval");
     const float4  OvalDemo::OVAL_COLOR (0.67f, 0.55f, 0.47f, 1);
+    
+    const Index CUBE_TRIANGLES = SimpleCube::FACES_NUM * 2;
+    const Index CUBE_VERTICES = CUBE_TRIANGLES * TESSELATED_VERTICES_COUNT;
+    const Index CUBE_INDICES  = CUBE_TRIANGLES * TESSELATED_INDICES_COUNT;
+    class CubeDemo : public Demo
+    {
+    public:
+        CubeDemo(Application & app_)
+            : Demo(app_, CUBE_VERTICES, CUBE_INDICES, CUBE_VERTICES, CUBE_INDICES)
+        {}
+
+        static const TCHAR * cmdline_option;
+
+        virtual void prepare() override
+        {
+            SimpleCube initial_cube(float3(-0.4f, -0.6f, -0.8f), float3(0.4f, 0.6f, 0.8f), NO_DEFORM_COLOR);
+            for (Index i = 0; i < CUBE_TRIANGLES; ++i)
+            {
+                tessellate(initial_cube.get_vertices(), initial_cube.get_indices(), i*VERTICES_PER_TRIANGLE,
+                    &low_model_vertices[i*TESSELATED_VERTICES_COUNT], i*TESSELATED_VERTICES_COUNT,
+                    &low_model_indices[i*TESSELATED_INDICES_COUNT], NO_DEFORM_COLOR);
+                // TODO: different data for low and high model
+                memcpy(high_model_vertices, low_model_vertices, CUBE_VERTICES*sizeof(low_model_vertices[0]));
+                memcpy(high_model_indices,  low_model_indices,  CUBE_INDICES*sizeof(low_model_indices[0]));
+            }
+            Model * high_cube_model = new Model(
+                app.get_renderer(),
+                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+                deform_shader,
+                high_model_vertices,
+                CUBE_VERTICES,
+                high_model_indices,
+                CUBE_INDICES);
+            high_cube_model->add_shader(lighting_shader); // add lighting
+            Model * low_cube_model = new Model(
+                app.get_renderer(),
+                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+                simple_shader,
+                low_model_vertices,
+                CUBE_VERTICES,
+                low_model_indices,
+                CUBE_INDICES);
+            low_cube_model->add_shader(simple_pixel_shader);
+
+            /*PhysicalModel * phys_mod =*/ add_physical_model(high_cube_model, low_cube_model);
+            
+            // - Set impact -
+            set_impact(Vector(0, 0.63, 0), 0.25, Vector(0, 0, 0), Vector(0, -50, 0.0));
+
+            PhysicsLogger::get_instance().ignore(PhysicsLogger::WARNING);
+        }
+    };
+    const TCHAR * CubeDemo::cmdline_option = _T("/cube");
 #pragma warning( pop )
 }
 
@@ -877,6 +931,11 @@ INT WINAPI _tWinMain( HINSTANCE, HINSTANCE, LPTSTR, INT )
         else if (mesh_filename == CylinderDemo::cmdline_option)
         {
             CylinderDemo demo(app, 0.5, 2);
+            demo.run();
+        }
+        else if (mesh_filename == CubeDemo::cmdline_option)
+        {
+            CubeDemo demo(app);
             demo.run();
         }
         else
