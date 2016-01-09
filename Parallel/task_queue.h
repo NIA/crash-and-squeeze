@@ -26,6 +26,9 @@ namespace CrashAndSqueeze
             ILock * pop_lock;
             // an event object to notify when there are new tasks available
             IEvent * has_tasks_event;
+
+            // performs clearing without synchronization: must be called from within already captured lock
+            void clear_unsafe();
         public:
             TaskQueue(int max_size, IPrimFactory * prim_factory);
 
@@ -43,7 +46,6 @@ namespace CrashAndSqueeze
             void reset();
 
             // remove tasks from queue without completing them
-            // TODO: avoid calling this function when all tasks are actually completed just to move `first` and `last` to the start.
             void clear();
 
             // wait until there are some tasks to pop

@@ -46,8 +46,8 @@ namespace CrashAndSqueeze
 
                 if (is_empty())
                 {
-                    // if it was the las task
-                    has_tasks_event->unset();
+                    // if it was the las task => call clear to reset queue to its initial state with pointers at the beginning
+                    clear_unsafe();
                 }
             }
             pop_lock->unlock();
@@ -84,10 +84,19 @@ namespace CrashAndSqueeze
         void TaskQueue::clear()
         {
             pop_lock->lock();
+            clear_unsafe();
+            pop_lock->unlock();
+        }
+
+        // internal version without locking
+        void TaskQueue::clear_unsafe()
+        {
+            // To make the queue empty:
+            // 1) move pointers back to the beginning
             first = 0;
             last = -1;
+            // 2) unset notification
             has_tasks_event->unset();
-            pop_lock->unlock();
         }
 
         void TaskQueue::wait_for_tasks()
