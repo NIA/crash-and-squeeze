@@ -33,15 +33,7 @@ namespace CrashAndSqueeze
 
         Matrix::Matrix(const Vector &left_vector, const Vector &right_vector)
         {
-            values[0] = left_vector[0]*right_vector[0];
-            values[1] = left_vector[0]*right_vector[1];
-            values[2] = left_vector[0]*right_vector[2];
-            values[3] = left_vector[1]*right_vector[0];
-            values[4] = left_vector[1]*right_vector[1];
-            values[5] = left_vector[1]*right_vector[2];
-            values[6] = left_vector[2]*right_vector[0];
-            values[7] = left_vector[2]*right_vector[1];
-            values[8] = left_vector[2]*right_vector[2];
+            set_outer_product(left_vector, right_vector);
         }
         
         // -- getters/setters --
@@ -90,6 +82,19 @@ namespace CrashAndSqueeze
                 result[i] = get_at(i, column);
 
             return result;
+        }
+
+        void Matrix::set_outer_product(const Vector &left_vector, const Vector &right_vector)
+        {
+            values[0] = left_vector[0] * right_vector[0];
+            values[1] = left_vector[0] * right_vector[1];
+            values[2] = left_vector[0] * right_vector[2];
+            values[3] = left_vector[1] * right_vector[0];
+            values[4] = left_vector[1] * right_vector[1];
+            values[5] = left_vector[1] * right_vector[2];
+            values[6] = left_vector[2] * right_vector[0];
+            values[7] = left_vector[2] * right_vector[1];
+            values[8] = left_vector[2] * right_vector[2];
         }
 
         // -- assignment operators --

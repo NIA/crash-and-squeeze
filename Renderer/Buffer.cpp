@@ -11,7 +11,7 @@ BufferImpl::BufferImpl(IRenderer * renderer, unsigned bind_flag, const void *buf
     desc.BindFlags = bind_flag;
     if (dynamic)
     {
-        desc.Usage = D3D11_USAGE_DYNAMIC; // TODO: probably use D3D11_USAGE_DEFAULT when staging_backed = true? But should require changing of behaviour for lock(LOCK_OVERWRITE)
+        desc.Usage = D3D11_USAGE_DYNAMIC;
         desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     }
     else
@@ -45,42 +45,43 @@ void * BufferImpl::lock(BufferLockType lock_type)
 {
     if (nullptr != locked_buffer)
         // TODO: add error message to BufferLockError
-        throw BufferLockError(bind_flag); // already locked
+        throw BufferLockError(bind_flag, "already locked"); // already locked
 
     D3D11_MAP map_type = D3D11_MAP_READ;
     switch (lock_type)
     {
     case LOCK_OVERWRITE:
         if (!dynamic)
-            throw BufferLockError(bind_flag); // cannot write if not dynamic
+            throw BufferLockError(bind_flag, "cannot LOCK_OVERWRITE: buffer is not writable (dynamic = false)"); // cannot write if not dynamic
         locked_buffer = buffer;
         update_after_unlock = false;
         map_type = D3D11_MAP_WRITE_DISCARD;
         break;
     case LOCK_READ:
         if (!staging_backed)
-            throw BufferLockError(bind_flag); // cannot read if not staging_backed
+            throw BufferLockError(bind_flag, "cannot LOCK_READ: buffer is not readable (because not staging-backed)"); // cannot read if not staging_backed
         locked_buffer = staging_buffer;
         update_after_unlock = false;
         map_type = D3D11_MAP_READ;
         break;
     case LOCK_READ_WRITE:
         if (!staging_backed)
-            throw BufferLockError(bind_flag); // cannot read if not staging_backed
+            throw BufferLockError(bind_flag, "cannot LOCK_READ_WRITE: buffer is not readable (because not staging-backed)"); // cannot read if not staging_backed
         if (!dynamic)
-            throw BufferLockError(bind_flag); // cannot write if not dynamic
+            throw BufferLockError(bind_flag, "cannot LOCK_READ_WRITE: buffer is not writable (dynamic = false)"); // cannot write if not dynamic
         locked_buffer = staging_buffer;
         update_after_unlock = true;
         map_type = D3D11_MAP_READ_WRITE;
         break;
     default:
-        throw BufferLockError(bind_flag); // incorrect lock_type value
+        throw BufferLockError(bind_flag, "cannot lock: incorrect BufferLockType " + lock_type); // incorrect lock_type value
     }
     D3D11_MAPPED_SUBRESOURCE mapped_subres;
-    if(FAILED( renderer->get_context()->Map(locked_buffer, 0, map_type, 0, &mapped_subres ) ))
+    HRESULT res = renderer->get_context()->Map(locked_buffer, 0, map_type, 0, &mapped_subres);
+    if(FAILED( res ))
     {
         locked_buffer = nullptr;
-        throw BufferLockError(bind_flag);
+        throw BufferLockError(bind_flag, "direct3d error code " + res);
     }
     return mapped_subres.pData;
 }

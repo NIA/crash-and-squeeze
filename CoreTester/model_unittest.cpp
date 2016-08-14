@@ -133,13 +133,10 @@ protected:
             ASSERT_GE( v.get_including_clusters_num(), 0 );
         }
 
-#if (! CAS_QUADRATIC_EXTENSIONS_ENABLED)
-        // TODO: fix this test for CAS_QUADRATIC_EXTENSIONS_ENABLED. Currently just ignore this test
         for(int i = 0; i < cnum; ++i)
         {
             ASSERT_TRUE(m.get_cluster(i).is_valid());
         }
-#endif // (! CAS_QUADRATIC_EXTENSIONS_ENABLED)
     }
 
     void compute_next_step(Model &m, const ForcesArray &forces, VelocitiesChangedCallback & vcb)

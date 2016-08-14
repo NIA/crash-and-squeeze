@@ -94,6 +94,8 @@ namespace CrashAndSqueeze
             Vector get_row(int row) const;
             Vector get_column(int column) const;
 
+            void set_outer_product(const Vector & left_vector, const Vector & right_vector);
+
             // -- assignment operators --
 
             Matrix & operator+=(const Matrix &another);

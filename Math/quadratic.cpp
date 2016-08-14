@@ -93,8 +93,7 @@ namespace CrashAndSqueeze
             {
                 for (int j = 0; j < COMPONENTS_NUM; ++j)
                 {
-                    // TODO: make setter to avoid copying?
-                    columns[j].matrices[i] = Matrix(left_vector.vectors[i], right_vector.vectors[j]);
+                    columns[j].matrices[i].set_outer_product(left_vector.vectors[i], right_vector.vectors[j]);
                 }
             }
         }

@@ -2,7 +2,7 @@
 #include "Logging/logger.h"
 #include "Collections/array.h"
 
-#define CAS_VERSION "0.9.0"
+#define CAS_VERSION "0.9.0-SNAPSHOT"
 
 // ** Options (preprocessor switches) **
 

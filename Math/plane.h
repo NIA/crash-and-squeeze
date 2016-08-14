@@ -33,7 +33,6 @@ namespace CrashAndSqueeze
 
             Math::Real projection_to_normal(const Math::Vector &point) const
             {
-                // TODO: Vector::project_to (or maybe this class not needed at all?)
                 return (point - this->point)*this->normal;
             }
 

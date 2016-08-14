@@ -72,7 +72,7 @@ public:
 class BufferError : public RuntimeError
 {
 public:
-    BufferError(const char * log_entry_start, unsigned bind_flag = D3D11_BIND_VERTEX_BUFFER)
+    BufferError(const std::string & log_entry_start, unsigned bind_flag = D3D11_BIND_VERTEX_BUFFER, const std::string & detailed_err_msg = "")
         : RuntimeError( _T("Error while working with D3D buffer, see log") )
     {
         std::string log_entry_end = " buffer";
@@ -84,7 +84,10 @@ public:
             log_entry_end = " constant buffer";
         else if (bind_flag == 0)
             log_entry_end = " staging (copy) buffer";
-        set_log_entry(log_entry_start + log_entry_end);
+        if (detailed_err_msg.length() > 0)
+            set_log_entry(log_entry_start + log_entry_end + ": " + detailed_err_msg);
+        else
+            set_log_entry(log_entry_start + log_entry_end);
     }
 };
 class BufferInitError : public BufferError
@@ -95,7 +98,7 @@ public:
 class BufferLockError : public BufferError
 {
 public:
-   BufferLockError(unsigned bind_flag = D3D11_BIND_VERTEX_BUFFER) : BufferError( "Failed to lock", bind_flag ) {}
+   BufferLockError(unsigned bind_flag = D3D11_BIND_VERTEX_BUFFER, const std::string & detailed_err_msg = "") : BufferError( "Failed to lock", bind_flag, detailed_err_msg ) {}
 };
 class RenderError : public RuntimeError
 {
