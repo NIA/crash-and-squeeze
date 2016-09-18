@@ -40,15 +40,13 @@ namespace CrashAndSqueeze
             Collections::Array<GraphicalVertex> graphical_vertices;
             Collections::Array<Cluster> clusters;
 
-            // TODO: is it rational to store ALL position if in used only to compare with a few reactons?
-            // Probably better to store only needed ones in Reaction class?
+            // TODO: is it rational to store ALL position if in used only to compare with a few reactions?
+            // Probably better to store only needed ones in Reaction class? But NB: this will disable the ability to render initial positions for comparison (Model::update_initial_position)
             Collections::Array<Math::Vector> initial_positions;
 
-            // TODO: do we need separate arrays for all these types? Some of them are invoked identically
-            Collections::Array<ShapeDeformationReaction *> shape_deform_reactions;
-            Collections::Array<RegionReaction *> region_reactions;
+            Collections::Array<ModelReaction *> reactions;
+            // hit reactions are invoked differently, so that they are stored separately
             Collections::Array<HitReaction *> hit_reactions;
-            Collections::Array<StretchReaction*> stretch_reactions;
 
             // -- fields used in initialization --
             int clusters_by_axes[Math::VECTOR_SIZE];
@@ -98,6 +96,7 @@ namespace CrashAndSqueeze
             class ClusterTask : public Parallel::AbstractTask
             {
             private:
+                const Model *model;
                 Cluster *cluster;
                 Math::Real *dt;
                 Parallel::IEventSet * event_set;
@@ -107,7 +106,7 @@ namespace CrashAndSqueeze
                 virtual void execute();
             public:
                 ClusterTask();
-                void setup(Cluster & cluster, Math::Real & dt, Parallel::IEventSet * event_set, int event_index);
+                void setup(const Model & model, Cluster & cluster, Math::Real & dt, Parallel::IEventSet * event_set, int event_index);
             } *cluster_tasks;
 
             class FinalTask : public Parallel::AbstractTask
@@ -207,9 +206,9 @@ namespace CrashAndSqueeze
             // -- Reactions --
             
             void add_hit_reaction(HitReaction & reaction) { hit_reactions.push_back(&reaction); }
-            void add_region_reaction(RegionReaction & reaction) { region_reactions.push_back(&reaction); }
-            void add_shape_deformation_reaction(ShapeDeformationReaction & reaction) { shape_deform_reactions.push_back(&reaction); }
-            void add_stretch_reaction(StretchReaction &reaction) { stretch_reactions.push_back(&reaction); }
+            void add_region_reaction(RegionReaction & reaction) { reactions.push_back(&reaction); }
+            void add_shape_deformation_reaction(ShapeDeformationReaction & reaction) { reactions.push_back(&reaction); }
+            void add_stretch_reaction(StretchReaction &reaction) { reactions.push_back(&reaction); }
 
             // -- Run-time simulation interface --
             
@@ -271,6 +270,9 @@ namespace CrashAndSqueeze
 
             // Abort computation in other threads by emptying task queue and releasing waiting threads
             void abort();
+
+            // checked internally to short-curcuit execution after error
+            bool is_aborted() const { return ! success; }
 
             // detect happened events and invoke reactions, if needed
             void react_to_events();

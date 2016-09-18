@@ -45,13 +45,12 @@ using std::string;
 // TODO: store these options in config file instead of source code
 namespace
 {
-    bool DISABLE_MESSAGE_BOXES = true;
+    bool DISABLE_MESSAGE_BOXES = false;
     bool PAINT_MODEL = false;
     bool SHOW_NORMALS = false;
     bool ENABLE_REACTIONS = false;
     bool SHOW_REACTION_REGIONS = false;
-    bool UPDATE_ON_GPU = true; // TODO: when update on GPU, create models as immutable (dynamic = false)
-                               // TODO: why is lighting less smooth when updating on GPU? Maybe precision of applying deformation and averaging? How to fix?
+    bool UPDATE_ON_GPU = false; // TODO: why is lighting less smooth when updating on GPU? Maybe precision of applying deformation and averaging? How to fix?
 
     const char *SIMPLE_SHADER_FILENAME = "simple.vsh";
                                                          // TODO: can we handle this with one shader file? And allow switching CPU/GPU in runtime?
@@ -99,11 +98,11 @@ namespace
     const Index HIGH_OVAL_VERTICES = sphere_vertices_count(HIGH_OVAL_EDGES_PER_DIAMETER);
     const DWORD HIGH_OVAL_INDICES = sphere_indices_count(HIGH_OVAL_EDGES_PER_DIAMETER);
 
-    inline void my_message_box(const TCHAR *message, const TCHAR *caption, UINT type, bool force = false)
+    inline int my_message_box(const TCHAR *message, const TCHAR *caption, UINT type, bool force = false)
     {
         if( ! DISABLE_MESSAGE_BOXES || force )
         {
-            MessageBox(NULL, message, caption, type);
+            return MessageBox(NULL, message, caption, type);
         }
     }
 
@@ -146,7 +145,10 @@ namespace
         void invoke(const char * message, const char * file, int line)
         {
             logger.log("WARNING [Crash-And-Squeeze]", message, file, line);
-            my_message_box(_T("Physical subsystem warning! See log"), _T("Crash-And-Squeeze warning!"), MB_OK | MB_ICONEXCLAMATION, true);
+            int res = my_message_box(_T("Physical subsystem warning! See log.\n\nDisable message boxes?"), _T("Crash-And-Squeeze warning!"), MB_YESNOCANCEL | MB_ICONEXCLAMATION | MB_DEFBUTTON2);
+            if (IDYES == res) {
+                DISABLE_MESSAGE_BOXES = true;
+            }
         }
     };
 
@@ -727,7 +729,7 @@ namespace
                     // scale so that dimensions are approximately MESH_EXPECTED_DIMENSION
                     float3 dimensions = loader.get_dimensions();
                     float max_dimension = std::max(std::max(dimensions.x, dimensions.y), dimensions.z);
-                    if ( fabs(max_dimension) < 1e-5 ) // TODO: normal FP comparison
+                    if ( fabs(max_dimension) < 1e-5 )
                         throw OutOfRangeError(RT_ERR_ARGS("Mesh has zero dimension, cannot scale it"));
                     loader.scale(MESH_EXPECTED_DIMENSION / max_dimension);
                 }

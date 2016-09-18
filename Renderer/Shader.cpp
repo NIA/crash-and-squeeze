@@ -16,6 +16,9 @@ namespace
 
 void AbstractShader::compile()
 {
+    if (compiled) {
+        return;
+    }
     ID3DBlob  * shader_code = nullptr;
     ID3DBlob  * shader_errors = nullptr;
 
@@ -52,6 +55,7 @@ void AbstractShader::compile()
         throw ShaderInitError();
     }
     release_interface(shader_code);
+    compiled = true;
 }
 
 /************************************************************************/

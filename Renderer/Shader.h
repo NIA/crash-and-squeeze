@@ -9,6 +9,7 @@ private:
     IRenderer *renderer;
     const char *filename;
     const char *target;
+    bool compiled;
 
 protected:
     // creates shader from given compiled buffer (should be implemented in each subclass)
@@ -17,7 +18,9 @@ protected:
 public:
     AbstractShader(IRenderer * renderer, const char * shader_filename, const char * target) :
         renderer(renderer), filename(shader_filename), target(target)
-    {}
+    {
+        compiled = false;
+    }
     IRenderer * get_renderer() const { return renderer; }
     // compiles shader from file and calls `create`
     void compile();

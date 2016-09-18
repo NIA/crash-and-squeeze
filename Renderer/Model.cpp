@@ -100,7 +100,6 @@ AbstractShader &AbstractModel::get_shader(int index) const
 
 void AbstractModel::add_shader(AbstractShader &shader)
 {
-    // TODO: this may compile same shader multiple times! Fix either this code or Shader::compile to avoid this
     shader.compile();
     shaders.push_back(&shader);
 }
@@ -348,7 +347,7 @@ void PointModel::pre_draw() const
 {
     vertex_buffer->set();
     // Use triangle list to make point model better visible. Created triangles are random, but who cares?
-    // TODO: return to POINTLIST but use geometry shader to transform points to triangles or tetrahedrons
+    // TODO: return to POINTLIST but use geometry shader/instancing to transform points to triangles or tetrahedrons
     get_context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 

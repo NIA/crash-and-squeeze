@@ -44,7 +44,6 @@ BufferImpl::BufferImpl(IRenderer * renderer, unsigned bind_flag, const void *buf
 void * BufferImpl::lock(BufferLockType lock_type)
 {
     if (nullptr != locked_buffer)
-        // TODO: add error message to BufferLockError
         throw BufferLockError(bind_flag, "already locked"); // already locked
 
     D3D11_MAP map_type = D3D11_MAP_READ;

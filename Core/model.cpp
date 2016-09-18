@@ -64,8 +64,9 @@ namespace CrashAndSqueeze
         Model::ClusterTask::ClusterTask()
             : cluster(NULL), dt(0) {}
 
-        void Model::ClusterTask::setup(Cluster & cluster, Math::Real & dt, Parallel::IEventSet * event_set, int event_index)
+        void Model::ClusterTask::setup(const Model & model, Cluster & cluster, Math::Real & dt, Parallel::IEventSet * event_set, int event_index)
         {
+            this->model = &model;
             this->cluster = &cluster;
             this->dt = &dt;
             this->event_set = event_set;
@@ -74,8 +75,9 @@ namespace CrashAndSqueeze
         
         void Model::ClusterTask::execute()
         {
-            if (NULL == cluster)
+            if (NULL == cluster || NULL == model)
                 Logger::error("In Model::ClusterTask::execute(): task not set up, call setup() first", __FILE__, __LINE__);
+            if (model->is_aborted()) return;
             cluster->match_shape(*dt);
             event_set->set(event_index);
         }
@@ -422,7 +424,7 @@ namespace CrashAndSqueeze
             step_completed = prim_factory->create_event(true);
             for(int i = 0; i < clusters_num; ++i)
             {
-                cluster_tasks[i].setup(clusters[i], dt, cluster_tasks_completed, i);
+                cluster_tasks[i].setup(*this, clusters[i], dt, cluster_tasks_completed, i);
             }
             // NB: now tasks are not pushed to queue here: they are pushed either in Model::compute_next_step_async or in Model::update_vertices_async
 
@@ -605,7 +607,6 @@ namespace CrashAndSqueeze
         {
             Logger::warning("in Model::abort: step computation aborted", __FILE__, __LINE__);
             success = false;
-            // TODO: this should not only clear queues and set events, but also abort currently executing task
             task_queue->clear();
             cluster_tasks_completed->set();
             step_completed->set();
@@ -616,28 +617,28 @@ namespace CrashAndSqueeze
             cluster_tasks_completed->wait();
 
             // TODO: place it somewhere more logical
-            shape_deform_reactions.freeze();
+            reactions.freeze();
 
             // Re-compute properties (due to changed positions of vertices)
-            if( false == body->compute_properties() )
+            if( is_aborted() || false == body->compute_properties() )
                 return;
 
             // -- Force linear and angular momenta conservation --
 
-            if( false == body->compute_velocity_additions() )
+            if(is_aborted() || false == body->compute_velocity_additions())
                 return;
 
             body->compensate_velocities( body->get_linear_velocity_addition(),
                                          body->get_angular_velocity_addition() );
 
             // -- For each vertex of model: integrate velocities: sum velocity additions and apply forces --
-            for(int i = 0; i < vertices.size(); ++i)
+            for(int i = 0; i < vertices.size() && !is_aborted(); ++i)
             {
                 if( false == vertices[i].integrate_velocity( *forces, dt ) )
                     return;
             }
 
-            if( NULL != frame )
+            if( NULL != frame && !is_aborted() )
             {
                 // -- Ensure that the frame moves as a rigid body --
 
@@ -649,8 +650,8 @@ namespace CrashAndSqueeze
                 frame->set_rigid_motion();
             }
 
-            // Find macroscopic motion for damping and subsequent substraction
-            if( false == body->compute_velocities() )
+            // Find macroscopic motion for damping and subsequent subtraction
+            if( is_aborted() || false == body->compute_velocities() )
                 return;
 
             // Damp deformation oscillations
@@ -668,12 +669,12 @@ namespace CrashAndSqueeze
             body->compensate_velocities(body->get_linear_velocity(), body->get_angular_velocity());
 
             // -- For each vertex of model: integrate positions --
-            for(int i = 0; i < vertices.size(); ++i)
+            for(int i = 0; i < vertices.size() && !is_aborted(); ++i)
             {
                 vertices[i].integrate_position(dt);
             }
 
-            if( NULL != frame )
+            if( NULL != frame && !is_aborted() )
             {
                 // -- If there is the frame, relative_to_frame should repeat its inverted motion --
 
@@ -697,19 +698,9 @@ namespace CrashAndSqueeze
         {
             // -- Invoke reactions if needed --
 
-            for(int i = 0; i < shape_deform_reactions.size(); ++i)
+            for (int i = 0; i < reactions.size(); ++i)
             {
-                shape_deform_reactions[i]->invoke_if_needed(*this);
-            }
-
-            for(int i = 0; i < region_reactions.size(); ++i)
-            {
-                region_reactions[i]->invoke_if_needed(*this);
-            }
-
-            for(int i = 0; i < stretch_reactions.size(); ++i)
-            {
-                stretch_reactions[i]->invoke_if_needed(*this);
+                reactions[i]->invoke_if_needed(*this);
             }
         }
 
@@ -838,8 +829,7 @@ namespace CrashAndSqueeze
             if (false == process_update_vertices_args(vertex_info, start_vertex, vertices_num))
                 return;
             // TODO: check if update is already started! And either wait for it or report error
-            // TODO: what if user calls this method more than one time per frame? Task queue will be full and it will fail
-
+            
             // reset event set
             update_tasks_completed->unset();
 
@@ -879,7 +869,7 @@ namespace CrashAndSqueeze
             int last_vertex = start_vertex + vertices_num - 1;
 
             void *out_vertex = add_to_pointer(out_vertices, start_vertex*vertex_info.get_vertex_size());;
-            for(int i = start_vertex; i <= last_vertex; ++i)
+            for(int i = start_vertex; i <= last_vertex && !is_aborted(); ++i)
             {
                 const GraphicalVertex & vertex = graphical_vertices[i];
                 int clusters_num = vertex.get_including_clusters_num();
@@ -889,10 +879,10 @@ namespace CrashAndSqueeze
                     return;
                 }
 
-                for(int j = 0; j < vertex_info.get_points_num(); ++j)
+                for(int j = 0; j < vertex_info.get_points_num() && !is_aborted(); ++j)
                 {
                     Vector new_point = Vector::ZERO;
-                    for( int k = 0; k < clusters_num; ++k)
+                    for( int k = 0; k < clusters_num && !is_aborted(); ++k)
                     {
                         const Cluster & cluster = clusters[vertex.get_including_cluster_index(k)];
 #if CAS_QUADRATIC_EXTENSIONS_ENABLED
@@ -910,10 +900,10 @@ namespace CrashAndSqueeze
                     VertexInfo::vector_to_vertex_floats(new_point, destination);
                 }
 
-                for(int j = 0; j < vertex_info.get_vectors_num(); ++j)
+                for(int j = 0; j < vertex_info.get_vectors_num() && !is_aborted(); ++j)
                 {
                     Vector new_vector = Vector::ZERO;
-                    for( int k = 0; k < clusters_num; ++k)
+                    for( int k = 0; k < clusters_num && !is_aborted(); ++k)
                     {
                         const Cluster & cluster = clusters[vertex.get_including_cluster_index(k)];
 #if CAS_QUADRATIC_EXTENSIONS_ENABLED

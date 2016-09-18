@@ -23,6 +23,12 @@ namespace CrashAndSqueeze
 
         typedef Enabled Reaction; // Currently Reaction is simply = Enabled, but in future we can make it a more sensible class
 
+        // Reaction that is invoked based on entire state of IModel
+        class ModelReaction : public Reaction {
+        public:
+            virtual void invoke_if_needed(const IModel &model) = 0;
+        };
+
         // An abstract reaction to shape deformation: is invoked when at least one
         // vertex of the shape goes farther than `threshold_distance' from its initial position.
         // The shape is defined by an array of indices of vertices that form the shape.
@@ -33,7 +39,7 @@ namespace CrashAndSqueeze
         //
         // If two or more vertices from shape exceed threshold distance, the index
         // of vertex with the greatest distance is passed to invoke().
-        class ShapeDeformationReaction : public Reaction
+        class ShapeDeformationReaction : public ModelReaction
         {
         private:
             const IndexArray & shape_vertex_indices;
@@ -63,7 +69,7 @@ namespace CrashAndSqueeze
         // To implement your own reaction, inherit your class from this
         // and override invoke(), then pass an instance of your class
         // to Model::add_region_reaction.
-        class RegionReaction : public Reaction
+        class RegionReaction : public ModelReaction
         {
         private:
             const IndexArray & shape_vertex_indices;
@@ -123,7 +129,7 @@ namespace CrashAndSqueeze
         // and override invoke(), then pass an instance of your class
         // to Model::add_stretch_reaction.
         // TODO: test this class
-        class StretchReaction : public Reaction
+        class StretchReaction : public ModelReaction
         {
         private:
             // TODO: maybe not just two vector indices, but kind of array of pairs?
