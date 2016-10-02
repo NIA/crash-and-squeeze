@@ -25,7 +25,7 @@ const char * FACE_DELIMITER = "/";
 
 inline bool is_empty(const char * str)
 {
-    return str[0] == 0;
+    return str == nullptr || str[0] == 0;
 }
 
 inline float3 parse_float3(const string &x, const string &y, const string &z)

@@ -705,71 +705,75 @@ namespace
     class MeshDemo : public Demo
     {
     private:
-        const tstring mesh_filename;
+        const std::vector<tstring> mesh_filenames;
     public:
-        MeshDemo(Application & app_, const tstring & mesh_filename_ = DEFAULT_MESH_FILENAME)
-            : Demo(app_, 0, 0, 0, 0), mesh_filename(mesh_filename_)
+        MeshDemo(Application & app_, const TCHAR * const * mesh_filenames_ = &DEFAULT_MESH_FILENAME, int mesh_count = 1)
+            : Demo(app_, 0, 0, 0, 0), mesh_filenames(mesh_filenames_, mesh_filenames_+mesh_count)
         {}
     protected:
         virtual void prepare()
         {
             // == PREPARE MESH DEMO ==
 
-            // - Load model from obj
-            ObjMeshLoader loader(mesh_filename.c_str(), MESH_COLOR);
-            {
-                Stopwatch stopwatch;
-                stopwatch.start();
-
-                // load
-                loader.load();
-
-                if (MESH_AUTOSCALE)
+            for (auto & mesh_filename : mesh_filenames) {
+                // - Load model from obj
+                ObjMeshLoader loader(mesh_filename.c_str(), MESH_COLOR);
                 {
-                    // scale so that dimensions are approximately MESH_EXPECTED_DIMENSION
-                    float3 dimensions = loader.get_dimensions();
-                    float max_dimension = std::max(std::max(dimensions.x, dimensions.y), dimensions.z);
-                    if ( fabs(max_dimension) < 1e-5 )
-                        throw OutOfRangeError(RT_ERR_ARGS("Mesh has zero dimension, cannot scale it"));
-                    loader.scale(MESH_EXPECTED_DIMENSION / max_dimension);
+                    Stopwatch stopwatch;
+                    stopwatch.start();
+
+                    // load
+                    loader.load();
+
+                    if (MESH_AUTOSCALE)
+                    {
+                        // scale so that dimensions are approximately MESH_EXPECTED_DIMENSION
+                        float3 dimensions = loader.get_dimensions();
+                        float max_dimension = std::max(std::max(dimensions.x, dimensions.y), dimensions.z);
+                        if (fabs(max_dimension) < 1e-5)
+                            throw OutOfRangeError(RT_ERR_ARGS("Mesh has zero dimension, cannot scale it"));
+                        loader.scale(MESH_EXPECTED_DIMENSION / max_dimension);
+                    }
+
+                    double time = stopwatch.stop();
+                    static const int BUF_SIZE = 128;
+                    static char buf[BUF_SIZE];
+                    sprintf_s(buf, BUF_SIZE,
+                        "loading mesh from %s: %7.2f ms",
+                        tstring_to_string(mesh_filename).c_str(), time * 1000);
+                    app.get_logger().log("        [Importer]", buf);
                 }
 
-                double time = stopwatch.stop();
-                static const int BUF_SIZE = 128;
-                static char buf[BUF_SIZE];
-                sprintf_s(buf, BUF_SIZE,
-                    "loading mesh from %s: %7.2f ms",
-                    tstring_to_string(mesh_filename).c_str(), time*1000);
-                app.get_logger().log("        [Importer]", buf);
+                // - Create models -
+                Model * mesh = new Model(
+                    app.get_renderer(),
+                    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+                    deform_shader,
+                    // TODO: introduce IGeometry interface for easily passing ObjMeshLoader (and similar classes, e.g. SimpleCube) to Model constructor
+                    loader.get_vertices().data(),
+                    loader.get_vertices().size(),
+                    loader.get_indices().data(),
+                    loader.get_indices().size()
+                    );
+                mesh->add_shader(lighting_shader); // add lighting
+                Vertex * car_vertices = mesh->lock_vertex_buffer(LOCK_READ);
+                PointModel * low_mesh = new PointModel(app.get_renderer(), simple_shader, car_vertices, mesh->get_vertices_count(), 10);
+                mesh->unlock_vertex_buffer();
+                low_mesh->add_shader(simple_pixel_shader);
+                set_camera_position(6.1f, 1.2f, -0.1575f);
+                PhysicalModel *phys_mod = add_physical_model(mesh, low_mesh);
+
+                if (hit_region == nullptr) {
+                    // - Set impact -
+                    set_impact(Vector(0.7, -1.5, 2.7), 0.45, phys_mod->get_center_of_mass(), Vector(0, 0, -510));
+                    app.set_impact_rot_axis(1);
+
+                    // - Reactions -
+                    int xyz_cells[3] = { 6, 6, 1 };
+                    set_repaint_reaction_params(mesh, phys_mod, 0.1, 0.5, MESH_COLOR);
+                    reactions_generator.generate(Vector(-1, -3.5, 1), Vector(2.5, 0.5, 3), xyz_cells, this);
+                }
             }
-
-            // - Create models -
-            Model * mesh = new Model(
-                app.get_renderer(),
-                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
-                deform_shader,
-                // TODO: introduce IGeometry interface for easily passing ObjMeshLoader (and similar classes, e.g. SimpleCube) to Model constructor
-                loader.get_vertices().data(),
-                loader.get_vertices().size(),
-                loader.get_indices().data(),
-                loader.get_indices().size()
-            );
-            mesh->add_shader(lighting_shader); // add lighting
-            Vertex * car_vertices = mesh->lock_vertex_buffer(LOCK_READ);
-            PointModel * low_mesh = new PointModel(app.get_renderer(), simple_shader, car_vertices, mesh->get_vertices_count(), 10);
-            mesh->unlock_vertex_buffer();
-            low_mesh->add_shader(simple_pixel_shader);
-            set_camera_position(6.1f, 1.2f, -0.1575f);
-            PhysicalModel *phys_mod = add_physical_model(mesh, low_mesh);
-
-            // - Set impact -
-            set_impact(Vector(0.7,-1.5,2.7), 0.45, phys_mod->get_center_of_mass(), Vector(0,0,-510));
-            app.set_impact_rot_axis(1);
-
-            // - Reactions -
-            int xyz_cells[3] = {6, 6, 1};
-            set_repaint_reaction_params(mesh, phys_mod, 0.1, 0.5, MESH_COLOR);
-            reactions_generator.generate(Vector(-1, -3.5, 1), Vector(2.5, 0.5, 3), xyz_cells, this);
         }
     };
 
@@ -942,7 +946,7 @@ INT WINAPI _tWinMain( HINSTANCE, HINSTANCE, LPTSTR, INT )
         }
         else
         {
-            MeshDemo demo(app, mesh_filename);
+            MeshDemo demo(app, __targv+1, __argc - 1);
             demo.run();
         }
 

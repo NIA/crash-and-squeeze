@@ -145,8 +145,10 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
 
         for (auto& thread: threads)
         {
-            // TODO: Oops, it will fail for two or more physical models
-            thread.start(model_entity.physical_model, &logger);
+            if (!thread.is_started())
+                thread.start(model_entity.physical_model, &logger);
+            else
+                thread.addModel(model_entity.physical_model);
         }
 
         static const int BUFFER_SIZE = 128;
@@ -465,132 +467,30 @@ void Application::run()
         else
         {
             total_stopwatch.start();
-            // physics
-            
+
+            // ----- physics -----
             // TODO: variable dt
             double dt = 0.01;
-            if(emulation_enabled || emultate_one_step)
+            if (emulation_enabled || emultate_one_step)
             {
-                // for each model entity
-                // TODO: if > 1 physical models, compute them in parallel
-                for (auto& model_entity: model_entities)
-                {
-                    PhysicalModel       * physical_model       = model_entity.physical_model;
-                    PerformanceReporter * performance_reporter = model_entity.performance_reporter;
-                    
-                    if( NULL != physical_model )
-                    {
-                        Vector linear_velocity_change, angular_velocity_chage;
+                simulate(dt);
 
-                        stopwatch.start();
-                        if(impact_happened && NULL != impact_region)
-                        {
-                            physical_model->hit(*impact_region, impact_velocity);
-                            impact_happened = false;
-                        }
-                        logger.add_message("Tasks --READY--");
-                        physical_model->compute_next_step_async(*forces, dt, NULL);
-
-                        physical_model->react_to_events();
-
-                        if(false == physical_model->wait_for_clusters())
-                        {
-                            throw PhysicsError();
-                        }
-                        logger.add_message("Clusters ~~finished~~");
-
-                        // TODO: as an optimization, when updating on GPU, we can wait only for cluster tasks (wait_for_clusters)
-                        // and continue to rendering (because only cluster matrices are needed to start rendering when updating on GPU).
-                        // In this case, wait_for_step is moved to the beginning of the loop (right after stopwatch.start) - see rev. 22f44cfa98f0d545f0a52b34383ad848cc50bcd4, for example.
-                        // However, this optimization is not enabled now for easier and more precise measurement of step computation, rendering and updating times separately.
-                        if(false == physical_model->wait_for_step())
-                        {
-                            throw PhysicsError();
-                        }
-
-                        double time = stopwatch.stop();
-                        logger.add_message("Step **finished**");
-
-                        if( NULL != performance_reporter )
-                        {
-                            performance_reporter->add_measurement(time);
-                        }
-                    }
-                }
                 ++physics_frames;
+                impact_happened = false;
                 emultate_one_step = false;
                 vertices_update_needed = true;
             }
-
+            // ----- physics --> graphics -----
             if(vertices_update_needed)
             {
-                // for each model entity
-                for (auto& model_entity: model_entities)
-                {
-                    PhysicalModel * physical_model = model_entity.physical_model;
-                    
-                    if( NULL != physical_model )
-                    {
-                        AbstractModel *model;
-                        if(RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode)
-                            model = model_entity.high_model;
-                        else
-                            model = model_entity.low_model;
-
-                        if( ! (global_settings.update_vertices_on_gpu && RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode) )
-                        {
-                            Vertex *vertices = model->lock_vertex_buffer(LOCK_READ_WRITE);
-                            int vertices_count = model->get_vertices_count();
-
-                            // make sure that step is finished
-                            physical_model->wait_for_step();
-
-                            switch(render_settigns.show_mode)
-                            {
-                            case RenderSettings::SHOW_GRAPHICAL_VERTICES:
-                                stopwatch.start();
-                                logger.add_message("Update tasks --READY--");
-                                physical_model->update_vertices_async(vertices, VERTEX_INFO, 0, vertices_count);
-                                
-                                if(false == physical_model->wait_for_update())
-                                {
-                                    throw PhysicsError();
-                                }
-
-                                update_performance_reporter.add_measurement(stopwatch.stop());
-                                logger.add_message("Update **finished**");
-                                break;
-                            case RenderSettings::SHOW_CURRENT_POSITIONS:
-                                physical_model->update_current_positions(vertices, vertices_count, VERTEX_INFO);
-                                break;
-                            case RenderSettings::SHOW_EQUILIBRIUM_POSITIONS:
-                                physical_model->update_equilibrium_positions(vertices, vertices_count, VERTEX_INFO);
-                                break;
-                            case RenderSettings::SHOW_INITIAL_POSITIONS:
-                                physical_model->update_initial_positions(vertices, vertices_count, VERTEX_INFO);
-                                break;
-                            }
-
-                            model->unlock_vertex_buffer();
-                            #if CAS_QUADRATIC_EXTENSIONS_ENABLED
-                            if (RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode)
-                            {
-                                stopwatch.start();
-                                model->generate_normals();
-                                gen_normals_performance_reporter.add_measurement(stopwatch.stop());
-                            }
-                            #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
-                            model->notify_subscriber();
-                        }
-                    }
-                }
-
+                update_vertices(update_performance_reporter, gen_normals_performance_reporter);
                 vertices_update_needed = false;
             }
-            
-            // graphics
+            // ----- graphics -----
             stopwatch.start();
             renderer.render(model_entities, internal_render_performance_reporter, global_settings.update_vertices_on_gpu, RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode);
+            // (frame finished)
+
             render_performance_reporter.add_measurement(stopwatch.stop());
             total_performance_reporter.add_measurement(total_stopwatch.stop());
         }
@@ -612,6 +512,119 @@ void Application::run()
     stop_threads();
 }
 
+void Application::simulate(double dt) {
+    Stopwatch stopwatch;
+    // for each model entity
+    // TODO: if > 1 physical models, compute them in parallel
+    for (auto& model_entity : model_entities)
+    {
+        PhysicalModel       * physical_model = model_entity.physical_model;
+        PerformanceReporter * performance_reporter = model_entity.performance_reporter;
+
+        if (NULL != physical_model)
+        {
+            Vector linear_velocity_change, angular_velocity_chage;
+
+            stopwatch.start();
+            if (impact_happened && NULL != impact_region)
+            {
+                physical_model->hit(*impact_region, impact_velocity);
+            }
+            logger.add_message("Tasks --READY--");
+            physical_model->compute_next_step_async(*forces, dt, NULL);
+
+            physical_model->react_to_events();
+
+            if (false == physical_model->wait_for_clusters())
+            {
+                throw PhysicsError();
+            }
+            logger.add_message("Clusters ~~finished~~");
+
+            // TODO: as an optimization, when updating on GPU, we can wait only for cluster tasks (wait_for_clusters)
+            // and continue to rendering (because only cluster matrices are needed to start rendering when updating on GPU).
+            // In this case, wait_for_step is moved to the beginning of the loop (right after stopwatch.start) - see rev. 22f44cfa98f0d545f0a52b34383ad848cc50bcd4, for example.
+            // However, this optimization is not enabled now for easier and more precise measurement of step computation, rendering and updating times separately.
+            if (false == physical_model->wait_for_step())
+            {
+                throw PhysicsError();
+            }
+
+            double time = stopwatch.stop();
+            logger.add_message("Step **finished**");
+
+            if (NULL != performance_reporter)
+            {
+                performance_reporter->add_measurement(time);
+            }
+        }
+    }
+}
+
+void Application::update_vertices(PerformanceReporter &update_performance_reporter, PerformanceReporter &gen_normals_performance_reporter)
+{
+    Stopwatch stopwatch;
+    // for each model entity
+    for (auto& model_entity : model_entities)
+    {
+        PhysicalModel * physical_model = model_entity.physical_model;
+
+        if (NULL != physical_model)
+        {
+            AbstractModel *model;
+            if (RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode)
+                model = model_entity.high_model;
+            else
+                model = model_entity.low_model;
+
+            if (!(global_settings.update_vertices_on_gpu && RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode))
+            {
+                Vertex *vertices = model->lock_vertex_buffer(LOCK_READ_WRITE);
+                int vertices_count = model->get_vertices_count();
+
+                // make sure that step is finished
+                physical_model->wait_for_step();
+
+                switch (render_settigns.show_mode)
+                {
+                case RenderSettings::SHOW_GRAPHICAL_VERTICES:
+                    stopwatch.start();
+                    logger.add_message("Update tasks --READY--");
+                    physical_model->update_vertices_async(vertices, VERTEX_INFO, 0, vertices_count);
+
+                    if (false == physical_model->wait_for_update())
+                    {
+                        throw PhysicsError();
+                    }
+
+                    update_performance_reporter.add_measurement(stopwatch.stop());
+                    logger.add_message("Update **finished**");
+                    break;
+                case RenderSettings::SHOW_CURRENT_POSITIONS:
+                    physical_model->update_current_positions(vertices, vertices_count, VERTEX_INFO);
+                    break;
+                case RenderSettings::SHOW_EQUILIBRIUM_POSITIONS:
+                    physical_model->update_equilibrium_positions(vertices, vertices_count, VERTEX_INFO);
+                    break;
+                case RenderSettings::SHOW_INITIAL_POSITIONS:
+                    physical_model->update_initial_positions(vertices, vertices_count, VERTEX_INFO);
+                    break;
+                }
+
+                model->unlock_vertex_buffer();
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                if (RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode)
+                {
+                    stopwatch.start();
+                    model->generate_normals();
+                    gen_normals_performance_reporter.add_measurement(stopwatch.stop());
+                }
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+                model->notify_subscriber();
+            }
+        }
+    }
+}
 
 void Application::stop_threads()
 {

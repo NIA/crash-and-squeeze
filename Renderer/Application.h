@@ -60,6 +60,9 @@ private:
 
     virtual tstring get_text_info() const override;
 
+    // Run steps:
+    void simulate(double dt);
+
     // Deinitialization steps:
     void stop_threads();
     void delete_model_stuff();
@@ -83,6 +86,8 @@ public:
     void set_camera_position(float rho, float theta, float phi) { camera.set_position(rho, theta, phi); }
 
     void run();
+
+    void update_vertices(PerformanceReporter &update_performance_reporter, PerformanceReporter &gen_normals_performance_reporter);
 
     // Implement IInputHandler:
     virtual void process_key(unsigned code, bool shift, bool ctrl, bool alt) override;

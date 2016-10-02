@@ -348,7 +348,7 @@ void PointModel::pre_draw() const
     vertex_buffer->set();
     // Use triangle list to make point model better visible. Created triangles are random, but who cares?
     // TODO: return to POINTLIST but use geometry shader/instancing to transform points to triangles or tetrahedrons
-    get_context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    get_context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
 }
 
 void PointModel::do_draw() const
