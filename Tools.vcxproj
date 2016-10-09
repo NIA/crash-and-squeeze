@@ -90,6 +90,7 @@
     <ClInclude Include="Parallel\ievent.h" />
     <ClInclude Include="Parallel\ilock.h" />
     <ClInclude Include="Parallel\iprim_factory.h" />
+    <ClInclude Include="Parallel\itask_executor.h" />
     <ClInclude Include="Parallel\single_thread_prim.h" />
     <ClInclude Include="Parallel\task_queue.h" />
   </ItemGroup>

@@ -17,6 +17,7 @@
 #include "Parallel/abstract_task.h"
 #include "Parallel/task_queue.h"
 #include "Parallel/single_thread_prim.h"
+#include "Parallel/itask_executor.h"
 
 namespace CrashAndSqueeze
 {
@@ -31,7 +32,7 @@ namespace CrashAndSqueeze
         typedef Collections::Array<IRegion*> RegionsArray;
         typedef Collections::Array<IScalarField*> WeightFuncsArray;
 
-        class Model : public IModel
+        class Model : public IModel, public Parallel::ITaskExecutor
         {
         private:
             // -- constant (at run-time) properties
@@ -253,12 +254,17 @@ namespace CrashAndSqueeze
             // In order to compute next step or update vertices using parallel computation, a queue of tasks
             // must be prepared first with Model::compute_next_step_async or Model::update_vertices_async,
             // and then Model::complete_next_task should be called multiple times until it returns false (meaning no tasks left)
+            // 
+            // Returns true if task completed successfully, false - if there is no more tasks
             //
             // This function is thread-safe and can be called from different threads simultaneously.
             bool complete_next_task();
 
             // wait until the new tasks for next step or for updating vertices are ready
             void wait_for_tasks() { task_queue->wait_for_tasks(); }
+
+            // wait for a given time until the new tasks for next step or for updating vertices are ready (returns true if the task become available, false if time elapsed)
+            bool wait_for_tasks(unsigned milliseconds) { return task_queue->wait_for_tasks(milliseconds); }
 
             // Wait until all cluster computation tasks are complete.
             // Returns true if computation was successful, false otherwise

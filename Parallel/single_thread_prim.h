@@ -39,6 +39,8 @@ namespace CrashAndSqueeze
             virtual void unset() { is_set = false; }
 
             virtual void wait();
+            // waits for a given amount of time, returns true if event happened and false - if time elapsed, but event did not happen
+            virtual bool wait(unsigned milliseconds);
         };
 
         class SingleThreadEventSet : public IEventSet
@@ -52,9 +54,13 @@ namespace CrashAndSqueeze
             virtual void set(int index);
             virtual void unset(int index);
             virtual void wait(int index);
+            // waits for a given amount of time, returns true if event happened and false - if time elapsed, but event did not happen
+            virtual bool wait(int index, unsigned milliseconds);
             virtual void set();
             virtual void unset();
             virtual void wait();
+            // waits for a given amount of time, returns true if event happened and false - if time elapsed, but event did not happen
+            virtual bool wait(unsigned milliseconds);
         };
 
         // A factory for these primitives which allocates them dynamically in heap

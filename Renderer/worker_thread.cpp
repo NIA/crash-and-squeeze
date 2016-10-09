@@ -1,26 +1,31 @@
 #include "worker_thread.h"
 
-WorkerThread::WorkerThread()
-    : handle(NULL), logger(NULL) {}
+namespace {
+    const unsigned int DEFAULT_MAX_WAIT_MS = 3;
+}
 
-void WorkerThread::start(CrashAndSqueeze::Core::Model *model, Logger *logger)
+WorkerThread::WorkerThread()
+    : handle(NULL), logger(NULL), max_wait_ms(DEFAULT_MAX_WAIT_MS) {}
+
+void WorkerThread::start(::CrashAndSqueeze::Parallel::ITaskExecutor * executor, unsigned max_wait_ms, Logger *logger)
 {
     _ASSERT(NULL == handle);
-    stopped = false;
+    this->stopped = false;
+    this->max_wait_ms = max_wait_ms;
     handle = CreateThread(NULL, 0, WorkerThread::routine, this, 0, NULL);
     if (NULL == handle)
         throw ThreadError();
-    this->models.push_back(model);
-    this->models_count = 1;
+    this->task_executors.push_back(executor);
+    this->executors_count = 1;
     this->logger = logger;
 }
 
-void WorkerThread::addModel(::CrashAndSqueeze::Core::Model * model)
+void WorkerThread::add_executor(::CrashAndSqueeze::Parallel::ITaskExecutor * executor)
 {
-    models_lock.lock();
-    models.push_back(model);
-    ++models_count;
-    models_lock.unlock();
+    executors_lock.lock();
+    task_executors.push_back(executor);
+    ++executors_count;
+    executors_lock.unlock();
 }
 
 DWORD WorkerThread::routine(void *param)
@@ -34,33 +39,36 @@ DWORD WorkerThread::work()
     _ASSERT(NULL != logger);
     while (!stopped)
     {
-        for (int i = 0; i < models_count; ++i)
+        for (int i = 0; i < executors_count; ++i)
         {
-            models_lock.lock();
-            auto model = models[i];
-            models_lock.unlock();
+            executors_lock.lock();
+            auto executor = task_executors[i];
+            executors_lock.unlock();
             try
             {
 
                 logger->add_message("Waiting for tasks...");
-                model->wait_for_tasks();
+                bool tasks_ready = executor->wait_for_tasks(max_wait_ms);
+                if (!tasks_ready) {
+                    continue;
+                }
                 logger->add_message("...the wait is over");
 
-                bool has_more_tasks = true;
-                while (!stopped && has_more_tasks)
+                logger->add_message("Task >>started>>");
+                bool has_more_tasks = executor->complete_next_task();
+                if (has_more_tasks)
                 {
-                    logger->add_message("Task >>started>>");
-                    has_more_tasks = model->complete_next_task();
-                    if (has_more_tasks)
-                        logger->add_message("Task <<finished<<");
-                    else
-                        logger->add_message("ALL Tasks ==finished==");
+                    logger->add_message("Task <<finished<<");
+                }
+                else
+                {
+                    logger->add_message("ALL Tasks ==finished==");
                 }
             }
             catch (PhysicsError)
             {
                 logger->add_message("ERROR while completing task, worker thread terminated!");
-                model->abort();
+                executor->abort();
                 return 1;
             }
             catch (DeadLockError)

@@ -29,6 +29,8 @@ namespace
     const float       VERTEX_MASS = 1;
     const Real        CLUSTER_PADDING_COEFF = 0.2;
 
+    const unsigned    EACH_MODEL_WORKER_THERAD_MAX_WAIT_MS = 1;
+
     const TCHAR *     HELP_TEXT = _T("Keyboard controls:\r\n")
                                   _T("~~~~~~~~~~~~~~~~~~\r\n")
                                   _T("Enter: hit the model,\r\n")
@@ -146,9 +148,9 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
         for (auto& thread: threads)
         {
             if (!thread.is_started())
-                thread.start(model_entity.physical_model, &logger);
+                thread.start(model_entity.physical_model, EACH_MODEL_WORKER_THERAD_MAX_WAIT_MS, &logger);
             else
-                thread.addModel(model_entity.physical_model);
+                thread.add_executor(model_entity.physical_model);
         }
 
         static const int BUFFER_SIZE = 128;
@@ -513,9 +515,45 @@ void Application::run()
 }
 
 void Application::simulate(double dt) {
-    Stopwatch stopwatch;
-    // for each model entity
-    // TODO: if > 1 physical models, compute them in parallel
+    // for each model entity: 
+    // ------- STARTING STEP.... -------------
+    for (auto& model_entity : model_entities)
+    {
+        PhysicalModel       * physical_model = model_entity.physical_model;
+
+        if (NULL != physical_model)
+        {
+            Vector linear_velocity_change, angular_velocity_chage;
+            model_entity.stopwatch.start();
+
+            if (global_settings.update_vertices_on_gpu) {
+                // as an optimization, when updating on GPU, step is computed in parallel with rendering, so we should wait for it before starting new (see below)
+                if (false == physical_model->wait_for_step())
+                {
+                    throw PhysicsError();
+                }
+            }
+
+            if (impact_happened && NULL != impact_region)
+            {
+                physical_model->hit(*impact_region, impact_velocity);
+            }
+            logger.add_message("Tasks --READY--");
+            physical_model->compute_next_step_async(*forces, dt, NULL);
+        }
+    }
+    // for each model entity: 
+    // ------- ...REACT TO EVENTS.... -------------
+    for (auto& model_entity : model_entities)
+    {
+        PhysicalModel       * physical_model = model_entity.physical_model;
+        if (NULL != physical_model)
+        {
+            physical_model->react_to_events();
+        }
+    }
+    // for each model entity: 
+    // ------- ...FINISHING STEP -------------
     for (auto& model_entity : model_entities)
     {
         PhysicalModel       * physical_model = model_entity.physical_model;
@@ -523,35 +561,24 @@ void Application::simulate(double dt) {
 
         if (NULL != physical_model)
         {
-            Vector linear_velocity_change, angular_velocity_chage;
-
-            stopwatch.start();
-            if (impact_happened && NULL != impact_region)
-            {
-                physical_model->hit(*impact_region, impact_velocity);
+            if (global_settings.update_vertices_on_gpu) {
+                // as an optimization, when updating on GPU, we can wait only for cluster tasks (wait_for_clusters)
+                // and continue to rendering (because only cluster matrices are needed to start rendering when updating on GPU).
+                if (false == physical_model->wait_for_clusters())
+                {
+                    throw PhysicsError();
+                }
+                logger.add_message("Clusters ~~finished~~");
             }
-            logger.add_message("Tasks --READY--");
-            physical_model->compute_next_step_async(*forces, dt, NULL);
-
-            physical_model->react_to_events();
-
-            if (false == physical_model->wait_for_clusters())
-            {
-                throw PhysicsError();
-            }
-            logger.add_message("Clusters ~~finished~~");
-
-            // TODO: as an optimization, when updating on GPU, we can wait only for cluster tasks (wait_for_clusters)
-            // and continue to rendering (because only cluster matrices are needed to start rendering when updating on GPU).
-            // In this case, wait_for_step is moved to the beginning of the loop (right after stopwatch.start) - see rev. 22f44cfa98f0d545f0a52b34383ad848cc50bcd4, for example.
-            // However, this optimization is not enabled now for easier and more precise measurement of step computation, rendering and updating times separately.
-            if (false == physical_model->wait_for_step())
-            {
-                throw PhysicsError();
+            else {
+                if (false == physical_model->wait_for_step())
+                {
+                    throw PhysicsError();
+                }
+                logger.add_message("Step **finished**");
             }
 
-            double time = stopwatch.stop();
-            logger.add_message("Step **finished**");
+            double time = model_entity.stopwatch.stop();
 
             if (NULL != performance_reporter)
             {
@@ -559,12 +586,13 @@ void Application::simulate(double dt) {
             }
         }
     }
+
 }
 
 void Application::update_vertices(PerformanceReporter &update_performance_reporter, PerformanceReporter &gen_normals_performance_reporter)
 {
-    Stopwatch stopwatch;
-    // for each model entity
+    // for each model entity:
+    // ------- STARTING UPDATING.... -------------
     for (auto& model_entity : model_entities)
     {
         PhysicalModel * physical_model = model_entity.physical_model;
@@ -588,17 +616,10 @@ void Application::update_vertices(PerformanceReporter &update_performance_report
                 switch (render_settigns.show_mode)
                 {
                 case RenderSettings::SHOW_GRAPHICAL_VERTICES:
-                    stopwatch.start();
+                    model_entity.stopwatch.start();
                     logger.add_message("Update tasks --READY--");
                     physical_model->update_vertices_async(vertices, VERTEX_INFO, 0, vertices_count);
 
-                    if (false == physical_model->wait_for_update())
-                    {
-                        throw PhysicsError();
-                    }
-
-                    update_performance_reporter.add_measurement(stopwatch.stop());
-                    logger.add_message("Update **finished**");
                     break;
                 case RenderSettings::SHOW_CURRENT_POSITIONS:
                     physical_model->update_current_positions(vertices, vertices_count, VERTEX_INFO);
@@ -611,19 +632,50 @@ void Application::update_vertices(PerformanceReporter &update_performance_report
                     break;
                 }
 
+            }
+        }
+    }
+    // for each model entity:
+    // ------- ...FINISHING UPDATING -------------
+    for (auto& model_entity : model_entities)
+    {
+        PhysicalModel * physical_model = model_entity.physical_model;
+
+        if (NULL != physical_model)
+        {
+            AbstractModel *model;
+            if (RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode)
+                model = model_entity.high_model;
+            else
+                model = model_entity.low_model;
+            if (!(global_settings.update_vertices_on_gpu && RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode))
+            {
+                if (render_settigns.show_mode == RenderSettings::SHOW_GRAPHICAL_VERTICES)
+                {
+                    if (false == physical_model->wait_for_update())
+                    {
+                        throw PhysicsError();
+                    }
+                    update_performance_reporter.add_measurement(model_entity.stopwatch.stop());
+                    logger.add_message("Update **finished**");
+                }
                 model->unlock_vertex_buffer();
+
+                // TODO: FIXME: сделать генератор нормалей тоже параллельной таской
+
 #if CAS_QUADRATIC_EXTENSIONS_ENABLED
                 if (RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode)
                 {
-                    stopwatch.start();
+                    model_entity.stopwatch.start();
                     model->generate_normals();
-                    gen_normals_performance_reporter.add_measurement(stopwatch.stop());
+                    gen_normals_performance_reporter.add_measurement(model_entity.stopwatch.stop());
                 }
 #endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
                 model->notify_subscriber();
             }
         }
     }
+
 }
 
 void Application::stop_threads()

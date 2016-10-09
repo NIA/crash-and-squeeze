@@ -10,6 +10,7 @@
 #include "Window.h"
 #include "Buffer.h"
 #include "performance_reporter.h"
+#include "Stopwatch.h"
 
 // TODO: put all global classes and functions into namespace
 typedef ::CrashAndSqueeze::Core::Model PhysicalModel;
@@ -19,6 +20,7 @@ struct ModelEntity
     AbstractModel       *high_model;
     AbstractModel       *low_model;
     PhysicalModel       *physical_model;
+    Stopwatch           stopwatch;
     PerformanceReporter *performance_reporter;
 };
 typedef std::vector<ModelEntity> ModelEntities;

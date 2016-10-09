@@ -104,6 +104,11 @@ namespace CrashAndSqueeze
             has_tasks_event->wait();
         }
 
+        bool TaskQueue::wait_for_tasks(unsigned milliseconds)
+        {
+            return has_tasks_event->wait(milliseconds);
+        }
+
         TaskQueue::~TaskQueue()
         {
             has_tasks_event->unset();

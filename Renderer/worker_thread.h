@@ -10,10 +10,11 @@ class WorkerThread
 private:
     HANDLE handle;
     volatile bool stopped;
+    unsigned max_wait_ms; // how long to wait for one executor before trying another one
 
-    std::vector<::CrashAndSqueeze::Core::Model *> models;
-    WinLock models_lock;
-    volatile int models_count;
+    std::vector<::CrashAndSqueeze::Parallel::ITaskExecutor*> task_executors;
+    WinLock executors_lock;
+    volatile int executors_count;
 
     Logger *logger;
     
@@ -22,8 +23,8 @@ private:
 public:
     WorkerThread();
 
-    void start(::CrashAndSqueeze::Core::Model * model, Logger *logger);
-    void addModel(::CrashAndSqueeze::Core::Model * model);
+    void start(::CrashAndSqueeze::Parallel::ITaskExecutor * executor, unsigned max_wait_ms, Logger *logger);
+    void add_executor(::CrashAndSqueeze::Parallel::ITaskExecutor * executor);
     void stop() { stopped = true; }
     bool is_started() { return !stopped; }
     void wait(DWORD milliseconds = INFINITE);

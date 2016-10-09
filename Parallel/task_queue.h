@@ -50,6 +50,8 @@ namespace CrashAndSqueeze
 
             // wait until there are some tasks to pop
             void wait_for_tasks();
+            // wait for a given time until there are some tasks to pop (returns true if the task become available, false if time elapsed)
+            bool wait_for_tasks(unsigned milliseconds);
 
             bool is_empty() { return first > last; }
             bool is_full() { return last == size - 1; }

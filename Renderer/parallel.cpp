@@ -53,6 +53,11 @@ namespace
             }
         }
 
+        virtual bool wait(int index, unsigned milliseconds)
+        {
+            return WAIT_TIMEOUT != WaitForSingleObject(events[index], milliseconds);
+        }
+
         virtual void set()
         {
             for(int i = 0; i < size; ++i)
@@ -80,6 +85,12 @@ namespace
             {
                 WaitForMultipleObjects(size, events, TRUE, INFINITE);
             }
+        }
+
+
+        virtual bool wait(unsigned milliseconds)
+        {
+            return WAIT_TIMEOUT != WaitForMultipleObjects(size, events, TRUE, milliseconds);
         }
 
         ~WinEventSet()
