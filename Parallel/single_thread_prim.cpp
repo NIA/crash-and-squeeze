@@ -23,7 +23,7 @@ namespace CrashAndSqueeze
                 Logger::error("in SingleThreadEvent::wait: unexpected attempt to wait for unset event from the same thread!", __FILE__, __LINE__);
         }
 
-        bool SingleThreadEvent::wait(unsigned milliseconds)
+        bool SingleThreadEvent::wait_for(unsigned milliseconds)
         {
             return is_set;
         }
@@ -66,7 +66,7 @@ namespace CrashAndSqueeze
             }
         }
 
-        bool SingleThreadEventSet::wait(int index, unsigned milliseconds)
+        bool SingleThreadEventSet::wait_for(int index, unsigned milliseconds)
         {
             return are_set[index];
         }
@@ -95,7 +95,7 @@ namespace CrashAndSqueeze
             }
         }
 
-        bool SingleThreadEventSet::wait(unsigned milliseconds)
+        bool SingleThreadEventSet::wait_for(unsigned milliseconds)
         {
             bool all_set = true;
             for (int i = 0; i < size; ++i)

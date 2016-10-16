@@ -53,7 +53,7 @@ namespace
             }
         }
 
-        virtual bool wait(int index, unsigned milliseconds)
+        virtual bool wait_for(int index, unsigned milliseconds)
         {
             return WAIT_TIMEOUT != WaitForSingleObject(events[index], milliseconds);
         }
@@ -88,7 +88,7 @@ namespace
         }
 
 
-        virtual bool wait(unsigned milliseconds)
+        virtual bool wait_for(unsigned milliseconds)
         {
             return WAIT_TIMEOUT != WaitForMultipleObjects(size, events, TRUE, milliseconds);
         }

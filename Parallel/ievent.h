@@ -18,7 +18,7 @@ namespace CrashAndSqueeze
 
             virtual void wait() = 0;
             // waits for a given amount of time, returns true if event happened and false - if time elapsed, but event did not happen
-            virtual bool wait(unsigned milliseconds) = 0;
+            virtual bool wait_for(unsigned milliseconds) = 0;
 
             virtual ~IEvent() {}
         };
@@ -34,13 +34,14 @@ namespace CrashAndSqueeze
             virtual void set(int index) = 0;
             virtual void unset(int index) = 0;
             virtual void wait(int index) = 0;
-            virtual bool wait(int index, unsigned milliseconds) = 0;
+            // waits for a given amount of time, returns true if event happened and false - if time elapsed, but event did not happen
+            virtual bool wait_for(int index, unsigned milliseconds) = 0;
             
             virtual void set() = 0;
             virtual void unset() = 0;
             virtual void wait() = 0;
             // waits for a given amount of time, returns true if event happened and false - if time elapsed, but event did not happen
-            virtual bool wait(unsigned milliseconds) = 0;
+            virtual bool wait_for(unsigned milliseconds) = 0;
         };
     }
 }

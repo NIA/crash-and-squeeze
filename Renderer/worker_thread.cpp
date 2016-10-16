@@ -1,7 +1,7 @@
 #include "worker_thread.h"
 
 namespace {
-    const unsigned int DEFAULT_MAX_WAIT_MS = 3;
+    const unsigned int DEFAULT_MAX_WAIT_MS = 1;
 }
 
 WorkerThread::WorkerThread()
@@ -12,12 +12,12 @@ void WorkerThread::start(::CrashAndSqueeze::Parallel::ITaskExecutor * executor, 
     _ASSERT(NULL == handle);
     this->stopped = false;
     this->max_wait_ms = max_wait_ms;
-    handle = CreateThread(NULL, 0, WorkerThread::routine, this, 0, NULL);
-    if (NULL == handle)
-        throw ThreadError();
     this->task_executors.push_back(executor);
     this->executors_count = 1;
     this->logger = logger;
+    handle = CreateThread(NULL, 0, WorkerThread::routine, this, 0, NULL);
+    if (NULL == handle)
+        throw ThreadError();
 }
 
 void WorkerThread::add_executor(::CrashAndSqueeze::Parallel::ITaskExecutor * executor)
@@ -52,6 +52,7 @@ DWORD WorkerThread::work()
                 if (!tasks_ready) {
                     continue;
                 }
+                
                 logger->add_message("...the wait is over");
 
                 logger->add_message("Task >>started>>");
