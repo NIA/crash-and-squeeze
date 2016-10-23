@@ -31,6 +31,7 @@ namespace CrashAndSqueeze
 
         typedef Collections::Array<IRegion*> RegionsArray;
         typedef Collections::Array<IScalarField*> WeightFuncsArray;
+        class ISurface;
 
         class Model : public IModel, public Parallel::ITaskExecutor
         {
@@ -40,6 +41,12 @@ namespace CrashAndSqueeze
             Collections::Array<PhysicalVertex> vertices;
             Collections::Array<GraphicalVertex> graphical_vertices;
             Collections::Array<Cluster> clusters;
+
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            // needed only for generating normals from scratch (for quad.deformation only - otherwise normals simply updated linearly from original values)
+            ISurface * graphical_surface;
+            bool has_any_normal; // do we need normal generation at all?
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 
             // TODO: is it rational to store ALL position if in used only to compare with a few reactions?
             // Probably better to store only needed ones in Reaction class? But NB: this will disable the ability to render initial positions for comparison (Model::update_initial_position)
@@ -123,7 +130,7 @@ namespace CrashAndSqueeze
 
             class UpdateTask : public Parallel::AbstractTask
             {
-            private:
+            protected:
                 Model *model;
                 void *out_vertices;
                 const VertexInfo * vertex_info;
@@ -131,8 +138,8 @@ namespace CrashAndSqueeze
                 int vertices_num;
 
                 Parallel::IEventSet * event_set;
+
                 int event_index;
-            protected:
                 // implement AbstractTask
                 virtual void execute();
             public:
@@ -141,11 +148,34 @@ namespace CrashAndSqueeze
                 void setup_args(Model *model, /*out*/ void *out_vertices, const VertexInfo &vertex_info, int start_vertex, int vertices_num);
             } *update_tasks;
             int update_tasks_num;
+
+ #if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            class GenerateNormalsTask : public Parallel::AbstractTask
+            {
+            private:
+                Model *model;
+            protected:
+                // implement AbstractTask
+                virtual void execute();
+            public:
+                GenerateNormalsTask(Model *model) : model(model) {}
+            } gen_normals_task;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+
+            class UpdateVectorsTask : public UpdateTask
+            {
+            private:
+            protected:
+                // implement AbstractTask
+                virtual void execute();
+            } * update_vectors_tasks;
             
             Parallel::IPrimFactory * prim_factory;
             Parallel::IEventSet * cluster_tasks_completed;
             Parallel::IEvent * step_completed;
-            Parallel::IEventSet * update_tasks_completed;
+            Parallel::IEventSet * update_pos_tasks_completed;
+            Parallel::IEventSet * update_vec_tasks_completed;
+            Parallel::IEvent * normals_generated;
 
             Parallel::TaskQueue * task_queue;
 
@@ -203,6 +233,11 @@ namespace CrashAndSqueeze
             // -- Initial configuration --
             
             void set_frame(const IndexArray &frame_indices);
+
+            // Adds surface to model. Needed only for generating normals from scratch
+            // (for quad.deformation only - otherwise normals simply updated linearly from original values)
+            void set_graphical_surface(ISurface * surface) { this->graphical_surface = surface; }
+            ISurface * get_graphical_surface() { return graphical_surface; }
 
             // -- Reactions --
             
@@ -302,19 +337,31 @@ namespace CrashAndSqueeze
             // Non-blocking updating of vertices. Prepares tasks for updating requested vertices in parts.
             //
             // This method returns immediately: actual computation will be done by calling Model::complete_next_task
-            // (probably in another thread) until all tasks are completed. Each tasks will call Model::update_vertices with appropriate arguments.
+            // (probably in another thread) until all tasks are completed. Calling this method is equivalent to calling:
+            // 1. Model::update_vertices with appropriate arguments;
+            // 2. Model::generate_normals (if CAS_QUADRATIC_EXTENSIONS_ENABLED);
+            // 3. Model::update_vertices_vectors with appropriate arguments;
+            // - except this is made in parallel
             // 
             // Updated values are written into `out_vertices` according to its layout defined by `vertex_info`.
             // This function will update vertices from `start_vertex` to `vertices_num`. These two arguments
             // can be omitted: then all vertices will be updated.
-            void update_vertices_async(/*out*/ void *out_vertices, const VertexInfo &vertex_info, int start_vertex = 0, int vertices_num = ALL_VERTICES);
+            void update_vertices_async(/*out*/ void *out_vertices, const VertexInfo &vertex_info, bool update_vectors = true, int start_vertex = 0, int vertices_num = ALL_VERTICES);
             
-            // Blocking updating of vertices (best suitable for single-threaded application).
+            // Blocking updating of vertices positions (best suitable for single-threaded application) without updating normals
             // Updates vertices like Model::update_vertices_async, but doesn't return until updating is computed.
-            // See Model::update_vertices_async for explanation of method arguments.
+            // See Model::update_vertices_async for explanation of method arguments
+            // See Model::update_normals - this should be also called to update normals and tangents (if needed, e.g. for lighting)
             // TODO: implement proper non-GPU updating of vectors when quadratic extensions are enabled (only positions by now)
             void update_vertices(/*out*/ void *out_vertices, const VertexInfo &vertex_info, int start_vertex = 0, int vertices_num = ALL_VERTICES);
- 
+
+            // Blocking updating of vertices' normals and tangents (best suitable for single-threaded application).
+            // Updates orthogonal and parallel to normals vectors, doesn't return until complete
+            void update_vertices_vectors(/*out*/ void *out_vertices, const VertexInfo &vertex_info, int start_vertex = 0, int vertices_num = ALL_VERTICES);
+            
+            // When using quadratic extension, this method need to be called before Model::update_vertices_vectors (if needed, i.e. graphical vertices has orthogonal vectors)
+            void generate_normals();
+
             // wait until all tasks for updating vertices are completed
             // Returns true if computation was successful, false otherwise
             bool wait_for_update();

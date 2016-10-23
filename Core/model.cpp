@@ -1,4 +1,5 @@
 #include "Core/model.h"
+#include "Core/isurface.h"
 
 namespace CrashAndSqueeze
 {
@@ -122,6 +123,28 @@ namespace CrashAndSqueeze
             event_set->set(event_index);
         }
 
+        void Model::UpdateVectorsTask::execute()
+        {
+            if (NULL == model)
+            {
+                Logger::error("In Model::UpdateTask::execute(): task args not set up, call setup_args() first", __FILE__, __LINE__);
+                return;
+            }
+            if (NULL == event_set)
+            {
+                Logger::error("In Model::UpdateTask::execute(): task event_set not set up, call setup_event() first", __FILE__, __LINE__);
+                return;
+            }
+
+            model->update_vertices_vectors(out_vertices, *vertex_info, start_vertex, vertices_num);
+            event_set->set(event_index);
+        }
+
+        void Model::GenerateNormalsTask::execute()
+        {
+            model->generate_normals();
+        }
+
         // a constant, determining how much deformation velocities are damped:
         // 0 - no damping of vibrations, 1 - maximum damping, rigid body
         const Real Model::DEFAULT_DAMPING_CONSTANT = 0.5*Body::MAX_RIGIDITY_COEFF;
@@ -146,6 +169,7 @@ namespace CrashAndSqueeze
               hit_vertices_indices(physical_vetrices_num),
               
               graphical_vertices(graphical_vetrices_num),
+              graphical_surface(nullptr),
 
               cluster_padding_coeff(cluster_padding_coeff),
 
@@ -168,12 +192,15 @@ namespace CrashAndSqueeze
 #pragma warning( push )
 #pragma warning( disable : 4355 )
               final_task(this),
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+              gen_normals_task(this),
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 #pragma warning( pop )
               update_tasks(NULL),
               update_tasks_num(0),
               task_queue(NULL),
               step_completed(NULL),
-              update_tasks_completed(NULL),
+              update_pos_tasks_completed(NULL),
               success(true)
         {
             // -- Finish initialization of arrays --
@@ -267,10 +294,19 @@ namespace CrashAndSqueeze
         void Model::init_graphical_vertices(const void *source_vertices,
                                             VertexInfo const &vertex_info)
         {
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            has_any_normal = false;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+
             const void * source_graphical_vertex = source_vertices;
             for(int i = 0; i < graphical_vertices.size(); ++i)
             {
                 graphical_vertices[i] = GraphicalVertex(vertex_info, source_graphical_vertex);
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                if (!has_any_normal && graphical_vertices[i].get_orthogonal_vectors_num() > 0) {
+                    has_any_normal = true;
+                }
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
                 
                 source_graphical_vertex = add_to_pointer(source_graphical_vertex, vertex_info.get_vertex_size());
             }
@@ -419,9 +455,10 @@ namespace CrashAndSqueeze
         {
             int clusters_num = clusters.size();
             cluster_tasks = new ClusterTask[clusters_num];
-            task_queue = new TaskQueue(clusters_num + 1 + DEFAULT_UPDATE_TASKS_NUM, prim_factory);
+            task_queue = new TaskQueue(clusters_num + 1 + 2*DEFAULT_UPDATE_TASKS_NUM+1, prim_factory);
             cluster_tasks_completed = prim_factory->create_event_set(clusters_num, true);
             step_completed = prim_factory->create_event(true);
+            normals_generated = prim_factory->create_event(true);
             for(int i = 0; i < clusters_num; ++i)
             {
                 cluster_tasks[i].setup(*this, clusters[i], dt, cluster_tasks_completed, i);
@@ -430,10 +467,16 @@ namespace CrashAndSqueeze
 
             update_tasks_num = DEFAULT_UPDATE_TASKS_NUM;
             update_tasks = new UpdateTask[update_tasks_num];
-            update_tasks_completed = prim_factory->create_event_set(update_tasks_num, true);
+            update_vectors_tasks = new UpdateVectorsTask[update_tasks_num];
+            update_pos_tasks_completed = prim_factory->create_event_set(update_tasks_num, true);
             for (int i = 0; i < update_tasks_num; ++i)
             {
-                update_tasks[i].setup_event(update_tasks_completed, i);
+                update_tasks[i].setup_event(update_pos_tasks_completed, i);
+            }
+            update_vec_tasks_completed = prim_factory->create_event_set(update_tasks_num, true);
+            for (int i = 0; i < update_tasks_num; ++i)
+            {
+                update_vectors_tasks[i].setup_event(update_vec_tasks_completed, i);
             }
         }
 
@@ -823,7 +866,7 @@ namespace CrashAndSqueeze
             return true;
         }
 
-        void Model::update_vertices_async(/*out*/ void *out_vertices, const VertexInfo &vertex_info, int start_vertex /*= 0*/, int vertices_num /*= ALL_VERTICES*/)
+        void Model::update_vertices_async(/*out*/ void *out_vertices, const VertexInfo &vertex_info, bool update_vectors, int start_vertex /*= 0*/, int vertices_num /*= ALL_VERTICES*/)
         {
             // check correctness of arguments and modify `start_vertex` and `vertices_num` if needed
             if (false == process_update_vertices_args(vertex_info, start_vertex, vertices_num))
@@ -831,7 +874,7 @@ namespace CrashAndSqueeze
             // TODO: check if update is already started! And either wait for it or report error
             
             // reset event set
-            update_tasks_completed->unset();
+            update_pos_tasks_completed->unset();
 
             int part_size = vertices_num / update_tasks_num;
             int last_part_size = vertices_num - part_size*(update_tasks_num - 1); // last part may be bigger if vertices_num is not divisible by update_tasks_num
@@ -839,8 +882,42 @@ namespace CrashAndSqueeze
             // Success is true until some error happens and it is set to false
             success = true;
 
-            // add new tasks to queue
-            for(int i = 0; i < update_tasks_num; ++i)
+            if (update_vectors)
+            {
+                // if asked to update vectors - configure UpdateVectorsTasks as well
+                update_vec_tasks_completed->unset();
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                if (has_any_normal)
+                {
+                    // quadratic deformation is a special case: we cannot use graphical_normal_transformation for exact transforming of normals (it is only linear approximation),
+                    // so first we need re-generate normals using surface
+                    if (graphical_surface == NULL)
+                    {
+                        Logger::warning("Need to generate normals for precise updating of orthogonal vectors (because of quadratic deformation), but no surface set: call set_surface() first", __FILE__, __LINE__);
+                    }
+                    else
+                    {
+                        normals_generated->unset();
+                        task_queue->push(&gen_normals_task, false);
+                    }
+                }
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+
+                for (int i = 0; i < update_tasks_num; ++i)
+                {
+                    UpdateVectorsTask * task = &update_vectors_tasks[i];
+
+                    // Setup arguments
+                    int my_start_vertex = start_vertex + i*part_size;
+                    int my_vertices_num = (i < update_tasks_num - 1) ? part_size : last_part_size;
+                    task->setup_args(this, out_vertices, vertex_info, my_start_vertex, my_vertices_num);
+
+                    task_queue->push(task, false);
+                }
+            }
+
+            // configure main tasks
+            for (int i = 0; i < update_tasks_num; ++i)
             {
                 UpdateTask * task = &update_tasks[i];
 
@@ -848,15 +925,17 @@ namespace CrashAndSqueeze
                 int my_start_vertex = start_vertex + i*part_size;
                 int my_vertices_num = (i < update_tasks_num - 1) ? part_size : last_part_size;
                 task->setup_args(this, out_vertices, vertex_info, my_start_vertex, my_vertices_num);
-                
+
                 bool fire_event = (i == update_tasks_num - 1); // fire event only after adding last task
                 task_queue->push(task, fire_event);
             }
+            
         }
 
         bool Model::wait_for_update()
         {
-            update_tasks_completed->wait();
+            update_pos_tasks_completed->wait();
+            update_vec_tasks_completed->wait();
             return success;
         }
 
@@ -900,34 +979,110 @@ namespace CrashAndSqueeze
                     VertexInfo::vector_to_vertex_floats(new_point, destination);
                 }
 
-                for(int j = 0; j < vertex_info.get_vectors_num() && !is_aborted(); ++j)
+                out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
+            }
+        }
+
+        void CrashAndSqueeze::Core::Model::update_vertices_vectors(void * out_vertices, const VertexInfo & vertex_info, int start_vertex, int vertices_num)
+        {
+            // check correctness of arguments and modify `start_vertex` and `vertices_num` if needed
+            if (false == process_update_vertices_args(vertex_info, start_vertex, vertices_num))
+                return;
+
+            int last_vertex = start_vertex + vertices_num - 1;
+
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            normals_generated->wait();
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+
+            void *out_vertex = add_to_pointer(out_vertices, start_vertex*vertex_info.get_vertex_size());;
+            for (int i = start_vertex; i <= last_vertex && !is_aborted(); ++i)
+            {
+                const GraphicalVertex & vertex = graphical_vertices[i];
+                int clusters_num = vertex.get_including_clusters_num();
+                if (0 == clusters_num)
+                {
+                    Logger::error("GraphicalVertex doesn't belong to any cluster", __FILE__, __LINE__);
+                    return;
+                }
+                for (int j = 0; j < vertex_info.get_vectors_num() && !is_aborted(); ++j)
                 {
                     Vector new_vector = Vector::ZERO;
-                    for( int k = 0; k < clusters_num && !is_aborted(); ++k)
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+                    // TODO: use quadratic transformation for vectors too (but how?)
+                    if (vertex.is_vector_orthogonal(j))
+                    {
+                        if (! vertex.get_vector(j).is_zero()) {
+                            // a) for orthogonal vectors simply use generated normal
+                            new_vector = vertex.get_generated_normal() * vertex.get_vector(j).norm();
+                        }
+                    }
+                    else
+                    {
+                        // b) for tangents - use graphical_pos_transform, as with linear deformation...
+                        for (int k = 0; k < clusters_num && !is_aborted(); ++k)
+                        {
+                            const Cluster & cluster = clusters[vertex.get_including_cluster_index(k)];
+                            new_vector += cluster.get_graphical_pos_transform().to_matrix() * vertex.get_vector(j) * vertex.get_cluster_weight(k);
+                        }
+                        // ... + make an infinitesimal correction so that this vector is truly tangent (orthogonal to generated normal)
+                        Vector normal_component;
+                        if (!equal(0, new_vector.project_to(vertex.get_generated_normal(), &normal_component))) {
+                            new_vector -= normal_component;
+                        }
+                    }
+#else
+                    for (int k = 0; k < clusters_num && !is_aborted(); ++k)
                     {
                         const Cluster & cluster = clusters[vertex.get_including_cluster_index(k)];
-#if CAS_QUADRATIC_EXTENSIONS_ENABLED
-                         // TODO: use quadratic transformation for vectors too (but how?)
-                        if(vertex.is_vector_orthogonal(j))
-                            new_vector += cluster.get_graphical_nrm_transform() * vertex.get_vector(j) * vertex.get_cluster_weight(k);
-                        else
-                            new_vector += cluster.get_graphical_pos_transform().to_matrix() * vertex.get_vector(j) * vertex.get_cluster_weight(k);
-#else
-                        if(vertex.is_vector_orthogonal(j))
+                        if (vertex.is_vector_orthogonal(j))
                             new_vector += cluster.get_graphical_nrm_transform() * vertex.get_vector(j) * vertex.get_cluster_weight(k);
                         else
                             new_vector += cluster.get_graphical_pos_transform() * vertex.get_vector(j) * vertex.get_cluster_weight(k);
-#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
                     }
-
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
                     VertexFloat *destination =
-                        reinterpret_cast<VertexFloat*>( add_to_pointer(out_vertex, vertex_info.get_vector_offset(j)) );
+                        reinterpret_cast<VertexFloat*>(add_to_pointer(out_vertex, vertex_info.get_vector_offset(j)));
 
                     VertexInfo::vector_to_vertex_floats(new_vector, destination);
                 }
 
                 out_vertex = add_to_pointer(out_vertex, vertex_info.get_vertex_size());
             }
+        }
+
+        void Model::generate_normals()
+        {
+            if (graphical_surface == NULL) {
+                return;
+            }
+            
+            for (unsigned i = 0; i < graphical_vertices.size() && !is_aborted(); ++i)
+                graphical_vertices[i].set_generated_normal(Vector::ZERO);
+
+            ISurface::TriangleIterator * triangle_iterator = graphical_surface->get_triangles();
+            for (ISurface::TriangleIterator & t = *triangle_iterator; t.has_value() && !is_aborted(); ++t)
+            {
+                // Find normal of triangle
+                ISurface::Triangle triangle = *t;
+                const Vector * positions[ISurface::VERTICES_PER_TRIANGLE];
+                for (unsigned i = 0; i < ISurface::VERTICES_PER_TRIANGLE; ++i)
+                    positions[i] = &graphical_vertices[triangle[i]].get_pos();
+                Vector v1 = (*positions[1]) - (*positions[0]);
+                Vector v2 = (*positions[2]) - (*positions[0]);
+                Vector n = cross_product(v1, v2);
+                // For each vertex normals triangle normals are summed from each triangle it is used in
+                for (unsigned i = 0; i < ISurface::VERTICES_PER_TRIANGLE; ++i)
+                    graphical_vertices[triangle[i]].add_to_generated_normal(n);
+            }
+
+            // And finally each normal is normalized
+            for (unsigned i = 0; i < graphical_vertices.size() && !is_aborted(); ++i)
+                graphical_vertices[i].normalize_generated_normal();
+
+            graphical_surface->destroy_iterator(triangle_iterator);
+            
+            normals_generated->set();
         }
 
         void Model::update_current_positions(/*out*/ void *out_vertices, int vertices_num, const VertexInfo &vertex_info)

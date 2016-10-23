@@ -63,6 +63,10 @@ public:
     virtual unsigned get_vertices_count() const = 0;
     virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const = 0;
     virtual void unlock_vertex_buffer() const = 0;
+    virtual D3D11_PRIMITIVE_TOPOLOGY get_primitive_topology() const { return D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED; }
+    virtual unsigned get_indices_count() const { return 0; }
+    virtual Index * lock_index_buffer(BufferLockType lock_type) const { return nullptr; }
+    virtual void unlock_index_buffer() const {}
 
     // Methods for making one model depend on updates of another
     // NB: currently there can be only one subscriber
@@ -73,32 +77,6 @@ public:
     void set_draw_ccw(bool value) { draw_ccw = value; }
     
     void draw() const;
-
-    struct Triangle
-    {
-        Index indices[VERTICES_PER_TRIANGLE];
-        Index & operator[](unsigned i) { return indices[i]; }
-    };
-    // An iterator to loop through triangles of model
-    class TriangleIterator
-    {
-    public:
-        // Check that we did not reach the end
-        virtual bool has_value() const = 0;
-        // Get current triangle
-        virtual Triangle operator*() const = 0;
-        // Move to next triangle
-        virtual void operator++() = 0;
-        // Release resources that are held by this iterator
-        virtual ~TriangleIterator() {};
-    };
-    // Returns iterator to loop through triangles of model.
-    // Base implementation returns empty iterator,
-    // should be overridden to implement proper logic
-    virtual TriangleIterator* get_triangles() const;
-
-    // Generates normals by averaging triangle normals, getting triangles from get_triagnles
-    virtual void generate_normals();
 
     virtual ~AbstractModel() {}
 private:
@@ -133,10 +111,13 @@ public:
     virtual unsigned get_vertices_count() const override;
     virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const override;
     virtual void unlock_vertex_buffer() const override;
+    virtual unsigned get_indices_count() const override;
+    virtual Index * lock_index_buffer(BufferLockType lock_type) const override;
+    virtual void unlock_index_buffer() const override;
+
+    virtual D3D11_PRIMITIVE_TOPOLOGY get_primitive_topology() const override { return primitive_topology; }
 
     void repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, const float4 & color);
-
-    virtual TriangleIterator * get_triangles() const override;
 
     virtual ~Model();
 private:
@@ -164,6 +145,8 @@ public:
     virtual unsigned get_vertices_count() const override;
     virtual Vertex * lock_vertex_buffer(BufferLockType lock_type) const override;
     virtual void unlock_vertex_buffer() const override;
+
+    virtual D3D11_PRIMITIVE_TOPOLOGY get_primitive_topology() const override;
 
     virtual ~PointModel();
 private:
@@ -199,6 +182,8 @@ public:
     virtual void unlock_vertex_buffer() const override;
 
     virtual void on_notify() override;
+
+    virtual D3D11_PRIMITIVE_TOPOLOGY get_primitive_topology() const override;
 
     virtual ~NormalsModel();
 private:

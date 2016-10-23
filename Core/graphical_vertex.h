@@ -17,6 +17,10 @@ namespace CrashAndSqueeze
             Math::Vector vectors[VertexInfo::MAX_COMPONENT_NUM];
             bool vectors_orthogonality[VertexInfo::MAX_COMPONENT_NUM];
             int vectors_num;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            // in case of quad.deformation normal transformation cannot be expressed analytically, so a complete generation required
+            Math::Vector generated_normal;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 
             ClusterIndex cluster_indices[VertexInfo::CLUSTER_INDICES_NUM];
             // Weights for computing weighted average of positions from different clusters: to smooth borders between clusters
@@ -38,8 +42,18 @@ namespace CrashAndSqueeze
             int get_vectors_num() const { return vectors_num; }
             const Math::Vector & get_vector(int index) const;
             bool is_vector_orthogonal(int index) const;
+            int get_orthogonal_vectors_num() const;
             void set_vector(int index, const Math::Vector & value);
             void add_part_to_vector(int index, const Math::Vector & addition);
+
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            // accessors for generating normal
+            void set_generated_normal(const Math::Vector & value) { generated_normal = value; }
+            void add_to_generated_normal(const Math::Vector &addition) { generated_normal += addition; }
+            void normalize_generated_normal();
+            const Math::Vector &get_generated_normal() const { return generated_normal;  }
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
+
 
             // -- Implement IVertex --
             virtual const Math::Vector & get_pos() const;

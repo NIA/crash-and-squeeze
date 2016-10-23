@@ -55,165 +55,12 @@ namespace
 
 }
 
-// A task source for parallel execution of normals generation
-class Application::NormalsGenerator : public CrashAndSqueeze::Parallel::ITaskExecutor {
-private:
-    class Task : public AbstractTask {
-    private:
-        AbstractModel * model;
-        IEventSet * event_set;
-        int event_index;
-    protected:
-        virtual void execute() override
-        {
-            model->generate_normals();
-            event_set->set(event_index);
-        }
-    public:
-        Task(AbstractModel * model, IEventSet * event_set, int event_index)
-            : model(model), event_set(event_set), event_index(event_index) {}
-
-        void set_event_set(IEventSet *new_event_set) {
-            event_set = new_event_set;
-        }
-    };
-
-    std::vector<Task*> tasks;
-    CrashAndSqueeze::Parallel::IPrimFactory *prim_factory;
-    TaskQueue task_queue;
-    IEventSet * all_completed; // NB: is nullptr until the first model added
-    bool enabled;
-    Logger & logger;
-
-public:
-    NormalsGenerator(Logger &logger, CrashAndSqueeze::Parallel::IPrimFactory &prim_factory)
-        : logger(logger), prim_factory(&prim_factory),
-        task_queue(MAX_PARALLEL_MODELS_GEN_NORMALS, &prim_factory),
-        all_completed(nullptr), enabled(false)
-    {
-    }
-
-    // adds another model for which normals should be generated
-    // NB: not reentrant! must be called only from main thread
-    // returns true if OK, and false - if MAX_PARALLEL_MODELS_GEN_NORMALS size exceeded => need to switch to sequential
-    bool add_model(AbstractModel* model)
-    {
-        if (tasks.size() >= MAX_PARALLEL_MODELS_GEN_NORMALS)
-            return false;
-
-        if (all_completed == nullptr)
-        {
-            // if it is the first model => create event set
-            all_completed = prim_factory->create_event_set(1, true);
-        }
-        else
-        {
-            // TODO FIXME !!!!! REWRITE THIS FROM THE GROUND UP: move normal generation to Core, do this from inside update_vertices if asked, use the same task_queue
-            // + this would allow to make complete and correct vector updating without the need of graphic_transform: vectors can be expressed as linear combination of normal and tangent, each other updated separately
-            // 
-            // + think about depending tasks: now they block the entire _WORKER_ because the wait is placed inside task.execute. This logic should be managed from inside task queue to allow maximum CPU usage
-
-
-            // if not => replace existing to enlarge it
-            all_completed->wait();
-            prim_factory->destroy_event_set(all_completed);
-            all_completed = prim_factory->create_event_set(tasks.size()+1, true);
-            for (auto* task : tasks)
-            {
-                task->set_event_set(all_completed);
-            }
-        }
-        Task * task = new Task(model, all_completed, tasks.size());
-        tasks.push_back(task);
-        return true;
-    }
-
-    // is this normals generator already used in worker threads?
-    bool is_enabled() {
-        return enabled;
-    }
-
-    void enable() {
-        enabled = true;
-    }
-
-    void disable() {
-        enabled = false;
-        abort();
-    }
-
-    void generate_normals_async()
-    {
-        if (all_completed != nullptr) {
-            all_completed->wait();
-            all_completed->unset();
-        }
-        // initiate all tasks again
-        for (int i = 0; i < tasks.size(); ++i)
-        {
-            bool notify_workers = (i == tasks.size() - 1); // notify workers only after adding last task
-            task_queue.push(tasks[i], notify_workers);
-        }
-    }
-
-    void wait_for_normals() {
-        if (all_completed != nullptr) {
-            all_completed->wait();
-        }
-    }
-
-    // is called from worker thread to wait until have any task (reentrant)
-    virtual void wait_for_tasks() override
-    {
-        task_queue.wait_for_tasks();
-    }
-
-    virtual bool wait_for_tasks(unsigned milliseconds) override
-    {
-        return task_queue.wait_for_tasks(milliseconds);
-    }
-
-    virtual bool complete_next_task() override
-    {
-        AbstractTask *task;
-        if (nullptr != (task = task_queue.pop()))
-        {
-            logger.add_message("Normals vvvv STARTED vvvvv");
-            task->complete();
-            logger.add_message("Normals ^^^^ FINISHED ^^^^");
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    virtual void abort() override
-    {
-        task_queue.clear();
-    }
-
-    ~NormalsGenerator() {
-        abort();
-        if (all_completed != nullptr)
-            prim_factory->destroy_event_set(all_completed);
-        for (auto* task : tasks) {
-            delete_pointer(task);
-        }
-    }
-    private:
-        DISABLE_COPY(NormalsGenerator);
-};
-
-
 Application::Application(Logger &logger) :
     window(Window::DEFAULT_WINDOW_SIZE, Window::DEFAULT_WINDOW_SIZE),
     renderer(window, &camera),
     emulation_enabled(true), emultate_one_step(true), forces_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false),
     forces(NULL), logger(logger), impact_model(NULL), prim_factory(false),
-    normals_generator(new NormalsGenerator(logger, prim_factory)),
     impact_axis(0), total_performance_reporter(logger, "total")
 {
     sim_settings.set_defaults(); // TODO: load from config file
@@ -296,6 +143,12 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
 
                               &prim_factory);
         model_entity.physical_model->set_simulation_params(sim_settings);
+        if (CAS_QUADRATIC_EXTENSIONS_ENABLED && high_model.get_indices_count() > 0) {
+            Index * indices = high_model.lock_index_buffer(LOCK_READ);
+            model_entity.indexed_surface = new IndexedSurface(indices, high_model.get_indices_count(), high_model.get_primitive_topology());
+            high_model.unlock_index_buffer();
+            model_entity.physical_model->set_graphical_surface(model_entity.indexed_surface);
+        }
         
         high_model.unlock_vertex_buffer();
         low_model->unlock_vertex_buffer();
@@ -309,28 +162,6 @@ PhysicalModel * Application::add_model(AbstractModel &high_model, bool physical,
             else
                 thread.add_executor(model_entity.physical_model);
         }
-#if CAS_QUADRATIC_EXTENSIONS_ENABLED
-        // if updating on CPU + quadratic extensions => enable parallel generation of normals for this high_model
-        if (!global_settings.update_vertices_on_gpu && normals_generator != nullptr)
-        {
-            bool success = normals_generator->add_model(&high_model);
-            if (success) {
-                if (!normals_generator->is_enabled()) {
-                    for (auto& thread : threads)
-                    {
-                        thread.add_executor(normals_generator);
-                        normals_generator->enable();
-                    }
-                }
-            }
-            else 
-            {
-                // if limit of parallel models with normals exceeded => switch from parallel to sequential normals generation (bad)
-                normals_generator->disable();
-                delete_pointer(normals_generator); // destruct generator set the pointer to nullptr
-            }
-        }
-#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
 
         static const int BUFFER_SIZE = 128;
         char description[BUFFER_SIZE];
@@ -691,8 +522,6 @@ void Application::run()
     total_performance_reporter.report_results();
 
     stop_threads();
-
-    logger.dump_messages();
 }
 
 void Application::simulate(double dt) {
@@ -799,7 +628,7 @@ void Application::update_vertices(PerformanceReporter &update_performance_report
                 case RenderSettings::SHOW_GRAPHICAL_VERTICES:
                     model_entity.stopwatch.start();
                     logger.add_message("Update tasks --READY--");
-                    physical_model->update_vertices_async(vertices, VERTEX_INFO, 0, vertices_count);
+                    physical_model->update_vertices_async(vertices, VERTEX_INFO, true, 0, vertices_count);
 
                     break;
                 case RenderSettings::SHOW_CURRENT_POSITIONS:
@@ -845,36 +674,6 @@ void Application::update_vertices(PerformanceReporter &update_performance_report
         }
     }
 
-#if CAS_QUADRATIC_EXTENSIONS_ENABLED
-    // if show_graphical + quadratic extensions:
-    // ------- GENERATE NORMALS -------------
-    if (RenderSettings::SHOW_GRAPHICAL_VERTICES == render_settigns.show_mode)
-    {
-        if (normals_generator != nullptr)
-        {
-            // parallel normals generation
-            Stopwatch stopwatch;
-            stopwatch.start();
-            normals_generator->generate_normals_async();
-            normals_generator->wait_for_normals();
-            gen_normals_performance_reporter.add_measurement(stopwatch.stop());
-        }
-        else
-        {
-            // sequential normals generation
-            for (auto& model_entity : model_entities)
-            {
-                if (nullptr != model_entity.physical_model)
-                {
-                    model_entity.stopwatch.start();
-                    model_entity.high_model->generate_normals();
-                    gen_normals_performance_reporter.add_measurement(model_entity.stopwatch.stop());
-                }
-            }
-        }
-    }
-#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
-
     // finally:
     // ------- ...NOTIFY SUBSCRIBERS -------------
     for (auto& model_entity : model_entities)
@@ -900,12 +699,12 @@ void Application::stop_threads()
     {
         if(NULL != model_entity.physical_model)
             model_entity.physical_model->wait_for_step();
+        delete_pointer(model_entity.indexed_surface);
     }
 }
 
 void Application::delete_model_stuff()
 {
-    delete_pointer(normals_generator);
     for (auto& model_entity: model_entities)
     {
         delete_pointer(model_entity.physical_model);

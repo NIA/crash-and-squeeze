@@ -97,6 +97,7 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="cubic.cpp" />
     <ClCompile Include="cylinder.cpp" />
+    <ClCompile Include="IndexedSurface.cpp" />
     <ClCompile Include="logger.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Model.cpp" />
@@ -123,6 +124,7 @@
     <ClInclude Include="Error.h" />
     <ClInclude Include="fast_atof.h" />
     <ClInclude Include="IInputHandler.h" />
+    <ClInclude Include="IndexedSurface.h" />
     <ClInclude Include="IRenderer.h" />
     <ClInclude Include="settings.h" />
     <ClInclude Include="logger.h" />

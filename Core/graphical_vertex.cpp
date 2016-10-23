@@ -22,6 +22,9 @@ namespace CrashAndSqueeze
             : points_num(1), vectors_num(0), including_clusters_num(0)
         {
             points[0] = Vector::ZERO;
+#if CAS_QUADRATIC_EXTENSIONS_ENABLED
+            generated_normal = Vector::ZERO;
+#endif // CAS_QUADRATIC_EXTENSIONS_ENABLED
         }
 
         GraphicalVertex::GraphicalVertex(const VertexInfo &vertex_info, const void *src_vertex)
@@ -39,6 +42,10 @@ namespace CrashAndSqueeze
             {
                 get_by_offset(src_vertex, vertex_info.get_vector_offset(i), vectors[i]);
                 vectors_orthogonality[i] = vertex_info.is_vector_orthogonal(i);
+                if (vertex_info.is_vector_orthogonal(i) && ! vectors[i].is_zero())
+                {
+                    generated_normal = vectors[i].normalized();
+                }
             }
         }
 
@@ -113,6 +120,17 @@ namespace CrashAndSqueeze
                 return vectors_orthogonality[index];
         }
 
+        int GraphicalVertex::get_orthogonal_vectors_num() const
+        {
+            int res = 0;
+            for (int i = 0; i < vectors_num; ++i)
+            {
+                if (vectors_orthogonality[i] == true)
+                    ++res;
+            }
+            return res;
+        }
+
         void GraphicalVertex::set_vector(int index, const Math::Vector & value)
         {
         #ifndef NDEBUG
@@ -136,6 +154,12 @@ namespace CrashAndSqueeze
         const Vector & GraphicalVertex::get_pos() const
         {
             return get_point(0);
+        }
+
+        void GraphicalVertex::normalize_generated_normal()
+        {
+            if (!generated_normal.is_zero())
+                generated_normal.normalize();
         }
         
         void GraphicalVertex::include_to_one_more_cluster(int cluster_index, Real weight)

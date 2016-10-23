@@ -51,9 +51,6 @@ private:
 
     PerformanceReporter total_performance_reporter;
 
-    class NormalsGenerator;
-    NormalsGenerator * normals_generator;
-
     static const int THREADS_COUNT = 4;
     WorkerThread threads[THREADS_COUNT];
 

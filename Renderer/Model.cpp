@@ -6,79 +6,6 @@ extern const unsigned VECTORS_IN_MATRIX;
 
 using namespace DirectX;
 
-// -- Triangle iterators
-class EmptyTriangleIterator : public AbstractModel::TriangleIterator
-{
-public:
-    virtual bool has_value() const { return false; }
-    virtual AbstractModel::Triangle operator*() const { throw OutOfRangeError(); }
-    virtual void operator++() { throw OutOfRangeError(); }
-};
-
-class IndexBufferTriangleIterator : public AbstractModel::TriangleIterator
-{
-private:
-    const IndexBuffer & index_buffer;
-    Index * indices;
-    Index current_index;
-    bool is_strip;
-    bool swap_indices; // if is_strip, each even triangle should have indices swapped
-public:
-    IndexBufferTriangleIterator(const IndexBuffer & buffer, D3D_PRIMITIVE_TOPOLOGY prim_topology)
-        : index_buffer(buffer), current_index(0), swap_indices(false)
-    {
-        indices = index_buffer.lock(LOCK_READ);
-        is_strip = (prim_topology == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-    }
-    virtual bool has_value() const
-    {
-        // if we have three indices (starting from current) available
-        return current_index + VERTICES_PER_TRIANGLE - 1 < index_buffer.get_items_count();
-    }
-    virtual AbstractModel::Triangle operator*() const
-    {
-        #ifndef NDEBUG
-        if ( ! has_value()) {
-            throw OutOfRangeError();
-        }
-        #endif //ifndef NDEBUG
-
-        AbstractModel::Triangle res;
-        for (int i = 0; i < VERTICES_PER_TRIANGLE; ++i)
-            res.indices[i] = indices[current_index + i];
-        if (is_strip)
-        {
-            if (swap_indices)
-                std::swap(res.indices[0], res.indices[1]); // each even triangle should have indices swapped in order to preserve orientation
-        }
-        return res;
-    }
-    virtual void operator++()
-    {
-        #ifndef NDEBUG
-        if ( ! has_value()) {
-            throw OutOfRangeError();
-        }
-        #endif //ifndef NDEBUG
-
-        if (is_strip)
-        {
-            current_index += 1;
-            swap_indices = !swap_indices;
-        }
-        else
-        {
-            current_index += VERTICES_PER_TRIANGLE;
-        }
-    }
-    virtual ~IndexBufferTriangleIterator()
-    {
-        index_buffer.unlock();
-    }
-private:
-    DISABLE_COPY(IndexBufferTriangleIterator);
-};
-
 // -- AbstractModel --
 
 AbstractModel::AbstractModel(IRenderer *renderer, VertexShader &shader, const float3 & position, const float3 & rotation)
@@ -193,44 +120,6 @@ void AbstractModel::draw() const
     do_draw();
 }
 
-AbstractModel::TriangleIterator * AbstractModel::get_triangles() const
-{
-    return new EmptyTriangleIterator();
-}
-
-void AbstractModel::generate_normals()
-{
-    unsigned vertices_count = get_vertices_count();
-    Vertex * vertices = lock_vertex_buffer(LOCK_READ_WRITE);
-
-    for (unsigned i = 0; i < vertices_count; ++i)
-        vertices[i].set_normal(float3(0,0,0));
-
-    TriangleIterator * triangle_iterator = get_triangles();
-    for (TriangleIterator & t = *triangle_iterator; t.has_value(); ++t)
-    {
-        // Find normal of triangle
-        Triangle triangle = *t;
-        XMVECTOR positions[VERTICES_PER_TRIANGLE];
-        for (unsigned i = 0; i < VERTICES_PER_TRIANGLE; ++i)
-            positions[i] = XMLoadFloat3(&vertices[triangle[i]].pos);
-        XMVECTOR v1 = positions[1] - positions[0];
-        XMVECTOR v2 = positions[2] - positions[0];
-        XMVECTOR n = XMVector3NormalizeEst(XMVector3Cross(v1, v2)); // use *Est version of XMVector3Normalize because accuracy is not critical for a normal
-
-        // Add triangle normal to each vertex of this triangle to find average
-        for (unsigned i = 0; i < VERTICES_PER_TRIANGLE; ++i)
-            vertices[triangle[i]].normal += n;
-    }
-    // NB: here we should normalize all normals, but it is anyway done in shader
-
-    // TODO: take into account that some normals can differ from average of triangles (somehow store this difference?)
-
-    delete triangle_iterator;
-
-    unlock_vertex_buffer();
-}
-
 // -- Model --
 
 Model::Model(   IRenderer *renderer, D3D11_PRIMITIVE_TOPOLOGY primitive_topology, VertexShader &shader,
@@ -269,9 +158,18 @@ void Model::unlock_vertex_buffer() const
     vertex_buffer.unlock();
 }
 
-AbstractModel::TriangleIterator * Model::get_triangles() const
+unsigned Model::get_indices_count() const
 {
-    return new IndexBufferTriangleIterator(index_buffer, primitive_topology);
+    return index_buffer.get_items_count();
+}
+
+Index * Model::lock_index_buffer(BufferLockType lock_type) const
+{
+    return index_buffer.lock(lock_type);
+}
+void Model::unlock_index_buffer() const
+{
+    index_buffer.unlock();
 }
 
 void Model::repaint_vertices(const ::CrashAndSqueeze::Collections::Array<int> &vertex_indices, const float4 & color)
@@ -343,12 +241,22 @@ void PointModel::unlock_vertex_buffer() const
     vertex_buffer->unlock();
 }
 
+namespace
+{
+    // Use line strip to make point model better visible. Created seg are random, but who cares?
+    // TODO: return to POINTLIST but use geometry shader/instancing to transform points to triangles or tetrahedrons
+    const D3D11_PRIMITIVE_TOPOLOGY POINT_MODEL_TOPOLOGY = D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
+}
+
+D3D11_PRIMITIVE_TOPOLOGY PointModel::get_primitive_topology() const
+{
+    return POINT_MODEL_TOPOLOGY;
+}
+
 void PointModel::pre_draw() const
 {
     vertex_buffer->set();
-    // Use triangle list to make point model better visible. Created triangles are random, but who cares?
-    // TODO: return to POINTLIST but use geometry shader/instancing to transform points to triangles or tetrahedrons
-    get_context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
+    get_context()->IASetPrimitiveTopology(POINT_MODEL_TOPOLOGY);
 }
 
 void PointModel::do_draw() const
@@ -432,6 +340,11 @@ void NormalsModel::update_normals()
 void NormalsModel::on_notify()
 {
     update_normals();
+}
+
+D3D11_PRIMITIVE_TOPOLOGY NormalsModel::get_primitive_topology() const
+{
+    return D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 }
 
 void NormalsModel::pre_draw() const
