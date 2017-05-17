@@ -52,7 +52,7 @@ namespace
 
 
 Application::Application(Logger &logger) :
-    window(Window::DEFAULT_WINDOW_SIZE, Window::DEFAULT_WINDOW_SIZE),
+    window(1800, 1000),
     renderer(window, &camera),
     emulation_enabled(true), emultate_one_step(true), forces_enabled(false),
     vertices_update_needed(false), impact_region(NULL), impact_happened(false),

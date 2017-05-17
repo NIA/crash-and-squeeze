@@ -50,7 +50,7 @@ namespace
     bool SHOW_NORMALS = false;
     bool ENABLE_REACTIONS = false;
     bool SHOW_REACTION_REGIONS = false;
-    bool UPDATE_ON_GPU = false; // TODO: why is lighting less smooth when updating on GPU? Maybe precision of applying deformation and averaging? How to fix?
+    bool UPDATE_ON_GPU = true; // TODO: why is lighting less smooth when updating on GPU? Maybe precision of applying deformation and averaging? How to fix?
 
     const char *SIMPLE_SHADER_FILENAME = "simple.vsh";
                                                          // TODO: can we handle this with one shader file? And allow switching CPU/GPU in runtime?
@@ -90,11 +90,11 @@ namespace
     const Index SPHERE_INDICES = sphere_indices_count(SPHERE_EDGES_PER_DIAMETER);
     const float4 HIT_REGION_COLOR (1, 1, 0, 0.5f);
 
-    const Index LOW_OVAL_EDGES_PER_DIAMETER = 70;
+    const Index LOW_OVAL_EDGES_PER_DIAMETER = 23;
     const Index LOW_OVAL_VERTICES = sphere_vertices_count(LOW_OVAL_EDGES_PER_DIAMETER);
     const DWORD LOW_OVAL_INDICES = sphere_indices_count(LOW_OVAL_EDGES_PER_DIAMETER);
 
-    const Index HIGH_OVAL_EDGES_PER_DIAMETER = 220;
+    const Index HIGH_OVAL_EDGES_PER_DIAMETER = 10;
     const Index HIGH_OVAL_VERTICES = sphere_vertices_count(HIGH_OVAL_EDGES_PER_DIAMETER);
     const DWORD HIGH_OVAL_INDICES = sphere_indices_count(HIGH_OVAL_EDGES_PER_DIAMETER);
 
@@ -714,7 +714,6 @@ namespace
         virtual void prepare()
         {
             // == PREPARE MESH DEMO ==
-
             for (auto & mesh_filename : mesh_filenames) {
                 // - Load model from obj
                 ObjMeshLoader loader(mesh_filename.c_str(), MESH_COLOR);
@@ -799,43 +798,62 @@ namespace
         {
             // == PREPARE OVAL DEMO ==
 
-            // - Create models -
-            const float oval_radius = 2;
-            sphere(oval_radius, float3(0, 0, 0), OVAL_COLOR, LOW_OVAL_EDGES_PER_DIAMETER, low_model_vertices, low_model_indices);
-            sphere(oval_radius, float3(0, 0, 0), OVAL_COLOR, HIGH_OVAL_EDGES_PER_DIAMETER, high_model_vertices, high_model_indices);
-            // Make oval
-            make_oval(low_model_vertices,  LOW_OVAL_VERTICES);
-            make_oval(high_model_vertices, HIGH_OVAL_VERTICES);
-            Model * high_oval_model = new Model(
-                app.get_renderer(),
-                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
-                deform_shader,
-                high_model_vertices,
-                HIGH_OVAL_VERTICES,
-                high_model_indices,
-                HIGH_OVAL_INDICES
-            );
-            high_oval_model->add_shader(lighting_shader); // add lighting
-            Model * low_oval_model = new Model(
-                app.get_renderer(),
-                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
-                simple_shader,
-                low_model_vertices,
-                LOW_OVAL_VERTICES,
-                low_model_indices,
-                LOW_OVAL_INDICES);
-            set_camera_position(3.1f, 0.9f, -0.854f);
-            low_oval_model->add_shader(simple_pixel_shader);
+            // render each mesh at different position (hard-coded by now)
+            float3 position(0, 0, 0);
+            float3 dx(2, 0, 0);
+            float3 dy(0, 0, 2);
+            const int ROWS = 11;
+            const int OVALS = 121;
 
-            PhysicalModel * phys_mod = add_physical_model(high_oval_model, low_oval_model);
+            for (int i = 0; i < OVALS; i++)
+            {
 
-            // - Reactions -
-            int xyz_cells[3] = {6, 1, 8};
-            set_repaint_reaction_params(high_oval_model, phys_mod, 0.1, 0.3, OVAL_COLOR);
-            reactions_generator.generate(Vector(-0.6, 0.75, -0.8), Vector( 0.6, 1.75,  0.8), xyz_cells, this);
+                // - Create models -
+                const float oval_radius = 2;
+                sphere(oval_radius, float3(0, 0, 0), OVAL_COLOR, LOW_OVAL_EDGES_PER_DIAMETER, low_model_vertices, low_model_indices);
+                sphere(oval_radius, float3(0, 0, 0), OVAL_COLOR, HIGH_OVAL_EDGES_PER_DIAMETER, high_model_vertices, high_model_indices);
+                // Make oval
+                make_oval(low_model_vertices, LOW_OVAL_VERTICES);
+                make_oval(high_model_vertices, HIGH_OVAL_VERTICES);
 
-            // - Set impact -
-            set_impact(Vector(0,1.5,0), 0.25, Vector(0, 0, 0), Vector(0,-110,0.0));
+                float3 position = dx*(i / ROWS) + dy*(i % ROWS);
+                Model * high_oval_model = new Model(
+                    app.get_renderer(),
+                    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+                    deform_shader,
+                    high_model_vertices,
+                    HIGH_OVAL_VERTICES,
+                    high_model_indices,
+                    HIGH_OVAL_INDICES,
+                    true,
+                    position
+                    );
+                high_oval_model->add_shader(lighting_shader); // add lighting
+                Model * low_oval_model = new Model(
+                    app.get_renderer(),
+                    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+                    simple_shader,
+                    low_model_vertices,
+                    LOW_OVAL_VERTICES,
+                    low_model_indices,
+                    LOW_OVAL_INDICES,
+                    true,
+                    position);
+                set_camera_position(3.1f, 0.9f, -0.854f);
+                low_oval_model->add_shader(simple_pixel_shader);
+
+                PhysicalModel * phys_mod = add_physical_model(high_oval_model, low_oval_model);
+
+                if (hit_region == nullptr) { // set only for first
+                    // - Reactions -
+                    int xyz_cells[3] = { 6, 1, 8 };
+                    set_repaint_reaction_params(high_oval_model, phys_mod, 0.1, 0.3, OVAL_COLOR);
+                    reactions_generator.generate(Vector(-0.6, 0.75, -0.8), Vector(0.6, 1.75, 0.8), xyz_cells, this);
+
+                    // - Set impact -
+                    set_impact(Vector(0, 1.5, 0), 0.25, Vector(0, 0, 0), Vector(0, -110, 0.0));
+                }
+            }
         }
 
     };
