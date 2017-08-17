@@ -1,1 +1,2 @@
 *.obj linguist-vendored
+GoogleTestFramework/* linguist-vendored
